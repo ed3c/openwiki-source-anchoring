@@ -10,6 +10,7 @@ with **no API key** — the official prompts and the official three review subag
 (`skeleton_critic`, `wiki_question_finder`, `wiki_answer_verifier`) executed inside a CLI
 subscription session rather than through the upstream binary. That wiki passed all three
 official gates: zero broken links, zero half-written pages, `status: success`.
+The full procedure for both arms is in [`METHOD.md`](METHOD.md).
 
 It also contained **53 statements that contradict the source code**, and no part of the
 pipeline could have found them, because nothing in it ever compares a sentence to the file
@@ -39,6 +40,7 @@ method, recorded rather than smoothed.
 
 | path | what |
 |---|---|
+| [`METHOD.md`](METHOD.md) | how each arm was produced: prompt integrity, the three isolated review subagents, the anchoring runs, and which models were pinned |
 | [`STAGES.md`](STAGES.md) | the reasoning stages that produced the difference, what each one cost, and the four things that were not anticipated |
 | [`FINDINGS.md`](FINDINGS.md) | the 53 false claims with the source that contradicts each, and what the QA result does and does not license |
 | [`wiki/baseline/`](wiki/baseline/) | the 44-page wiki as the official pipeline produced it |
@@ -84,6 +86,8 @@ code.
 - **The QA bank is model-written.** Questions and acceptance criteria came from four
   source-only agents; a human never audited all 60.
 - **`n = 30`, one run.** Directional, not a result.
+- **The authoring model was not pinned.** Only the QA layer records fixed models; the page
+  agents inherited the session model. See [`METHOD.md`](METHOD.md#models).
 
 Paths are desensitised: `<target-repo>`, `<host-repo>`, `<sandbox>`, `<home>`.
 
