@@ -43,6 +43,7 @@ QA holdout **只跑一次**，30 題由禁止閱讀任何 wiki 的出題者從�
 
 | 路徑 | 內容 |
 |---|---|
+| [`LICENSE`](LICENSE) | MIT。wiki 描述的是第三方 repo,授權涵蓋的是本 repo 自己的產出 |
 | [`THRESHOLDS.md`](THRESHOLDS.zh-TW.md) | 六條門檻,以及在任何數字存在**之前**固定它們的那個 commit |
 | [`METHOD.md`](METHOD.zh-TW.md) | 兩臂各自怎麼做出來的：提示詞完整性、三個隔離的 review subagent、錨定各輪、哪些 model 被釘死 |
 | [`STAGES.md`](STAGES.zh-TW.md) | 造成差異的推理階段、每階段的代價，以及四件沒人預料到的事 |

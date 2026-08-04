@@ -46,6 +46,7 @@ method, recorded rather than smoothed.
 
 | path | what |
 |---|---|
+| [`LICENSE`](LICENSE) | MIT. The wikis describe a third-party repository; the licence covers this repository own output |
 | [`THRESHOLDS.md`](THRESHOLDS.md) | the six thresholds and the commit that fixed them **before** any number existed |
 | [`METHOD.md`](METHOD.md) | how each arm was produced: prompt integrity, the three isolated review subagents, the anchoring runs, and which models were pinned |
 | [`STAGES.md`](STAGES.md) | the reasoning stages that produced the difference, what each one cost, and the four things that were not anticipated |
