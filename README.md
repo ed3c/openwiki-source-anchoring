@@ -1,3 +1,9 @@
+<div align="right">
+
+**English** · [繁體中文](README.zh-TW.md)
+
+</div>
+
 # Source anchoring: can a generated code wiki be made falsifiable, and does it help?
 
 A generated wiki says a lot of specific things about a codebase. Almost none of them can be

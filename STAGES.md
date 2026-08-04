@@ -1,3 +1,9 @@
+<div align="right">
+
+**English** · [繁體中文](STAGES.zh-TW.md)
+
+</div>
+
 # The stages that produced the difference
 
 Not a plan followed. Eleven stages, six of which overturned the stage before them. What each

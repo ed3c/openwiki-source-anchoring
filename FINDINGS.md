@@ -1,3 +1,9 @@
+<div align="right">
+
+**English** · [繁體中文](FINDINGS.zh-TW.md)
+
+</div>
+
 # Findings
 
 ## The pipeline's own gates cannot see the defect this measures

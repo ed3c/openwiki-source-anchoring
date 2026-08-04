@@ -1,3 +1,9 @@
+<div align="right">
+
+**English** · [繁體中文](METHOD.zh-TW.md)
+
+</div>
+
 # How each arm was produced
 
 Both wikis document the same repository at the same commit. Only the second one was anchored.
