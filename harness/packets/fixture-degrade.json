@@ -1,0 +1,11 @@
+{
+  "schema_version": "wiki-anchor-page@1.0.0",
+  "packet_id": "fixture-degrade",
+  "packet_state": "fixture",
+  "page": "unanchorable.md",
+  "task": "selftest fixture: this page is permanently unanchorable, so the retry budget must exhaust and the breaker must degrade rather than delete.",
+  "fixed_prompt_context": ["PROMPT.md"],
+  "emergent_prompt_context": "N/A-none",
+  "retry_budget": 2,
+  "human_gate": "required_before_merge"
+}

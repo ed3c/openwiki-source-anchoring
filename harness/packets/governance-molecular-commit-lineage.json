@@ -1,0 +1,11 @@
+{
+  "schema_version": "wiki-anchor-page@1.0.0",
+  "packet_id": "governance-molecular-commit-lineage",
+  "packet_state": "admitted",
+  "page": "governance/molecular-commit-lineage.md",
+  "task": "Anchor every verifiable claim on this page against the target repo; mark unanchorable rationale (inferred). Do not delete sentences or the page.",
+  "fixed_prompt_context": ["CLAUDE.md", "PROMPT.md", "<path>"],
+  "emergent_prompt_context": "1) `.openwiki-review/` holds this wiki's own generation transcripts — anchoring into it is circular evidence, never do it. 2) Negative claims (\"no gate reads X\") cannot carry a verbatim quote by construction; mark them (inferred) and say what was searched. 3) A bare filename in backticks (`git_gate.py`) usually means `scripts/git_gate.py` — resolve it before calling anything missing.",
+  "retry_budget": 3,
+  "human_gate": "required_before_merge"
+}

@@ -43,12 +43,13 @@ QA holdout **只跑一次**，30 題由禁止閱讀任何 wiki 的出題者從�
 
 | 路徑 | 內容 |
 |---|---|
+| [`THRESHOLDS.md`](THRESHOLDS.zh-TW.md) | 六條門檻,以及在任何數字存在**之前**固定它們的那個 commit |
 | [`METHOD.md`](METHOD.zh-TW.md) | 兩臂各自怎麼做出來的：提示詞完整性、三個隔離的 review subagent、錨定各輪、哪些 model 被釘死 |
 | [`STAGES.md`](STAGES.zh-TW.md) | 造成差異的推理階段、每階段的代價，以及四件沒人預料到的事 |
 | [`FINDINGS.md`](FINDINGS.zh-TW.md) | 53 句錯誤主張與各自的源碼反證，以及 QA 結果准許與不准許的結論 |
 | [`wiki/baseline/`](wiki/baseline/) | 官方 pipeline 產出的原始 44 頁 |
 | [`wiki/candidate/`](wiki/candidate/) | 同一份 wiki 經錨定 pass 之後 |
-| [`harness/`](harness/) | 機械 gate、circuit breaker、作者側附錄，以及證明 gate 不是空殼的 good/hollow fixture |
+| [`harness/`](harness/) | gate、它的 engine wrapper、circuit breaker、它派工用的三類 context packet、作者側附錄，以及證明 gate 不是空殼的 fixture |
 | [`qa/`](qa/) | 60 題題庫、public/holdout 切分、逐題判定 |
 | [`data/`](data/) | 錯誤主張清單、逐頁 anchor 數，以及約束了整個設計的那份實測前科 |
 

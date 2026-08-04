@@ -1,0 +1,11 @@
+{
+  "schema_version": "wiki-anchor-page@1.0.0",
+  "packet_id": "architecture-data-authority",
+  "packet_state": "admitted",
+  "page": "architecture/data-authority.md",
+  "task": "Anchor every verifiable claim on this page.",
+  "fixed_prompt_context": ["CLAUDE.md", "PROMPT.md", "<path>"],
+  "emergent_prompt_context": "N/A-none",
+  "retry_budget": 3,
+  "human_gate": "required_before_merge"
+}
