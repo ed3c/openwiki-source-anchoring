@@ -1,0 +1,266 @@
+[
+  {
+    "page": "operations/entrypoint-matrix.md",
+    "wb": 1013,
+    "wc": 1651,
+    "anchors": 60
+  },
+  {
+    "page": "validation/static-skill-validators.md",
+    "wb": 581,
+    "wc": 1011,
+    "anchors": 48
+  },
+  {
+    "page": "nonofficial/production-bottlenecks.md",
+    "wb": 678,
+    "wc": 1054,
+    "anchors": 29
+  },
+  {
+    "page": "nonofficial/stateful-workflow.md",
+    "wb": 672,
+    "wc": 1010,
+    "anchors": 29
+  },
+  {
+    "page": "governance/molecular-commit-lineage.md",
+    "wb": 584,
+    "wc": 912,
+    "anchors": 23
+  },
+  {
+    "page": "quickstart.md",
+    "wb": 1134,
+    "wc": 1370,
+    "anchors": 19
+  },
+  {
+    "page": "nonofficial/provenance.md",
+    "wb": 840,
+    "wc": 984,
+    "anchors": 19
+  },
+  {
+    "page": "nonofficial/code-call-lifecycle.md",
+    "wb": 721,
+    "wc": 911,
+    "anchors": 19
+  },
+  {
+    "page": "nonofficial/asset-lifecycle-map.md",
+    "wb": 673,
+    "wc": 856,
+    "anchors": 18
+  },
+  {
+    "page": "nonofficial/autoresearch-composer-lifecycle.md",
+    "wb": 832,
+    "wc": 1196,
+    "anchors": 17
+  },
+  {
+    "page": "nonofficial/prompt-trace-assets.md",
+    "wb": 867,
+    "wc": 1052,
+    "anchors": 15
+  },
+  {
+    "page": "skill-assets/gemini-interactions.md",
+    "wb": 1113,
+    "wc": 1247,
+    "anchors": 14
+  },
+  {
+    "page": "skill-assets/contract.md",
+    "wb": 652,
+    "wc": 773,
+    "anchors": 13
+  },
+  {
+    "page": "architecture/data-authority.md",
+    "wb": 674,
+    "wc": 770,
+    "anchors": 12
+  },
+  {
+    "page": "governance/plan-package-compatibility.md",
+    "wb": 525,
+    "wc": 648,
+    "anchors": 12
+  },
+  {
+    "page": "testing/test-map.md",
+    "wb": 523,
+    "wc": 717,
+    "anchors": 11
+  },
+  {
+    "page": "architecture/defense-gate-chain.md",
+    "wb": 566,
+    "wc": 721,
+    "anchors": 11
+  },
+  {
+    "page": "terminal-operator/writer-publication.md",
+    "wb": 1523,
+    "wc": 1616,
+    "anchors": 11
+  },
+  {
+    "page": "validation/ablation-and-benchmark.md",
+    "wb": 1192,
+    "wc": 1406,
+    "anchors": 11
+  },
+  {
+    "page": "lifecycle/structured-datasets.md",
+    "wb": 737,
+    "wc": 843,
+    "anchors": 9
+  },
+  {
+    "page": "architecture/overview.md",
+    "wb": 509,
+    "wc": 630,
+    "anchors": 9
+  },
+  {
+    "page": "terminal-operator/overview.md",
+    "wb": 1611,
+    "wc": 1744,
+    "anchors": 9
+  },
+  {
+    "page": "nonofficial/schema-standards.md",
+    "wb": 939,
+    "wc": 1031,
+    "anchors": 9
+  },
+  {
+    "page": "validation/semantic-arbitration.md",
+    "wb": 507,
+    "wc": 588,
+    "anchors": 9
+  },
+  {
+    "page": "terminal-operator/production-profiles-and-handoff.md",
+    "wb": 661,
+    "wc": 723,
+    "anchors": 8
+  },
+  {
+    "page": "nonofficial/usage.md",
+    "wb": 611,
+    "wc": 677,
+    "anchors": 8
+  },
+  {
+    "page": "validation/synthetic-corpus-quality.md",
+    "wb": 485,
+    "wc": 600,
+    "anchors": 8
+  },
+  {
+    "page": "skill-assets/autoresearch-composer.md",
+    "wb": 570,
+    "wc": 632,
+    "anchors": 5
+  },
+  {
+    "page": "terminal-operator/async-lifecycle.md",
+    "wb": 2384,
+    "wc": 2455,
+    "anchors": 4
+  },
+  {
+    "page": "nonofficial/README.md",
+    "wb": 586,
+    "wc": 685,
+    "anchors": 4
+  },
+  {
+    "page": "nonofficial/structured-lifecycle-data.md",
+    "wb": 312,
+    "wc": 336,
+    "anchors": 4
+  },
+  {
+    "page": "validation/behavioral-eval-and-judge.md",
+    "wb": 685,
+    "wc": 748,
+    "anchors": 4
+  },
+  {
+    "page": "nonofficial/wiki-graph-sync-architecture.md",
+    "wb": 1306,
+    "wc": 1320,
+    "anchors": 3
+  },
+  {
+    "page": "terminal-operator/evidence-cost.md",
+    "wb": 1171,
+    "wc": 1182,
+    "anchors": 2
+  },
+  {
+    "page": "lifecycle/index.md",
+    "wb": 32,
+    "wc": 32,
+    "anchors": 0
+  },
+  {
+    "page": "operations/index.md",
+    "wb": 28,
+    "wc": 28,
+    "anchors": 0
+  },
+  {
+    "page": "testing/index.md",
+    "wb": 29,
+    "wc": 29,
+    "anchors": 0
+  },
+  {
+    "page": "skill-assets/index.md",
+    "wb": 82,
+    "wc": 82,
+    "anchors": 0
+  },
+  {
+    "page": "architecture/index.md",
+    "wb": 87,
+    "wc": 87,
+    "anchors": 0
+  },
+  {
+    "page": "index.md",
+    "wb": 58,
+    "wc": 58,
+    "anchors": 0
+  },
+  {
+    "page": "governance/index.md",
+    "wb": 55,
+    "wc": 55,
+    "anchors": 0
+  },
+  {
+    "page": "terminal-operator/index.md",
+    "wb": 160,
+    "wc": 160,
+    "anchors": 0
+  },
+  {
+    "page": "nonofficial/index.md",
+    "wb": 334,
+    "wc": 334,
+    "anchors": 0
+  },
+  {
+    "page": "validation/index.md",
+    "wb": 149,
+    "wc": 149,
+    "anchors": 0
+  }
+]

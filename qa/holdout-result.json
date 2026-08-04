@@ -1,0 +1,221 @@
+{
+  "schema_version": "wiki-qa-result@1.0.0",
+  "run": "holdout #1 (only)",
+  "provenance": {
+    "finder_model": "sonnet",
+    "answerer_model": "sonnet",
+    "judge_model": "opus",
+    "split_rule": "sort by id, even index -> public, odd index -> holdout",
+    "holdout_runs": 1
+  },
+  "score": {
+    "baseline": {
+      "PASS": 9,
+      "PARTIAL": 6,
+      "FAIL": 15
+    },
+    "candidate": {
+      "PASS": 13,
+      "PARTIAL": 7,
+      "FAIL": 10
+    }
+  },
+  "rates": {
+    "baseline": {
+      "n": 30,
+      "pass_rate": 0.3,
+      "pass_or_partial": 0.5
+    },
+    "candidate": {
+      "n": 30,
+      "pass_rate": 0.43333333333333335,
+      "pass_or_partial": 0.6666666666666666
+    }
+  },
+  "wiki_did_not_say": {
+    "baseline": 12,
+    "candidate": 6
+  },
+  "per_question": [
+    {
+      "id": "assets-02",
+      "baseline": "PASS",
+      "candidate": "PASS",
+      "note": "Both give the 10-20 count, the four required fields, bool should_trigger, the exact WEAK_PATTERNS set, the 5+/5+ polarity split and the 0.85 SequenceMatcher near-duplicate rule, and both correctly reject 21 cases on the count rule; Beta is marginally more literal (quotes 'expected 10-20 cases' and the lowercasing of prompts) but nothing separates them on the criteria."
+    },
+    {
+      "id": "assets-08",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Both defer on the receipt file-mode and full schema requirements, but Alpha is confidently wrong in a worse way — it denies that check_plan_package_compat.py has GIT_GATE_ORDER or a --gate-receipt flag at all and reassigns the (correctly ordered) 23-entry list to git_gate.py's GATES, whereas Beta honestly derives the right count (22 + validate_molecular_commit_lineage.py = 23) and correctly cites the expected_gate_count comparison while admitting it cannot give the order."
+    },
+    {
+      "id": "assets-14",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Both explicitly defer on the language_for(index) parity rule, which is the core ask; Beta is otherwise stronger — it also supplies the 'FAIL: production P11 matrix must contain exactly 117 cases' hard-fail on --total, which Alpha omits entirely (Alpha covers only the 59/58 split). Both deferrals are honest, not wrong."
+    },
+    {
+      "id": "data-05",
+      "baseline": "PARTIAL",
+      "candidate": "PARTIAL",
+      "note": "Both answer the main question correctly (hand-maintained, no renderer, no byte-compare, contrasted with render_lifecycle_openwiki.py/check_lifecycle_datasets.py) but both make the identical error on the second criterion — they describe check_prompt_trace_assets.py as validating the data/prompt_trace/*.json dataset (schema, slots, actors) rather than asserting literal substrings inside the .md text; equivalent answers."
+    },
+    {
+      "id": "data-11",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Neither identifies STRICT_TERMINAL_ARTIFACTS or its binding to (ROOT/'plan-package.compat.yaml').is_file(); both defer, and both compound it by asserting the script is 'reporting, not blocking' and always exits 0, which contradicts the existence of the strict hard-failure branch — equivalently wrong."
+    },
+    {
+      "id": "evals-02",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Both deny that any default --threshold exists, contradicting DEFAULT_THRESHOLD = 0.20; Beta is otherwise clearly better — it affirms exit 2 for both the missing {task} and the codex-without---skip-git-repo-check conditions and lists the five ANDed verdict conjuncts, while Alpha explicitly hedges that no exit code is documented for the codex case and gives no pass conditions."
+    },
+    {
+      "id": "evals-08",
+      "baseline": "PASS",
+      "candidate": "PASS",
+      "note": "Both give all four bounds correctly — 10-20 count, 5+ positive and 5+ negative, the exact WEAK_PATTERNS set, and the >0.85 difflib SequenceMatcher near-duplicate rejection; substantively equivalent (Alpha adds a synthetic-corpus cross-reference, Beta names difflib and the lowercasing)."
+    },
+    {
+      "id": "evals-14",
+      "baseline": "PARTIAL",
+      "candidate": "PARTIAL",
+      "note": "Both name the three markers with correct descriptions, both give `pytest -q -m evals` for local-first-eval and the exact `vars.ENABLE_CLOUD_EVALS == 'true'` guard, and both add the same ENABLE_LLM_JUDGE 'true' vs '1' mismatch note; neither mentions the prior eval_autoresearch_composer.py/pr_golden_set.json + sample_autoresearch_traces.py steps nor the cloud job's OPENAI_API_KEY secret and --mode cloud nightly invocation."
+    },
+    {
+      "id": "gates-05",
+      "baseline": "PASS",
+      "candidate": "PASS",
+      "note": "Both describe input_state_sha256's walk (exclusions, relative path + mode + content/symlink target), the before/after comparison, exit 125 with 'FAIL: git gate changed receipt-bound repo inputs', and the requirement that --receipt resolve outside --repo-root with the correct rationale; equivalent, both add the atomic 0600 write as extra."
+    },
+    {
+      "id": "gates-11",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Alpha only paraphrases the gist and honestly admits it cannot name the two mandatory constraint tokens; Beta correctly supplies REQUIRED_BLOCKS = (GOAL:, CONSTRAINTS:) and part of the forbidden-sequence regexes but then confidently misanswers the token question by calling GOAL:/CONSTRAINTS: the mandatory constraint tokens instead of CODE_LANGUAGE (language|typescript|python) and SECURITY_PROTOCOL (ssl|tls|protocol|secure) — more correct detail overall, but a confidently wrong answer where Alpha deferred."
+    },
+    {
+      "id": "assets-04",
+      "baseline": "FAIL",
+      "candidate": "PARTIAL",
+      "note": "Alpha gets the references/ regex + sibling-directory requirement and the 'deployment detail leaked into root skill' message but omits the NOISE literals (AWS_ACCESS_KEY / GOOGLE_APPLICATION_CREDENTIALS / IPv4) and the exit-2 'FAIL: progressive disclosure check failed' line; Beta gives only a conceptual router-vs-references description and explicitly defers ('not answerable from this wiki alone') on the mechanics — an honest not-covered, but still a deferral."
+    },
+    {
+      "id": "assets-10",
+      "baseline": "PASS",
+      "candidate": "PASS",
+      "note": "Both give the two dataset-version/case-count pairs and all eight pinned result_summary values correctly; Beta miscounts them as 'seven fields' while listing eight, and neither mentions that each mismatch is reported individually, so they are effectively equivalent."
+    },
+    {
+      "id": "data-01",
+      "baseline": "PASS",
+      "candidate": "PASS",
+      "note": "Both name the renderer --stdout byte-equality check, the check_lifecycle_datasets.py failure message, data/lifecycle/ as SSOT and the --write regeneration; Beta enumerates all six JSON/JSONL sources while Alpha gives only two examples plus 'etc.'."
+    },
+    {
+      "id": "data-07",
+      "baseline": "PASS",
+      "candidate": "PASS",
+      "note": "Both state binding_status 'prepared_unsigned' and all six keys with the exact four plan_package_input_ids, route, routes_edge_id 'plan-package-materialization', lineage_edge_id 'EDGE-066', and the cross-check against the enclosing record — equivalent."
+    },
+    {
+      "id": "data-13",
+      "baseline": "FAIL",
+      "candidate": "PASS",
+      "note": "Alpha gives exactly 3 seed records, the REQUIRED_SLOTS set, and the three directory_roots in order; Beta reproduces the slots and roots correctly but explicitly says the record count 'is not in this wiki' — honest ignorance rather than a wrong answer, but still a deferral on a required criterion."
+    },
+    {
+      "id": "evals-04",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Both nail the double lock (verdict PASS, score >= 0.85, no 'breach detected') plus the <judge_output> wrapper and finiteness check, but both then confidently assert that malformed JSON falls into the same 'FAIL: double-lock judge rejection' path — contradicting the distinct extract_json ValueError / 'FAIL: malformed judge response: ...' criterion; Alpha additionally claims no distinct message is documented."
+    },
+    {
+      "id": "evals-10",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Both only report the runtime output line (sample_count=3 observed_state_count=5 cloud_judge_enabled=false) and explicitly state the required per-record fields, the --min-samples default and the four state names are absent — honest not-covered on both sides, no wrong claims."
+    },
+    {
+      "id": "gates-01",
+      "baseline": "PASS",
+      "candidate": "PARTIAL",
+      "note": "Both give .githooks/pre-push -> python3 scripts/git_gate.py and the one-time `git config core.hooksPath .githooks`, but Alpha never mentions the separate .githooks/commit-msg hook (it folds validate_commit_message.py into the GATES list instead), while Beta names it explicitly; Beta's incidental '23 entries' gate count is wrong (22) but is not a criterion here."
+    },
+    {
+      "id": "gates-07",
+      "baseline": "FAIL",
+      "candidate": "PARTIAL",
+      "note": "Alpha answers No with the 23-vs-22 divergence and correctly identifies validate_molecular_commit_lineage.py as the extra entry, but substitutes an invented expected_gate_count comparison for the actual gate-name-list assert / ValueError('gate receipt contract or input state mismatch') / FAIL+exit 2 path; Beta defers entirely ('the wiki does not say') and also misstates git_gate.py as having 23 GATES entries."
+    },
+    {
+      "id": "gates-13",
+      "baseline": "PARTIAL",
+      "candidate": "PARTIAL",
+      "note": "Both name .github/workflows/skill_ci.yml, the pull_request trigger, the skills/**|scripts/** path filter and the `python scripts/git_gate.py` entry point, but both omit the job name skill-ci, Python 3.11, and the consequence that openwiki/ or data/-only PRs never trigger it; Alpha's '22-gate chain' is right where Beta's '23-gate chain' is wrong."
+    },
+    {
+      "id": "assets-06",
+      "baseline": "PARTIAL",
+      "candidate": "PASS",
+      "note": "Both give the correct gemini_interactions default and all five telemetry thresholds; only Beta names the exact failure message 'ablation telemetry insufficient' required by the second criterion."
+    },
+    {
+      "id": "assets-12",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Both name the three skills and two adversaries but neither states the promoted-claim condition (agy review status 'executed-findings-only'); Alpha is worse in kind because it confidently asserts no such rule exists and redirects to an unrelated artifact, while Beta at least identifies the promotion_status branch and admits it cannot state its contents."
+    },
+    {
+      "id": "data-03",
+      "baseline": "PASS",
+      "candidate": "PASS",
+      "note": "Equivalent: both correctly answer 'no', describe the temp-directory re-run checked only for exit 0 and the 'PASS: wiki graph sync' string with no diff against committed files, and both separately describe the schema-driven structural validation (neither enumerates the retrieval-contract flags, a detail rather than a contradiction)."
+    },
+    {
+      "id": "data-09",
+      "baseline": "PARTIAL",
+      "candidate": "PARTIAL",
+      "note": "Equivalent: both correctly say the ledgers are hand-authored/never regenerated and only read by validators, but neither enumerates the reader set (check_openwiki.py, check_plan_package_compat.py, tests/test_skill_asset_governance.py) nor addresses the gemini_interactions_real_driver pointer-only criterion."
+    },
+    {
+      "id": "data-15",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Both correctly say the test checks existence only and defers content to the separate check_*.py gates, but both explicitly state the docs do not enumerate the required data/ paths — an honest 'not covered' rather than a wrong answer; their path counts differ (57 vs 58) so one is off, though the criteria do not test that number."
+    },
+    {
+      "id": "evals-06",
+      "baseline": "PASS",
+      "candidate": "PASS",
+      "note": "Equivalent: both give the five-branch ordered chain verbatim and correctly resolve a 'debug'+'evals' prompt to native-yield:diagnose on first-match order."
+    },
+    {
+      "id": "evals-12",
+      "baseline": "FAIL",
+      "candidate": "FAIL",
+      "note": "Both get case_count 4 and 3 and both correctly say the gate compares declared counts against hardcoded constants rather than recounting the dataset files, but both explicitly state the wiki documents no rollback_rule strings — honest 'not covered' on a full criterion."
+    },
+    {
+      "id": "gates-03",
+      "baseline": "FAIL",
+      "candidate": "PASS",
+      "note": "Alpha is confidently wrong: it denies the question's premise and asserts the script IS gate #21 in git_gate.py's GATES list, contradicting the exclusion criterion outright; Beta quotes the exclusion rationale (authoring-workspace ledger, no .git of its own, zero-arg schema-only path 0.07s vs 19s) and gives the --repo-root plus history-flag invocation."
+    },
+    {
+      "id": "gates-09",
+      "baseline": "FAIL",
+      "candidate": "PASS",
+      "note": "Alpha admits the docs give no concrete failure criteria beyond a vague 'dense route boundary' phrase; Beta supplies the 200-word cap, the WHY:/HOW:/WHEN:/WHEN NOT: markers and the exact forbidden list (please, recommended, should, easy to use, best practice)."
+    },
+    {
+      "id": "gates-15",
+      "baseline": "PARTIAL",
+      "candidate": "PASS",
+      "note": "Beta gives the authoring-workspace rationale and the exact assertion (returncode 0 plus 'SELFTEST GREEN'), missing only the explicit git_gate.py cross-reference; Alpha has the git-root reasoning but omits the authoring-workspace framing and the SELFTEST GREEN assertion, and hedges that the named test does not exist under that name."
+    }
+  ]
+}

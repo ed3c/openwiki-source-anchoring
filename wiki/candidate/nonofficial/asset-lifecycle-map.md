@@ -1,0 +1,125 @@
+---
+type: Playbook
+title: Asset Lifecycle Map
+description: The five phases a skill asset passes through in agent-skills-repo, which script owns each phase, and what each phase can and cannot prove.
+tags: [lifecycle, governance]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [skill-asset-lifecycle, defense-gates, promotion-policy]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Asset Lifecycle Map
+
+A skill asset in this repository moves through five phases. Each phase has a different owner, a
+different failure mode, and — importantly — a different *strength of claim*. Confusing a green phase
+for a stronger claim than it makes is the main documented hazard here; see
+[Production Bottlenecks](production-bottlenecks.md).
+
+```mermaid
+flowchart TD
+    C["Compile Phase"] --> H["Git Commit and Push Hook"]
+    H --> CI["CI/CD Regression Gate"]
+    CI --> P["Production Execution"]
+    P --> W["Weekly Ablation Audit and Retirement"]
+    W -.-> C
+```
+
+*The dotted edge is retirement feedback: a delta below target sends the asset back to authoring.*
+
+## Compile Phase
+
+The author writes `skills/<slug>/skills.md` (WHY / HOW / WHEN / WHEN NOT) and
+`skills/<slug>/cases.json`, plus any `references/` page held back for progressive disclosure. Nothing
+is executed; the asset is text. The contract this phase must satisfy is described in
+[Skill asset contract](../skill-assets/contract.md).
+
+What this phase proves: nothing about behavior. It only produces the artifact the later phases judge.
+
+## Git Commit/Push Hook
+
+`.githooks/commit-msg` runs `scripts/validate_commit_message.py` against the message file
+(src: .githooks/commit-msg `$ROOT/scripts/validate_commit_message.py`).
+`.githooks/pre-push` runs `scripts/git_gate.py` (src: .githooks/pre-push `$ROOT/scripts/git_gate.py`),
+which iterates its `GATES` list in order and breaks at the first non-zero exit
+(src: scripts/git_gate.py `print(f"FAIL: gate failed: {gate}", file=sys.stderr)`).
+That list holds 22 entries — a Python list length, so there is no literal count in the file to quote.
+Both hooks require `git config core.hooksPath .githooks`
+(src: README.md `git config core.hooksPath .githooks`); they are opt-in per
+clone and are not enforced server-side.
+
+`scripts/git_gate.py` also hashes the entire repository input state before and after the run
+(src: scripts/git_gate.py `final_input_state = input_state_sha256(root)`) and exits
+125 if any gate mutated a tracked input (src: scripts/git_gate.py `exit_code = 125`),
+so a "gate" that writes files is itself a failure. Details in
+[Defense gate chain](../architecture/defense-gate-chain.md).
+
+What this phase proves: the static asset contract holds and the deterministic runners reproduce their
+expected telemetry. It does not prove an agent behaves better with the skill than without it.
+
+## CI/CD Regression Gate
+
+`.github/workflows/skill_ci.yml` re-runs `scripts/git_gate.py`
+(src: .github/workflows/skill_ci.yml `run: python scripts/git_gate.py`) on any pull request touching `skills/**`
+or `scripts/**` (src: .github/workflows/skill_ci.yml `- 'skills/**'`).
+Three further workflows carry their own narrower triggers —
+`wiki_graph_sync.yml`, `autoresearch_eval.yml`, and `weekly_audit.yml`. Their exact argv, path filters,
+and environment-variable formats are tabulated in
+[Entrypoint matrix](../operations/entrypoint-matrix.md), including two cases where a workflow's value does
+not match what the script accepts.
+
+What this phase proves: the same deterministic gates, on a clean checkout, without local state.
+
+## Production Execution
+
+Whether an asset may actually be routed in production is decided by `skills/<slug>/status.json`, not by
+a green gate. `gemini_interactions` is currently `status: quarantined`, `production_routable: false`,
+on the authority of a failing real-driver receipt — see
+[gemini_interactions](../skill-assets/gemini-interactions.md). No gate enforces that binding, so the file
+is a decision record rather than a control.
+
+Behavioral judgement in this phase is local-first: `scripts/eval_autoresearch_composer.py` applies
+deterministic guardrails and then a local heuristic judge
+(src: scripts/eval_autoresearch_composer.py `"judge_mode": "local-heuristic",`), and `scripts/llm_judge.py` implements the
+double-lock parse used to accept or reject a judge verdict — verdict, score floor, and a breach
+substring, all in one condition
+(src: scripts/llm_judge.py `if verdict != "PASS" or score < 0.85 or "breach detected" in reasoning:`).
+The cloud judge path exists but returns a placeholder instead of calling an API
+(src: scripts/eval_autoresearch_composer.py `"reasoning": "cloud/API call path is intentionally not activated in the local-first seed",`); see
+[Behavioral eval and judge](../validation/behavioral-eval-and-judge.md).
+
+## Weekly Ablation Audit & Retirement
+
+`.github/workflows/weekly_audit.yml` runs `scripts/ablation_engine.py` on a Monday 03:00 UTC cron
+(src: .github/workflows/weekly_audit.yml `cron: '0 3 * * 1'`). The
+engine simulates the same cases with and without skill context and requires a delta above
+`TARGET_DELTA = 0.05`
+(src: scripts/ablation_engine.py `"verdict": "PASS" if delta > TARGET_DELTA else "FAIL",`).
+The delta is dataset-dependent: the default `skills/gemini_interactions/cases.json`
+(src: scripts/ablation_engine.py `"gemini_interactions" / "cases.json"`)
+yields `delta=0.50 case_count=10`, while `--cases skills/autoresearch_composer/cases.json` yields
+`delta=1.00 case_count=12` — both observed by running the script, not quotable out of it.
+Any page quoting a delta must name its dataset.
+
+Retirement is the intended terminal edge: an asset whose delta collapses is a candidate for removal
+rather than repair. The real-driver counterpart `scripts/real_driver_ablation.py`
+(src: scripts/real_driver_ablation.py `Run a real agent command against the same cases with and without skill context.`)
+runs an actual agent command and is **not** part of this weekly workflow, whose only step is the
+simulator (src: .github/workflows/weekly_audit.yml `- run: python scripts/ablation_engine.py`);
+it is invoked deliberately, and its last
+recorded run is the failure that quarantined `gemini_interactions`
+(src: data/verification_runs/gemini_interactions_real_driver_2026-07-27.json `"decision": "A2_FAIL_DO_NOT_PROMOTE",`).
+
+What this phase proves: a deterministic simulated delta. Only `real_driver_ablation.py` produces
+evidence about a real agent — it refuses any command with no task placeholder
+(src: scripts/real_driver_ablation.py `--agent-cmd must contain the literal {task} placeholder`) —
+and that evidence is what promotion decisions must cite.
+
+## Where to go next
+
+- Call graph and measured values → [Code call lifecycle](code-call-lifecycle.md)
+- Authoring state machine → [Stateful workflow](stateful-workflow.md)
+- Command runbook → [Usage](usage.md)

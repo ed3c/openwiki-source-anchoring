@@ -1,0 +1,377 @@
+{
+  "schema_version": "wiki-qa-bank@1.0.0",
+  "set": "public",
+  "provenance": {
+    "finder_model": "sonnet",
+    "answerer_model": "sonnet",
+    "judge_model": "opus",
+    "split_rule": "sort by id, even index -> public, odd index -> holdout",
+    "holdout_runs": 1,
+    "generated": "2026-08-04",
+    "target": "repo/agent-skills-repo",
+    "bank_size": 60,
+    "note": "finder read ONLY source (openwiki/ and .openwiki-review/ explicitly out of bounds). Split is mechanical: sort by id, even->public, odd->holdout."
+  },
+  "questions": [
+    {
+      "id": "assets-01",
+      "question": "How many skill assets exist under skills/, what are their slugs, and what is the current production/promotion status of each?",
+      "acceptance": [
+        "Exactly two skill directories exist under skills/: autoresearch_composer and gemini_interactions",
+        "skills/gemini_interactions/status.json declares status:\"quarantined\" and production_routable:false (decision_date 2026-07-27)",
+        "autoresearch_composer has no status.json; data/lifecycle/skill_optimization_registry.json declares its current_status as \"production-seed-candidate\" and data/lifecycle/promotion_records.json declares promotion_status \"candidate_until_human_admit\" with human_admit \"required_before_promotion\""
+      ],
+      "source_files": [
+        "skills/gemini_interactions/status.json",
+        "data/lifecycle/skill_optimization_registry.json",
+        "data/lifecycle/promotion_records.json"
+      ]
+    },
+    {
+      "id": "assets-03",
+      "question": "What four literal section markers, word limit, and forbidden vocabulary does scripts/skill_description_linter.py enforce on skills/<slug>/skills.md?",
+      "acceptance": [
+        "skills.md text must contain the literal substrings \"WHY:\", \"HOW:\", \"WHEN:\", \"WHEN NOT:\" (REQUIRED tuple) or each missing one is reported",
+        "Word count (via text.replace(\"\\n\",\" \").split()) must not exceed 200 words",
+        "FORBIDDEN case-insensitive substrings are exactly: \"please\", \"recommended\", \"should\", \"easy to use\", \"best practice\"; any hit plus any missing marker or >200 words causes exit code 2 with \"FAIL: skill description lint failed\""
+      ],
+      "source_files": [
+        "scripts/skill_description_linter.py"
+      ]
+    },
+    {
+      "id": "assets-05",
+      "question": "scripts/check_autoresearch_lifecycle.py cross-checks the repo copy of the autoresearch skill's cases.json against a source of truth located outside agent-skills-repo — where exactly, and what must match?",
+      "acceptance": [
+        "Source path is PROJECT_ROOT/.claude/skills/autoresearch-composer/cases.json where PROJECT_ROOT = ROOT.parents[1] (i.e. the skill-bettor repo root two levels above agent-skills-repo, concretely .../.claude/skills/autoresearch-composer)",
+        "json.loads(source_cases_text) must equal json.loads of skills/autoresearch_composer/cases.json exactly, else failure \"source cases and production repo cases differ\"",
+        "This check is skipped only when PROJECT_ROOT/.claude does not exist (source_required_available guard); the repo-local cases.json is still separately validated via validator.validate_cases regardless"
+      ],
+      "source_files": [
+        "scripts/check_autoresearch_lifecycle.py"
+      ]
+    },
+    {
+      "id": "assets-07",
+      "question": "scripts/no_op_pruner.py and scripts/no_ops_purger.py have names that suggest opposite roles from what they do — which one actually mutates/removes lines and which is read-only, and what file does each default to?",
+      "acceptance": [
+        "no_op_pruner.py is read-only/dry-run: its docstring is \"Dry-run no-op phrase detector for skill prompts\", it scans every skills/*/skills.md and never writes, only reporting findings; it takes no --skill argument, only --repo-root",
+        "no_ops_purger.py is the one that actually mutates: purge_text() removes matched no-op lines one at a time as long as run_p2_evaluation(candidate_text) does not regress below baseline, and its default target is a single file, ROOT/\"skills/gemini_interactions/skills.md\", via a --skill argument"
+      ],
+      "source_files": [
+        "scripts/no_op_pruner.py",
+        "scripts/no_ops_purger.py"
+      ]
+    },
+    {
+      "id": "assets-09",
+      "question": "Besides the WHY:/HOW:/WHEN:/WHEN NOT: markers, what other exact literal string must skills/gemini_interactions/skills.md contain for scripts/check_plan_package_compat.py to pass, and where does it currently appear?",
+      "acceptance": [
+        "required_terms in check_plan_package_compat.py includes the literal \"references/deploy_guide.md\" in addition to \"WHY:\", \"HOW:\", \"WHEN:\", \"WHEN NOT:\"; any missing term causes \"FAIL: skills.md missing required term(s)\"",
+        "Currently satisfied by the HOW: line: \"load references/deploy_guide.md only for deployment details.\""
+      ],
+      "source_files": [
+        "scripts/check_plan_package_compat.py",
+        "skills/gemini_interactions/skills.md"
+      ]
+    },
+    {
+      "id": "assets-11",
+      "question": "What keys and exact values must data/lifecycle/promotion_records.json's human_admit_binding object contain for scripts/check_lifecycle_datasets.py to pass?",
+      "acceptance": [
+        "binding_status must equal \"prepared_unsigned\"; binding must contain the keys dataset_versions, molecular_commit, plan_package_input_ids, route, routes_edge_id, lineage_edge_id, each also matching (dataset_versions/molecular_commit against the outer record, route==\"ROUTES.md#plan-package-materialization\", routes_edge_id==\"plan-package-materialization\", lineage_edge_id==\"EDGE-066\")",
+        "plan_package_input_ids must equal exactly [\"gcr-047d548-conversation\",\"real-synthetic-case-generation-research\",\"gcr-37731ad-eval-guardrails-lifecycle\",\"gcr-874b5c-event-sourcing-graphrag\"] in that order, else \"human_admit_binding must bind all plan-package input ids\""
+      ],
+      "source_files": [
+        "scripts/check_lifecycle_datasets.py",
+        "data/lifecycle/promotion_records.json"
+      ]
+    },
+    {
+      "id": "assets-13",
+      "question": "Which skill's asset files does tests/test_skill_asset_governance.py's test_skill_asset_structure actually assert exist, versus scripts/check_plan_package_compat.py's `required` list — and what breaks if you delete skills/autoresearch_composer/references/state_graph.md?",
+      "acceptance": [
+        "test_skill_asset_governance.py's `required` list only names skills/gemini_interactions/skills.md, cases.json, and references/deploy_guide.md — it contains no skills/autoresearch_composer/* entries at all",
+        "check_plan_package_compat.py's `required` list additionally includes skills/autoresearch_composer/skills.md, cases.json, and references/state_graph.md",
+        "Deleting references/state_graph.md would NOT fail test_skill_asset_structure but WOULD fail check_plan_package_compat.py (missing required path) and would also fail scripts/check_autoresearch_lifecycle.py, which calls require_file() on REFERENCE = skills/autoresearch_composer/references/state_graph.md"
+      ],
+      "source_files": [
+        "tests/test_skill_asset_governance.py",
+        "scripts/check_plan_package_compat.py",
+        "scripts/check_autoresearch_lifecycle.py"
+      ]
+    },
+    {
+      "id": "assets-15",
+      "question": "What four conditions make scripts/synthetic_case_quality_report.py report quality_status \"insufficient\" rather than \"admissible-candidate\", and what does plan-package.compat.yaml's manifest require that status to equal?",
+      "acceptance": [
+        "insufficient_reasons are appended when: unique_expected_check_sets < 12, negative_cases (count of should_trigger==false) < 20, trigger_false < 10, or max_template_similarity_ratio > 0.35; quality_status is \"insufficient\" if any reason exists, else \"admissible-candidate\"",
+        "plan-package.compat.yaml declares synthetic_case_quality_status: insufficient and real_synthetic_generation_gate_required: true; scripts/check_plan_package_compat.py's manifest check fails unless manifest.get(\"synthetic_case_quality_status\") == \"insufficient\" exactly, and separately requires quality.stdout to contain \"quality_status=insufficient\""
+      ],
+      "source_files": [
+        "scripts/synthetic_case_quality_report.py",
+        "plan-package.compat.yaml",
+        "scripts/check_plan_package_compat.py"
+      ]
+    },
+    {
+      "id": "data-02",
+      "question": "What are the two files under data/wiki_graph/ that get wholesale-overwritten by running scripts/sync_wiki_to_graph.py, and what does it read to produce them?",
+      "acceptance": [
+        "data/wiki_graph/event_log.jsonl and data/wiki_graph/sample_graph.json are both fully rewritten via path.write_text(...) (not merged/appended) each run",
+        "The generator reads every *.md file under the openwiki/ root (default --wiki-root ROOT/openwiki, sorted via rglob) plus data/wiki_graph/schema.json for schema_version/embedding config; data/wiki_graph/schema.json itself is not overwritten by this script"
+      ],
+      "source_files": [
+        "scripts/sync_wiki_to_graph.py"
+      ]
+    },
+    {
+      "id": "data-04",
+      "question": "Does the wiki_graph_sync GitHub Actions workflow commit the regenerated data/wiki_graph/event_log.jsonl and sample_graph.json back to the repo?",
+      "acceptance": [
+        "No: .github/workflows/wiki_graph_sync.yml runs scripts/sync_wiki_to_graph.py (rewriting those two files in the runner's checkout) and scripts/check_wiki_graph_sync.py, then just uploads the two files as a build artifact named 'wiki-graph-local-projection' via actions/upload-artifact -- there is no git commit/push step",
+        "External Graph DB writes only happen in the separate 'external-graph-write-disabled-by-default' job, which is gated on the repository variable ENABLE_GRAPH_DB_WRITE == 'true' and additionally requires GRAPH_DB_URI/GRAPH_DB_USER/GRAPH_DB_PASSWORD secrets or sync_wiki_to_graph.py raises 'external graph write requested but missing secrets'"
+      ],
+      "source_files": [
+        ".github/workflows/wiki_graph_sync.yml",
+        "scripts/sync_wiki_to_graph.py"
+      ]
+    },
+    {
+      "id": "data-06",
+      "question": "In data/lifecycle/, exactly how many rows/cases does each of the following need to contain to pass scripts/check_lifecycle_datasets.py: dataset_drift_history.jsonl, data/autoresearch_traces/failure_trace_samples.jsonl, and the golden dataset versions autoresearch-pr-golden@2026-07-23 / autoresearch-nightly-golden@2026-07-23?",
+      "acceptance": [
+        "dataset_drift_history.jsonl must contain exactly 2 rows, each with pass_rate==1.0 and failure_trace_sample_count==2, and each row's route_distribution values must sum to that row's case_count",
+        "failure_trace_samples.jsonl must contain exactly 2 rows, each with verdict=='FAIL' and cloud_judge_enabled is False; golden_dataset_versions.json must show autoresearch-pr-golden@2026-07-23 with case_count==4 and autoresearch-nightly-golden@2026-07-23 with case_count==3"
+      ],
+      "source_files": [
+        "scripts/check_lifecycle_datasets.py"
+      ]
+    },
+    {
+      "id": "data-08",
+      "question": "data/commit_lineage/gcr_molecular_commits.json currently declares which schema_version, and how does that value change which validation path scripts/validate_molecular_commit_lineage.py takes?",
+      "acceptance": [
+        "The file's schema_version is 'molecular-commit-lineage@0.2.0' (the THREE_SURFACE_SCHEMA_VERSION constant), which routes validate_ledger() into validate_three_surface_ledger() instead of the legacy per-commit 'commits' list path gated on SCHEMA_VERSION=='molecular-commit-lineage@0.1.0'",
+        "The three-surface path validates a 'compensated_commits' list (each entry needs commit_sha as 40 lowercase hex chars, plus fields matched against expected values) and cross-checks against data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json (schema_version must be 'molecular-commit-verification-run@0.2.0', status 'pass', commit_count/compensated_commit_count equal to len(compensated_commits), failed_commit_count==0)"
+      ],
+      "source_files": [
+        "scripts/validate_molecular_commit_lineage.py",
+        "data/commit_lineage/gcr_molecular_commits.json"
+      ]
+    },
+    {
+      "id": "data-10",
+      "question": "scripts/check_autoresearch_lifecycle.py compares skills/autoresearch_composer/cases.json against another cases.json file outside repo/agent-skills-repo entirely. What is that other path, which one is authoritative, and under what condition is the comparison skipped?",
+      "acceptance": [
+        "SOURCE_CASES is PROJECT_ROOT/.claude/skills/autoresearch-composer/cases.json where PROJECT_ROOT = ROOT.parents[1] (two directories above agent-skills-repo, i.e. the outer ts-skill-bettor checkout); the comparison requires source_cases == repo_cases (parsed JSON equality) or it fails with 'source cases and production repo cases differ'",
+        "The whole source-vs-repo literal/case comparison block is skipped when source_required_available is False, i.e. when (PROJECT_ROOT / '.claude').exists() is False -- meaning the check only enforces cross-repo parity when agent-skills-repo is checked out nested inside the full ts-skill-bettor monorepo, not when it's checked out standalone"
+      ],
+      "source_files": [
+        "scripts/check_autoresearch_lifecycle.py"
+      ]
+    },
+    {
+      "id": "data-12",
+      "question": "What exact set of AGY-lesson ids and what model id/reasoning-effort/thinking-mode values must data/agy_execution_experience.json contain to pass scripts/semantic_arbitration_report.py, and what happens if agy_execution_experience.json's schema_version is wrong?",
+      "acceptance": [
+        "lessons must cover lesson_ids AGY-001 through AGY-010 (REQUIRED_AGY_LESSONS); model_profile.selected_model_id must equal 'gemini-3.6-flash-high' and also appear in observed_model_ids; reasoning_effort must equal 'high'; thinking_mode must equal 'extended'",
+        "load_agy_experience() raises ValueError('agy experience profile has invalid schema_version') unless payload['schema_version'] == 'agy-execution-experience@0.1.0', which causes main() to print 'FAIL: cannot load semantic arbitration data: ...' and return exit code 2 before any per-claim validation runs"
+      ],
+      "source_files": [
+        "scripts/semantic_arbitration_report.py"
+      ]
+    },
+    {
+      "id": "data-14",
+      "question": "If I add a brand-new optimized/managed skill's lifecycle data, what is the minimum set of new entries the render_lifecycle_openwiki.py 'Extension Rule' comment requires me to add across data/lifecycle/, and which single command must then be re-run to keep the openwiki page in sync?",
+      "acceptance": [
+        "Exactly one registry row (in skill_optimization_registry.json), at least one Golden Dataset version (golden_dataset_versions.json), one dated eval run, one promotion record, trace privacy entries, and one drift-history row -- per the 'Extension Rule For More Skills' section render_lifecycle_openwiki.py embeds verbatim in its own output",
+        "scripts/render_lifecycle_openwiki.py --write must be re-run to regenerate openwiki/nonofficial/structured-lifecycle-data.md from the new data, and then scripts/check_lifecycle_datasets.py must pass (both literals are named explicitly in the rendered/required text)"
+      ],
+      "source_files": [
+        "scripts/render_lifecycle_openwiki.py",
+        "scripts/check_lifecycle_datasets.py"
+      ]
+    },
+    {
+      "id": "evals-01",
+      "question": "In scripts/ablation_engine.py, what is the exact TARGET_DELTA constant and what comparison operator decides PASS vs FAIL for the with-skill/without-skill success-rate delta?",
+      "acceptance": [
+        "TARGET_DELTA = 0.05 (a module-level constant)",
+        "verdict is 'PASS' only if delta > TARGET_DELTA (strictly greater than 0.05, not >=); the main() error message also fires when verdict != 'PASS'"
+      ],
+      "source_files": [
+        "scripts/ablation_engine.py"
+      ]
+    },
+    {
+      "id": "evals-03",
+      "question": "How does scripts/real_driver_ablation.py guarantee each agent subprocess call cannot leak side effects into the repo working tree, and what mechanism lets a killed/timed-out run still be scored as a failure rather than crashing the batch?",
+      "acceptance": [
+        "invoke() runs the agent argv with cwd set inside a freshly created tempfile.TemporaryDirectory(prefix='real-driver-agent-') (an ephemeral cwd, recorded as cwd_kind='ephemeral-temp'), confirmed by test_each_agent_call_uses_an_ephemeral_cwd asserting no leaked file appears in ROOT",
+        "subprocess.run is called with a timeout; on subprocess.TimeoutExpired the code captures exc.stdout/exc.stderr, sets exit_code=124 and timed_out=True instead of raising, so a partial-output timeout is recorded with exit_code 124 and passed=False (test_timed_out_partial_output_cannot_count_as_case_pass) and the whole run returns exit code 3, not a crash/traceback"
+      ],
+      "source_files": [
+        "scripts/real_driver_ablation.py",
+        "tests/test_real_driver_ablation.py"
+      ]
+    },
+    {
+      "id": "evals-05",
+      "question": "In scripts/eval_autoresearch_composer.py, what are the eight required fields every case in a golden dataset must have (validate_case_schema), and what happens if you run with --mode cloud but ENABLE_LLM_JUDGE is unset vs set without OPENAI_API_KEY?",
+      "acceptance": [
+        "REQUIRED_CASE_FIELDS = {'id','prompt','expected_route','must_include','must_not_include','judge_rubric','trace_tags','risk_level'}; missing any raises ValueError listing the missing fields",
+        "If ENABLE_LLM_JUDGE != '1', cloud_judge() returns a SKIP verdict with judge_mode='cloud-disabled' (no error); if ENABLE_LLM_JUDGE=='1' but OPENAI_API_KEY is unset, it raises RuntimeError('OPENAI_API_KEY is required only when ENABLE_LLM_JUDGE=1') which the caller in main() catches and reports as exit code 2"
+      ],
+      "source_files": [
+        "scripts/eval_autoresearch_composer.py"
+      ]
+    },
+    {
+      "id": "evals-07",
+      "question": "What exact count does scripts/synthetic_case_generator.py enforce for --total, and given the generator's fixed language_for()/should_trigger logic, what does scripts/synthetic_case_quality_report.py's quality_status always evaluate to and why?",
+      "acceptance": [
+        "main() checks `if args.total != 117: print FAIL ... return 2` — the generator refuses to run for any --total other than exactly 117 ('production P11 matrix must contain exactly 117 cases')",
+        "generate_cases() always sets should_trigger=True for every case, so trigger_false/negative_cases is always 0; analyze_cases() therefore always appends 'negative_cases_lt_20' and 'non_trigger_cases_lt_10' (and typically 'unique_expected_check_sets_lt_12' and 'template_similarity_gt_0_35' too, since there are only 2 unique expected_checks tuples and near-duplicate prompts), making quality_status always 'insufficient', never 'admissible-candidate', by construction"
+      ],
+      "source_files": [
+        "scripts/synthetic_case_generator.py",
+        "scripts/synthetic_case_quality_report.py"
+      ]
+    },
+    {
+      "id": "evals-09",
+      "question": "How does scripts/validate_skills_baseline.py decide which skills/*/cases.json files to validate when run with no flags versus with --all, and what does it do if `git status --porcelain` fails because the directory isn't a git repo?",
+      "acceptance": [
+        "Without --all it calls modified_case_files(), parsing `git status --porcelain` lines against regex `^[AM\\s]{1,2}\\s+(skills/.*/cases\\.json)$` to find only added/modified case files; if that yields zero paths it falls back to all_case_files() (every skills/*/cases.json) rather than passing/failing silently",
+        "If git status returns non-zero specifically because of 'not a git repository' in stderr, modified_case_files() returns [] (treated the same as 'no modified files', triggering the fallback-to-all path); any other non-zero git status raises RuntimeError, causing exit code 2"
+      ],
+      "source_files": [
+        "scripts/validate_skills_baseline.py"
+      ]
+    },
+    {
+      "id": "evals-11",
+      "question": "In scripts/check_autoresearch_lifecycle.py, what four exact telemetry conditions (from running ablation_engine.py against skills/autoresearch_composer/cases.json) must all hold for the lifecycle gate to pass, and what does it do differently if .claude/skills/autoresearch-composer/ doesn't exist locally?",
+      "acceptance": [
+        "It requires telemetry['case_count'] == 12, telemetry['delta'] > 0.05, telemetry['verdict'] == 'PASS', telemetry.get('negative_case_count') == 6, and telemetry.get('negative_with_skill_success_rate') == 1.0 — any deviation appends 'ablation telemetry insufficient'",
+        "source_required_available is gated on (PROJECT_ROOT / '.claude').exists(); when that's False, source_text/source_cases_text are left as empty strings and the whole source_required literal-check list becomes an empty list (skipped) instead of failing on a missing SOURCE_SKILL/SOURCE_CASES file"
+      ],
+      "source_files": [
+        "scripts/check_autoresearch_lifecycle.py"
+      ]
+    },
+    {
+      "id": "evals-13",
+      "question": "In scripts/no_ops_purger.py, what does run_p2_evaluation() actually measure, and what is the exact greedy-removal loop condition purge_text() uses to decide whether a candidate no-op line gets deleted?",
+      "acceptance": [
+        "run_p2_evaluation(skill_content) is a stand-in quality proxy that returns 0.95 if the literal substring 'Interactions' is present in the text, else 0.10 — it does not run any real eval/ablation",
+        "purge_text() walks lines; for each line matching is_no_op_line() (any NO_OPS_PATTERNS regex, case-insensitive, including Chinese phrases like 優雅/乾淨/高質量/最佳實踐/請確保/易讀/健壯), it computes current_rate on the text with that line removed and only commits the removal (pops the line, purged_count+=1, baseline updated) if current_rate >= baseline; otherwise it keeps the line and advances the index"
+      ],
+      "source_files": [
+        "scripts/no_ops_purger.py"
+      ]
+    },
+    {
+      "id": "evals-15",
+      "question": "In scripts/benchmark_runner.py, is the benchmark's pass_rate() output actually randomized per run, and what three numeric gate conditions in main() decide the exit code?",
+      "acceptance": [
+        "pass_rate() is fully deterministic: it's computed as base(0.70) + a fixed per-group adjustment (control=0.0, high_quality=+0.15, low_quality=-0.20) + a 'stable_jitter' of `((len(model)+len(harness)) % 3) * 0.005` that depends only on the (fixed) model/harness name lengths — no randomness, so repeated runs produce identical numbers",
+        "main() returns exit code 2 (printing the JSON report instead of a PASS line) if report['task_count'] != 100, OR delta_high_quality < 0.13, OR delta_low_quality >= 0; otherwise it prints a 'PASS: benchmark matrix ...' line and returns 0. TASKS is fixed at 100 entries (range 1..100)"
+      ],
+      "source_files": [
+        "scripts/benchmark_runner.py"
+      ]
+    },
+    {
+      "id": "gates-02",
+      "question": "How many gate scripts does scripts/git_gate.py's GATES list run, in what order, and what happens the moment one of them returns a non-zero exit code?",
+      "acceptance": [
+        "GATES has exactly 22 entries, in this order: validator.py, validate_skills_baseline.py, skill_description_linter.py, validate_progressive_disclosure.py, validate_goal_constraints.py, validate_commit_message.py, github_skill_harvester.py, synthetic_case_generator.py, synthetic_case_quality_report.py, semantic_arbitration_report.py, interactions_patch_assert_runner.py, local_regex_runner.py, benchmark_runner.py, ablation_engine.py, llm_judge.py, check_openwiki.py, check_wiki_graph_sync.py, render_lifecycle_openwiki.py, check_lifecycle_datasets.py, check_autoresearch_lifecycle.py, no_op_pruner.py, no_ops_purger.py",
+        "the for-loop `break`s on the first non-zero returncode, prints `FAIL: gate failed: {gate}` to stderr, and git_gate.py's own exit code becomes that failing gate's returncode (so gates after it never run)"
+      ],
+      "source_files": [
+        "scripts/git_gate.py"
+      ]
+    },
+    {
+      "id": "gates-04",
+      "question": "Across the gate scripts invoked by git_gate.py, what is the shared exit-code convention, and what does a PASS/FAIL line printed to stdout vs stderr signal?",
+      "acceptance": [
+        "every gate script returns 0 on success and 2 on failure (validator.py, validate_skills_baseline.py, skill_description_linter.py, validate_progressive_disclosure.py — via sys.exit(2)/sys.exit(0) — validate_goal_constraints.py, github_skill_harvester.py, synthetic_case_generator.py, semantic_arbitration_report.py, interactions_patch_assert_runner.py, local_regex_runner.py, benchmark_runner.py, ablation_engine.py, llm_judge.py, check_openwiki.py, check_wiki_graph_sync.py, render_lifecycle_openwiki.py, check_lifecycle_datasets.py, check_autoresearch_lifecycle.py, no_op_pruner.py, no_ops_purger.py all use exactly 0/2, no other codes)",
+        "each script prints a `PASS: ...` line on success and a `FAIL: ...` line to stderr on failure, following the same textual convention"
+      ],
+      "source_files": [
+        "scripts/validator.py",
+        "scripts/validate_skills_baseline.py",
+        "scripts/skill_description_linter.py",
+        "scripts/validate_progressive_disclosure.py",
+        "scripts/validate_goal_constraints.py",
+        "scripts/check_openwiki.py",
+        "scripts/no_op_pruner.py",
+        "scripts/no_ops_purger.py"
+      ]
+    },
+    {
+      "id": "gates-06",
+      "question": "What exact fields and path values must a commit message contain to pass the commit-msg hook (scripts/validate_commit_message.py), and what happens if any is missing?",
+      "acceptance": [
+        "REQUIRED_FIELDS are: Intent-Slice:, Route:, Plan-Package:, Small-Loop:, Final-Repo:, Exchange-Format:, Exchange-Packet:, Fixed-Prompt-Context:, Iteration-Auto-Context:, Emergent-Prompt-Context:, Dataflow: — plus Intent-Slice must match `GCR-SLICE-\\d{2}`, Plan-Package/Small-Loop/Final-Repo must equal specific canonical absolute paths under the resolved workspace root, at least 5 absolute workspace paths must appear, and the message must reference `<external-workspace>/gemini_research/gcr/047d548af8f8e34c-conversation.md`, `ROUTES.md#plan-package-materialization`, and `modules/exchange-formats.md`",
+        "validate_file() returns exit code 2 and prints `FAIL: commit message traceability contract failed` plus the list of missing/mismatched fields to stderr if any check fails; on success it prints `PASS: commit message traceability contract` and returns 0"
+      ],
+      "source_files": [
+        "scripts/validate_commit_message.py"
+      ]
+    },
+    {
+      "id": "gates-08",
+      "question": "For a skill's cases.json to pass validator.py / validate_skills_baseline.py, what structural constraints must it satisfy?",
+      "acceptance": [
+        "root must be a JSON array with between 10 and 20 case objects; each case needs id, prompt (non-empty string), should_trigger (bool), and expected_checks (non-empty list of strings, none of which are weak patterns \"\", \".*\", \".+\", \"^.*$\", \"^.+$\"); at least 5 cases must have should_trigger=true and at least 5 must have should_trigger=false",
+        "no two prompts (case-insensitive) may have a SequenceMatcher similarity ratio > 0.85, or validate_cases() fails with 'near-duplicate prompts: N, M'; validate_skills_baseline.py additionally only checks files that `git status --porcelain` shows as modified (regex `^[AM\\s]{1,2}\\s+(skills/.*/cases\\.json)$`) unless `--all` is passed or nothing was modified, in which case it falls back to all skills/*/cases.json"
+      ],
+      "source_files": [
+        "scripts/validator.py",
+        "scripts/validate_skills_baseline.py"
+      ]
+    },
+    {
+      "id": "gates-10",
+      "question": "What does validate_progressive_disclosure.py check about a skill root file's boundaries, and what constitutes a 'leaked deployment detail' failure?",
+      "acceptance": [
+        "each skills/*/skills.md must contain WHY:, HOW:, WHEN:, WHEN NOT:, must contain a `references/` route pattern, and must have a sibling `references/` directory that actually exists on disk (`path.parent / \"references\"` must be a dir)",
+        "the NOISE regex `\\b(?:AWS_ACCESS_KEY|GOOGLE_APPLICATION_CREDENTIALS|[0-9]{1,3}(?:\\.[0-9]{1,3}){3})\\b` (i.e. those literal env-var names or any dotted-quad-shaped token like an IP address) matching anywhere in the root skill text triggers 'deployment detail leaked into root skill' and exit 2"
+      ],
+      "source_files": [
+        "scripts/validate_progressive_disclosure.py"
+      ]
+    },
+    {
+      "id": "gates-12",
+      "question": "no_op_pruner.py and no_ops_purger.py both scan for filler phrases like 'clean code' and 'best practice' in skills.md files — but do either of them ever write changes back to disk?",
+      "acceptance": [
+        "no_op_pruner.py only reads each skills/*/skills.md, lower-cases it, and checks for any of NO_OPS = (\"clean code\", \"easy to read\", \"best practice\", \"highly recommended\", \"please\"); if found it exits 2 with 'FAIL: no-op prompt phrases found' — it never writes anything",
+        "no_ops_purger.py's purge_text() only computes an in-memory simulated purge (using a fake heuristic run_p2_evaluation() that returns 0.10 or 0.95 based solely on whether the string \"Interactions\" appears) and prints purged_count/tokens_saved; main() never calls `.write_text()` on args.skill, so the on-disk skill file is never modified despite the script's name"
+      ],
+      "source_files": [
+        "scripts/no_op_pruner.py",
+        "scripts/no_ops_purger.py"
+      ]
+    },
+    {
+      "id": "gates-14",
+      "question": "Besides validate_molecular_commit_lineage.py, name at least three other scripts.py that exist in scripts/ and are referenced elsewhere (README.md's Usage Entry, check_plan_package_compat.py's required-file list, or tests/) but are NOT part of git_gate.py's GATES list, i.e. never run automatically by the commit/push gate chain.",
+      "acceptance": [
+        "eval_autoresearch_composer.py and sample_autoresearch_traces.py are listed in README.md's 'Usage Entry' block as things to run manually but do not appear in git_gate.py's GATES list",
+        "check_plan_package_compat.py itself is not in GATES (it's a separate manual compatibility check), and check_prompt_trace_assets.py / sync_wiki_to_graph.py are required by check_plan_package_compat.py's `required` path list and tests/test_skill_asset_governance.py's structure test but are absent from GATES in scripts/git_gate.py"
+      ],
+      "source_files": [
+        "scripts/git_gate.py",
+        "README.md",
+        "scripts/check_plan_package_compat.py",
+        "tests/test_skill_asset_governance.py"
+      ]
+    }
+  ]
+}
