@@ -85,6 +85,10 @@ anchor 的 verifier 就是空殼，它印出來的每個數字都只是裝飾。
   真實 repo（十年 commit、死代碼、三種語言）上跑過之前，這裡的結論不外推。
 - **題庫是模型寫的。** 60 題與其驗收標準由四個只讀源碼的 agent 產出，人類沒有逐題稽核。
 - **`n = 30`，只跑一次。** 方向性的，不是結論。
+- **「生成當下就錨定」那個版本從未被跑過。** skill 現在在生成步驟引用了錨定附錄，但那條路徑一次
+  都沒執行。這裡的一切都是對已完成頁面的 retrofit，而 retrofit **結構上不可能**發生前科警告的
+  覆蓋擠壓——所以這個結果**不轉移**到「生成時就開錨定」產出的 wiki。見
+  [`METHOD.md`](METHOD.zh-TW.md#arm-c--這個-repo-不包含的那個配置)。
 - **作者端 model 沒有釘死。** 只有 QA 層有 model provenance；page agent 繼承 session model。
   見 [`METHOD.md`](METHOD.zh-TW.md#models)。
 

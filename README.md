@@ -92,6 +92,11 @@ code.
 - **The QA bank is model-written.** Questions and acceptance criteria came from four
   source-only agents; a human never audited all 60.
 - **`n = 30`, one run.** Directional, not a result.
+- **The generation-time variant was never run.** The skill now references the anchoring
+  appendix at its generation step, but that path has not been executed once. Everything here is
+  a retrofit over finished pages, which is *structurally incapable* of the coverage squeeze the
+  prior warns about — so this result does not transfer to a wiki generated with anchoring on.
+  See [`METHOD.md`](METHOD.md#arm-c--the-configuration-this-repository-does-not-contain).
 - **The authoring model was not pinned.** Only the QA layer records fixed models; the page
   agents inherited the session model. See [`METHOD.md`](METHOD.md#models).
 

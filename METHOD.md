@@ -182,3 +182,32 @@ saw one.
 
 What *is* reproducible here: the gate, its self-test, the circuit breaker, the question bank,
 and every number reported — all of them recomputable from the two published wikis.
+
+---
+
+## Arm C — the configuration this repository does **not** contain
+
+The port's skill was also modified: the anchoring appendix is now referenced at the generation
+step, alongside the official system prompt and the other appendices. A fresh run of that skill
+would therefore produce anchors **while writing**, rather than acquiring them afterwards.
+
+**That path has never been executed.** The target's run metadata still records the baseline
+run, unchanged. Everything measured here is arm B — a retrofit over finished pages.
+
+The distinction is not cosmetic, and it inverts the most important prior in this repository:
+
+| | arm B, measured | arm C, unmeasured |
+|---|---|---|
+| when the anchoring cost is paid | after the pages exist | while deciding what to write |
+| what a bounded author can trade away | nothing — the pages are already written | **scope**, which is exactly what the prior says happens |
+| coverage squeeze possible? | **structurally no** | **yes, and it was measured once at 6 pages → 3** |
+
+So arm B did not survive the squeeze; it was **never exposed to it**. The +13.3pp measured here
+belongs to the retrofit and does **not** transfer to a skill-generated wiki. Anyone wiring the
+appendix into their generation step is entering the configuration
+[`data/prior-anchoring-squeezes-breadth.md`](data/prior-anchoring-squeezes-breadth.md) warns
+about, with no measurement of it in this repository — and should ship a coverage gate beside it
+before believing any anchor-rate number it produces.
+
+Measuring arm C means running the modified skill cold on the same target and comparing coverage
+and cost against arm A. That has not been done.
