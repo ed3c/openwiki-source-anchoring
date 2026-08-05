@@ -4,13 +4,16 @@ on:
   push:
     branches:
       - reproduction-and-adversarial-hardening
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.event.head_commit.message == 'chore: stage hardening bundle'
+    if: github.event_name == 'pull_request' || github.event.head_commit.message == 'chore: stage hardening bundle'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
