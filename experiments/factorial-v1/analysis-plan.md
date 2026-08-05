@@ -22,6 +22,18 @@ Use a hierarchical model or cluster-aware frequentist model with:
 
 Publish the model code and a simpler descriptive analysis that can be recomputed without specialized software.
 
+## Dependency-free descriptive analysis
+
+`analyze.mjs` provides the simpler analysis required above. It:
+
+- validates each run against the frozen config and schedule hashes;
+- aggregates judgments within wiki run;
+- reports cell-level run means and operational failures;
+- bootstraps run-level factorial contrasts with a frozen seed;
+- labels synthetic smoke output as infrastructure evidence only.
+
+It is not the confirmatory hierarchical model. A production report must publish both the dependency-free output and the prespecified cluster-aware analysis.
+
 ## Marker equivalence
 
 For marker-on versus marker-stripped output:
