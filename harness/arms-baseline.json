@@ -1,0 +1,93 @@
+{
+ "note": "Pinned by audit_arms.ts --write. Regenerating hides drift; change it only with the measurement that justifies it.",
+ "target": "repo-snapshot",
+ "arms": {
+  "arm-a-baseline": {
+   "exit_code": 2,
+   "status": "failed",
+   "pages": 31,
+   "anchors_total": 0,
+   "anchors_invalid": 0,
+   "anchors_malformed": 0,
+   "anchor_rate": 0,
+   "lexical_validity": 0,
+   "claims_c1_shaped": 156,
+   "claims_anchored": 0,
+   "claims_inferred": 0,
+   "entrypoint_coverage": 0.9375,
+   "code_refs_missing": 6,
+   "failures": [
+    "anchor_rate 0.0% < 85%"
+   ]
+  },
+  "arm-b-retrofit": {
+   "exit_code": 0,
+   "status": "passed",
+   "pages": 31,
+   "anchors_total": 312,
+   "anchors_invalid": 0,
+   "anchors_malformed": 0,
+   "anchor_rate": 1,
+   "lexical_validity": 1,
+   "claims_c1_shaped": 152,
+   "claims_anchored": 152,
+   "claims_inferred": 8,
+   "entrypoint_coverage": 1,
+   "code_refs_missing": 7,
+   "failures": []
+  },
+  "arm-b-stripped": {
+   "exit_code": 2,
+   "status": "failed",
+   "pages": 31,
+   "anchors_total": 0,
+   "anchors_invalid": 0,
+   "anchors_malformed": 0,
+   "anchor_rate": 0,
+   "lexical_validity": 0,
+   "claims_c1_shaped": 154,
+   "claims_anchored": 0,
+   "claims_inferred": 8,
+   "entrypoint_coverage": 0.96875,
+   "code_refs_missing": 6,
+   "failures": [
+    "anchor_rate 0.0% < 85%"
+   ]
+  },
+  "arm-c-generated": {
+   "exit_code": 2,
+   "status": "failed",
+   "pages": 35,
+   "anchors_total": 590,
+   "anchors_invalid": 2,
+   "anchors_malformed": 0,
+   "anchor_rate": 0.4129032258064516,
+   "lexical_validity": 0.9966101694915255,
+   "claims_c1_shaped": 155,
+   "claims_anchored": 64,
+   "claims_inferred": 12,
+   "entrypoint_coverage": 1,
+   "code_refs_missing": 6,
+   "failures": [
+    "anchor_rate 41.3% < 85%",
+    "anchor_lexical_validity 99.7% < 100% (2 invalid/malformed)"
+   ]
+  },
+  "arm-d-gate-driven": {
+   "exit_code": 0,
+   "status": "passed",
+   "pages": 37,
+   "anchors_total": 1053,
+   "anchors_invalid": 0,
+   "anchors_malformed": 0,
+   "anchor_rate": 1,
+   "lexical_validity": 1,
+   "claims_c1_shaped": 119,
+   "claims_anchored": 119,
+   "claims_inferred": 10,
+   "entrypoint_coverage": 1,
+   "code_refs_missing": 3,
+   "failures": []
+  }
+ }
+}

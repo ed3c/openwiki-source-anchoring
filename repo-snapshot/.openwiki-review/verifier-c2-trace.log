@@ -1,0 +1,328 @@
+OpenAI Codex v0.146.0
+--------
+workdir: /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AN3qf3
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fcb54-8c86-7c92-b58a-03a76ccbe6f3
+--------
+user
+
+You verify whether OpenWiki answers a batch of one to three source-derived engineering questions.
+
+Search only files under /openwiki. Never inspect repository source or files outside /openwiki. Never write or modify files.
+
+On an initial verification, evaluate each supplied question against every supplied acceptance criterion. On a retry where acceptance criteria are intentionally omitted, verify that every prior missing item is now answered by the listed changed pages. Do not weaken, expand, or invent requirements. Keep each result independent even when questions share pages.
+
+Status rules:
+- PASS: every criterion is answered accurately and specifically by /openwiki.
+- PARTIAL: at least one criterion is answered, but material details are missing.
+- FAIL: the wiki cannot provide a useful answer.
+- A documented evidence limit may satisfy a criterion when the wiki explicitly establishes that the source provides no guarantee, behavior, or focused test.
+
+For PARTIAL or FAIL, identify missing facts precisely enough for the parent agent to update the canonical pages and include the relevant wiki page when known. Do not restate answers, criteria, or supporting evidence. For PASS, return only None as the missing value.
+
+Return exactly:
+
+<results>
+  <result id="Q-01" status="PASS | PARTIAL | FAIL">
+    <missing>None | concise missing facts and relevant wiki pages</missing>
+  </result>
+</results>
+
+Example:
+
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/workflows/job-lifecycle.md lacks the retry limit, terminal exhaustion transition, and focused failure test.</missing>
+  </result>
+  <result id="Q-02" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+
+Return only the results block, with one result for every supplied question in the original order.
+
+---
+
+Verify whether the OpenWiki answers the following source-derived questions.
+
+This is the initial verification wave. Evaluate each question against every supplied acceptance
+criterion using only files under the wiki you can see. Return one result per question, in order.
+
+[Q-05]: 若要擴充 evidence-cost 軸或 cache identity，`.agents/skills/repo-terminal-operator/evidence-cost-cache.ts:projectEvidenceCostCache` 與 `.agents/skills/repo-terminal-operator/evidence-cost-collector.ts:collectEvidenceCost` 之間的 canonical request、hash binding、測量可信度及 failure receipt 協定為何？
+Acceptance criteria:
+- 說明 request 如何正規化並綁定 plan、所有 source inputs、stage evidence、cost observation 與 toolchain，且 cost 值為何不能直接取自 request。
+- 解釋 cache key 包含哪些 stage／trace 資訊，以及 miss、persistent-hit、cross-combination-hit 如何分類並重新開啟驗證。
+- 區分 projector 的 `external-hash-bound-observation/unadmitted-collector` 與 collector 的 `trusted-direct-process-collector/axis-scoped` claim boundary。
+- 說明 collector 的 opt-in 開關、HEAD 與 bundle source identity、executable hash/version、exact argv、timeout/cancellation 及 cleanup 成功條件。
+- 指出目前真正 measured 的軸、必須保持 `not-selected` 的 I/O bytes／LLM tokens，以及 precondition/system failure 如何獨立持久化且始終 `admission_eligible=false`。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/evidence-cost-cache.ts:parseEvidenceCostCacheRequest`／`projectEvidenceCostCache` — 驗證 canonical inputs、建立 cache 與 asserted totals。
+- `.agents/skills/repo-terminal-operator/evidence-cost-cache.ts:cacheIdentity`／`validateCacheEntry` — 定義 cache identity 與重開綁定。
+- `.agents/skills/repo-terminal-operator/evidence-cost-collector-cli.ts:main` — 強制 production opt-in 並處理 cancellation/failure receipt。
+- `.agents/skills/repo-terminal-operator/evidence-cost-collector.ts:collectEvidenceCost` — 綁定 HEAD、collector bundle、runtime，並只發布可信的 wall/direct-child CPU observation。
+- `.agents/skills/repo-terminal-operator/evidence-cost-collector.ts:persistEvidenceCostPreconditionFailure` — 保存前置條件與系統失敗證據。
+
+warning: clamping SessionEnd hook timeout to 3s in <home>/.codex/plugins/cache/openai-codex/codex/1.0.6/hooks/hooks.json
+hook: SessionStart
+hook: SessionStart
+hook: SessionStart Completed
+hook: SessionStart Completed
+hook: PreToolUse
+2026-08-04T05:52:33.471210Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/zsh -lc 'rg --files /openwiki'`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+hook: PreToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files /openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AN3qf3
+ exited 2 in 0ms:
+rg: /openwiki: IO error for operation on /openwiki: No such file or directory (os error 2)
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AN3qf3
+ succeeded in 0ms:
+openwiki/validation/static-skill-validators.md
+openwiki/validation/synthetic-corpus-quality.md
+openwiki/validation/ablation-and-benchmark.md
+openwiki/validation/index.md
+openwiki/validation/behavioral-eval-and-judge.md
+openwiki/validation/semantic-arbitration.md
+openwiki/autoresearch-composer-lifecycle.md
+openwiki/terminal-operator/production-profiles-and-handoff.md
+openwiki/terminal-operator/evidence-cost.md
+openwiki/terminal-operator/index.md
+openwiki/terminal-operator/writer-publication.md
+openwiki/terminal-operator/async-lifecycle.md
+openwiki/terminal-operator/overview.md
+openwiki/structured-lifecycle-data.md
+openwiki/governance/molecular-commit-lineage.md
+openwiki/governance/index.md
+openwiki/governance/plan-package-compatibility.md
+openwiki/code-call-lifecycle.md
+openwiki/index.md
+openwiki/architecture/index.md
+openwiki/architecture/data-authority.md
+openwiki/architecture/defense-gate-chain.md
+openwiki/architecture/overview.md
+openwiki/skill-assets/index.md
+openwiki/skill-assets/contract.md
+openwiki/skill-assets/gemini-interactions.md
+openwiki/skill-assets/autoresearch-composer.md
+openwiki/testing/test-map.md
+openwiki/testing/index.md
+openwiki/asset-lifecycle-map.md
+openwiki/README.md
+openwiki/operations/entrypoint-matrix.md
+openwiki/operations/index.md
+openwiki/prompt-trace-assets.md
+openwiki/stateful-workflow.md
+openwiki/quickstart.md
+openwiki/openwiki.yaml
+openwiki/production-bottlenecks.md
+openwiki/usage.md
+openwiki/wiki-graph-sync-architecture.md
+openwiki/schema-standards.md
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,260p' openwiki/terminal-operator/evidence-cost.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AN3qf3
+ succeeded in 0ms:
+---
+type: Architecture
+title: Evidence Cost
+description: The cost cache and collector, their hash-bound request flow, the axis semantics that refuse to report a measured zero, and the unclosed v1/v2 handoff between them.
+tags: [terminal-operator, measurement, cost]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [cost-measurement, content-addressed-cache, axis-semantics]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Evidence Cost
+
+Two modules measure what producing a piece of evidence costs. Neither can grant admission, and — as
+shipped — the collector's output cannot be fed back into the cache.
+
+## End-to-end flow
+
+```text
+request  -> canonical content-addressed request (publish, then reopen)
+         -> ready-stage progress
+         -> execution (collector only, under an owned process-group carrier)
+         -> axis-scoped observation receipt
+         -> cache entry
+         -> ledger
+         -> completion receipt
+```
+
+Every arrow publishes through [writer publication](writer-publication.md), and every consumer *reopens*
+what it was handed rather than trusting the value passed in.
+
+## `evidence-cost-cache.ts` — a projector, not a runner
+
+`evidence-cost-cache-cli.ts --request <request.json>` runs only after the referenced receipts exist. The
+request must hash-bind every source input, the cross-cutting plan, the toolchain argv and version, the
+stage evidence, the oracle relation, and a **separate** cost-observation receipt. Cost fields are
+derived from the reopened observation and are never accepted directly from the request — the request
+says which observation, not what it cost.
+
+It publishes a canonical content-addressed request atomically, reopens it, and only then classifies a
+cache hit. A cache entry is reused only after **all** its bindings are reopened.
+
+`materializeStage()` accepts `repo-evidence-cost-observation@v1` with claim boundary
+`external-hash-bound-observation/unadmitted-collector`. Such evidence is treated as **projected**: its
+aggregate axes are named `asserted_*`, and it is routed to the trusted collector node rather than to
+foreground admission.
+
+This projector never runs a worker or grants admission. Its four-projector race probe belongs to opt-in
+production mode, not the foreground edit loop.
+
+## `evidence-cost-collector.ts` — the measuring one
+
+`evidence-cost-collector-cli.ts --request <collector-request.json>` runs **only** with
+`REPO_EVIDENCE_COLLECTOR_PRODUCTION=1`. Before measuring it reopens the plan, the source inputs, the
+typed passing stage evidence, the canonical request, and ready-stage progress; then binds the committed
+collector bundle (`EVIDENCE_COST_COLLECTOR_BUNDLE_REFS`), the resolved executable hash and version, the
+Git HEAD, and the exact argv.
+
+Execution uses an owned Bun process-group carrier. Every Git, runtime and stage subprocess has a hard
+deadline and a cancellation path, and receipt finalization runs in a **separate bounded phase** so a
+cancellation stays diagnosable rather than losing the reason.
+
+It publishes content-addressed request, execution, axis-scoped observation and completion receipts.
+Any timeout, cancellation, nonzero exit, stream/registry/sentinel leak, nested hash drift, or HEAD drift
+**fails closed**. Precondition and system failures are persisted separately by
+`persistEvidenceCostPreconditionFailure()`, so "it never started" is distinguishable from "it started
+and broke".
+
+## Axis semantics: never a measured zero
+
+The v1 collector physically measures wall time and **direct-child CPU only**.
+
+| Axis | Status |
+|---|---|
+| wall time | measured |
+| CPU | measured, direct child only; unavailable CPU is an explicit failure, not zero |
+| I/O | Bun operation counts are **diagnostic** and must not be relabelled as bytes |
+| LLM tokens | `not-selected` until a trusted provider receipt exists |
+| stage source closure | explicitly `not-selected` — collector HEAD proves its own bundle, not every file the stage may read |
+
+Preserving `not-selected` / `not-applicable` instead of writing `0` is the point: a zero is a
+measurement, and claiming one you did not take is the failure mode the whole module is built against.
+
+While I/O bytes or LLM tokens are missing, `admission_eligible` stays **false** and the same collector
+prompt is retained. Nothing this module produces can admit anything.
+
+## The unclosed v1/v2 handoff
+
+The cache accepts observation **`@v1`** with claim boundary
+`external-hash-bound-observation/unadmitted-collector`. The collector emits observation **`@v2`** with
+claim boundary `trusted-direct-process-collector/axis-scoped`.
+
+**They do not compose.** Collector output cannot currently be fed back into the cache projector; the
+schema and the claim boundary both differ. This is a known open seam, not a configuration mistake, and
+any work that assumes a closed loop between the two will not find one.
+
+The heavy collector profile is suitable for a later sealed background worker, but the dispatcher that
+would run it remains disabled — see [Async lifecycle](async-lifecycle.md).
+
+## Evidence boundary
+
+All of the above is read from vendored source; nothing here has been executed in this checkout. See
+[Terminal operator overview](overview.md).
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg -n "cacheIdentity|persistent-hit|cross-combination|miss|trace|bundle|cleanup|sentinel|admission_eligible|not-selected|collector" openwiki/terminal-operator openwiki/testing openwiki/architecture openwiki/production-bottlenecks.md' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AN3qf3
+ succeeded in 0ms:
+openwiki/production-bottlenecks.md:48:- `data/prompt_trace/prompt_trace_dataset.json` and `data/commit_lineage/gcr_molecular_commits.json`
+openwiki/production-bottlenecks.md:57:Consequence: a clean-room clone cannot reproduce the commit-governance and prompt-trace claims without
+openwiki/production-bottlenecks.md:73:  `scripts/check_plan_package_compat.py`, `scripts/check_prompt_trace_assets.py`,
+openwiki/testing/test-map.md:18:dataset and deterministic judge), `llm_judge` (cloud path, disabled by default), `trace` (local trace
+openwiki/testing/test-map.md:33:| `test_static_defense_scripts_pass` | each of 25 static gates exits 0 **independently**. Unlike `git_gate.py`, it does not stop at the first failure, so it reports every broken gate in one run. It also covers `check_prompt_trace_assets.py`, which `git_gate.py` does not. |
+openwiki/testing/test-map.md:35:| `test_autoresearch_eval_and_trace_gates_pass` | the PR golden eval passes with `cloud_judge_enabled=false`, the trace sampler passes, and the lifecycle dataset display matches its generator |
+openwiki/terminal-operator/production-profiles-and-handoff.md:5:tags: [terminal-operator, admission, git-handoff]
+openwiki/terminal-operator/production-profiles-and-handoff.md:9:covers: [admission-profiles, contained-carrier, forgejo-handoff]
+openwiki/terminal-operator/production-profiles-and-handoff.md:21:| `production-journey.ts` | legacy receipt | **No — legacy only, must not be used for admission** |
+openwiki/terminal-operator/production-profiles-and-handoff.md:27:admission."* Admission requires the digest-pinned local OS carrier with network disabled and bounded
+openwiki/terminal-operator/production-profiles-and-handoff.md:32:**no admission-valid production evidence can be produced from this checkout**. See
+openwiki/terminal-operator/production-profiles-and-handoff.md:44:  awaiting exit; on timeout kill, await termination, and clear the timer in deterministic cleanup.
+openwiki/terminal-operator/production-profiles-and-handoff.md:49:  cleanup — without partial-success semantics, any rejection still fails the batch.
+openwiki/terminal-operator/production-profiles-and-handoff.md:55:## Sealed review is not async admission
+openwiki/terminal-operator/production-profiles-and-handoff.md:61:A sealed-review coordinator receipt is only one internal stage: `degraded`, missing-final,
+openwiki/terminal-operator/production-profiles-and-handoff.md:63:admission. The admission verb lives on the facade — see [Async lifecycle](async-lifecycle.md).
+openwiki/terminal-operator/production-profiles-and-handoff.md:75:Typed nonzero failure on: stale HEAD, conflicting remote, bootstrap hash drift, cleanup failure, or a
+openwiki/terminal-operator/production-profiles-and-handoff.md:91:Read from vendored source. No Bun toolchain, no local tests, and the admission-valid profile's script is
+openwiki/terminal-operator/evidence-cost.md:4:description: The cost cache and collector, their hash-bound request flow, the axis semantics that refuse to report a measured zero, and the unclosed v1/v2 handoff between them.
+openwiki/terminal-operator/evidence-cost.md:17:Two modules measure what producing a piece of evidence costs. Neither can grant admission, and — as
+openwiki/terminal-operator/evidence-cost.md:18:shipped — the collector's output cannot be fed back into the cache.
+openwiki/terminal-operator/evidence-cost.md:25:         -> execution (collector only, under an owned process-group carrier)
+openwiki/terminal-operator/evidence-cost.md:47:`external-hash-bound-observation/unadmitted-collector`. Such evidence is treated as **projected**: its
+openwiki/terminal-operator/evidence-cost.md:48:aggregate axes are named `asserted_*`, and it is routed to the trusted collector node rather than to
+openwiki/terminal-operator/evidence-cost.md:49:foreground admission.
+openwiki/terminal-operator/evidence-cost.md:51:This projector never runs a worker or grants admission. Its four-projector race probe belongs to opt-in
+openwiki/terminal-operator/evidence-cost.md:54:## `evidence-cost-collector.ts` — the measuring one
+openwiki/terminal-operator/evidence-cost.md:56:`evidence-cost-collector-cli.ts --request <collector-request.json>` runs **only** with
+openwiki/terminal-operator/evidence-cost.md:59:collector bundle (`EVIDENCE_COST_COLLECTOR_BUNDLE_REFS`), the resolved executable hash and version, the
+openwiki/terminal-operator/evidence-cost.md:67:Any timeout, cancellation, nonzero exit, stream/registry/sentinel leak, nested hash drift, or HEAD drift
+openwiki/terminal-operator/evidence-cost.md:74:The v1 collector physically measures wall time and **direct-child CPU only**.
+openwiki/terminal-operator/evidence-cost.md:81:| LLM tokens | `not-selected` until a trusted provider receipt exists |
+openwiki/terminal-operator/evidence-cost.md:82:| stage source closure | explicitly `not-selected` — collector HEAD proves its own bundle, not every file the stage may read |
+openwiki/terminal-operator/evidence-cost.md:84:Preserving `not-selected` / `not-applicable` instead of writing `0` is the point: a zero is a
+openwiki/terminal-operator/evidence-cost.md:87:While I/O bytes or LLM tokens are missing, `admission_eligible` stays **false** and the same collector
+openwiki/terminal-operator/evidence-cost.md:93:`external-hash-bound-observation/unadmitted-collector`. The collector emits observation **`@v2`** with
+openwiki/terminal-operator/evidence-cost.md:94:claim boundary `trusted-direct-process-collector/axis-scoped`.
+openwiki/terminal-operator/evidence-cost.md:100:The heavy collector profile is suitable for a later sealed background worker, but the dispatcher that
+openwiki/architecture/overview.md:41:3. **Structured evidence** — `data/`, holding lifecycle registries, golden datasets, traces, prompt-trace
+openwiki/architecture/data-authority.md:39:| `data/prompt_trace/**` | trace dataset + golden eval | human/agent | governed by `data/lifecycle/trace_privacy_classification.json` |
+openwiki/architecture/data-authority.md:49:- **Prompt traces** are neither. They are a dataset with their own privacy classification and their own
+openwiki/architecture/data-authority.md:51:  `check_prompt_trace_assets.py` is given `--workspace-root` / `--commit-repo`.
+openwiki/terminal-operator/index.md:3:- [Async Lifecycle](async-lifecycle.md) - The seal, projection, worker and admission stages of the async production lifecycle — which component actually launches work, and which outputs are advisory rather than admissible.
+openwiki/terminal-operator/index.md:4:- [Evidence Cost](evidence-cost.md) - The cost cache and collector, their hash-bound request flow, the axis semantics that refuse to report a measured zero, and the unclosed v1/v2 handoff between them.
+openwiki/architecture/defense-gate-chain.md:45:`__pycache__`, `.pytest_cache`, `.DS_Store` and `*.pyc` — and folds relative path, permission bits,
+openwiki/terminal-operator/async-lifecycle.md:4:description: The seal, projection, worker and admission stages of the async production lifecycle — which component actually launches work, and which outputs are advisory rather than admissible.
+openwiki/terminal-operator/async-lifecycle.md:5:tags: [terminal-operator, async, admission]
+openwiki/terminal-operator/async-lifecycle.md:9:covers: [async-seal, worker-execution, admission-boundary]
+openwiki/terminal-operator/async-lifecycle.md:24:    participant F as async-admission-facade
+openwiki/terminal-operator/async-lifecycle.md:36:    F->>L: admit — reopen HEAD, bytes, receipt, job, result, cleanup, isolation
+openwiki/terminal-operator/async-lifecycle.md:58:budget, and until that dispatcher passes production admission the refs carry no authority.
+openwiki/terminal-operator/async-lifecycle.md:75:## `async-admission-facade.ts` — the only public seam
+openwiki/terminal-operator/async-lifecycle.md:77:`async-admission-facade-cli.ts --request <request.json>` with four verbs:
+openwiki/terminal-operator/async-lifecycle.md:84:| `admit` | reopens HEAD, candidate bytes, foreground receipt, job, lifecycle result, cleanup, isolation and reviewer bindings, then publishes one immutable ownership receipt |
+openwiki/terminal-operator/async-lifecycle.md:88:**advisory rather than admissible**: a run that could only be verified against the live working
+openwiki/terminal-operator/async-lifecycle.md:101:- **Cleanup**: a cleanup failure is terminal, not a logged warning.
+openwiki/terminal-operator/writer-publication.md:25:| `writer-entrypoint.ts` | the public writer seam, and the admission-relevant one |
+openwiki/terminal-operator/writer-publication.md:28:| `async-admission-facade.ts` | the immutable ownership receipt |
+openwiki/terminal-operator/writer-publication.md:32:| `evidence-cost-collector.ts` | request, execution, observation and completion receipts |
+openwiki/terminal-operator/writer-publication.md:61:- **Aggregated cleanup failure** — cleanup errors are collected and surfaced as a terminal failure
+openwiki/terminal-operator/writer-publication.md:62:  rather than being swallowed. `SKILL.md` states the rule for the whole operator: *"Treat cleanup
+openwiki/terminal-operator/writer-publication.md:74:| cleanup | the artifact published but cleanup failed — still terminal |
+openwiki/terminal-operator/writer-publication.md:87:publication, kill-mid-publish, and cleanup-failure paths.
+openwiki/terminal-operator/overview.md:70:expected Git head, live write lease, allowed paths, and the generated-core bundle. Two exported checks
+openwiki/terminal-operator/overview.md:89:The task profile deliberately records coverage as `not-selected` rather than claiming a misleading
+openwiki/terminal-operator/overview.md:90:aggregate over subprocess-tested modules, and routes coverage/race/leak admission to
+openwiki/terminal-operator/overview.md:102:- The evidence-cost projector never runs a worker or grants admission.
+openwiki/terminal-operator/overview.md:107:- [Async lifecycle](async-lifecycle.md) — seal, projection, worker, admission, and what really executes.
+openwiki/terminal-operator/overview.md:110:- [Production profiles and handoff](production-profiles-and-handoff.md) — admission-valid profiles and
+
+codex
+<results>
+  <result id="Q-05" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/evidence-cost.md lacks the exact stage/trace fields included in cache identity and the classification plus reopen-validation rules for miss, persistent-hit, and cross-combination-hit.</missing>
+  </result>
+</results>
+hook: Stop
+hook: Stop Completed
+tokens used
+19,178

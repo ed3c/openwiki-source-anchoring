@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/async-lifecycle.md 仍缺少 sealSha256 的精確計算與固定方式，以及 result transaction commit、finish CAS、公開結果發布、取消競爭和 recoverCommittedResult 的逐步 transaction 順序。</missing>
+  </result>
+  <result id="Q-02" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/async-lifecycle.md 仍缺少 dispatch 的 expectedVersion 與 lease 時間值計算、progress sequence 的精確接受／拒絕條件，以及 orphan 的完整判定條件。</missing>
+  </result>
+</results>

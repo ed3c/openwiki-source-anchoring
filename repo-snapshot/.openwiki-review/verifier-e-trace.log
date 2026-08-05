@@ -1,0 +1,1352 @@
+OpenAI Codex v0.146.0
+--------
+workdir: /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fcb52-fc63-73f2-9dad-3bb18eaa93ba
+--------
+user
+
+You verify whether OpenWiki answers a batch of one to three source-derived engineering questions.
+
+Search only files under /openwiki. Never inspect repository source or files outside /openwiki. Never write or modify files.
+
+On an initial verification, evaluate each supplied question against every supplied acceptance criterion. On a retry where acceptance criteria are intentionally omitted, verify that every prior missing item is now answered by the listed changed pages. Do not weaken, expand, or invent requirements. Keep each result independent even when questions share pages.
+
+Status rules:
+- PASS: every criterion is answered accurately and specifically by /openwiki.
+- PARTIAL: at least one criterion is answered, but material details are missing.
+- FAIL: the wiki cannot provide a useful answer.
+- A documented evidence limit may satisfy a criterion when the wiki explicitly establishes that the source provides no guarantee, behavior, or focused test.
+
+For PARTIAL or FAIL, identify missing facts precisely enough for the parent agent to update the canonical pages and include the relevant wiki page when known. Do not restate answers, criteria, or supporting evidence. For PASS, return only None as the missing value.
+
+Return exactly:
+
+<results>
+  <result id="Q-01" status="PASS | PARTIAL | FAIL">
+    <missing>None | concise missing facts and relevant wiki pages</missing>
+  </result>
+</results>
+
+Example:
+
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/workflows/job-lifecycle.md lacks the retry limit, terminal exhaustion transition, and focused failure test.</missing>
+  </result>
+  <result id="Q-02" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+
+Return only the results block, with one result for every supplied question in the original order.
+
+---
+
+Verify whether the OpenWiki answers the following source-derived questions.
+
+This is the initial verification wave. Evaluate each question against every supplied acceptance
+criterion using only files under the wiki you can see. Return one result per question, in order.
+
+[Q-08]: 若要變更 Wiki graph schema 或新增 external graph backend，`scripts/sync_wiki_to_graph.py:event_for_file`、`project_graph`、`write_external_graph_if_enabled` 與 `scripts/check_wiki_graph_sync.py:main` 之間有哪些 event、provenance、retrieval 及 fail-closed 契約？
+Acceptance criteria:
+- 說明 frontmatter/title fallback、heading stack、links、code-block count、license defaults，以及 event ID 對 source path、commit SHA、content hash 的綁定。
+- 描述 WikiDocument、WikiSection、HAS_SECTION、LINKS_TO、USES_SCHEMA 與 vector chunks 的建立方式及 required retrieval fields。
+- 解釋 external write 的雙重 opt-in、secret 檢查、generic HTTP 與 Neo4j transaction payload，以及 HTTP／Neo4j errors 的失敗路徑。
+- 說明現有 checker 實際驗證哪些 schema/provenance/retrieval 欄位、missing-secret failure 與本地重建；並指出它沒有建立成功 external write 的整合保證。
+- 說明 workflow 的 path filters、local projection artifact 與 external job permissions/activation 如何限制觸發範圍。
+Source evidence:
+- `scripts/sync_wiki_to_graph.py:event_for_file`／`project_graph` — 將 Markdown 投影成 events、nodes、edges 與 chunks。
+- `scripts/sync_wiki_to_graph.py:write_external_graph_if_enabled`／`post_neo4j_graph_payload` — 實作 external backend 選擇、secret 與回應錯誤處理。
+- `data/wiki_graph/schema.json:required_event_fields`／`required_provenance_fields`／`required_graph_fields` — 定義結構化 graph contract。
+- `scripts/check_wiki_graph_sync.py:main` — 執行本地重建、missing-secret probe 與 artifact contract 檢查。
+- `.github/workflows/wiki_graph_sync.yml:jobs.local-first-wiki-graph-sync`／`jobs.external-graph-write-disabled-by-default` — 定義 CI 投影與 opt-in external write。
+
+[Q-09]: 在沒有 `.git` 的 checkout 中，兩個 hooks、四個 workflows 與 `scripts/git_gate.py:main` 實際涵蓋哪些防線；新增 `.agents`、data、hook 或 workflow 檔案時，哪些變更可能不會觸發預期 CI 或只執行 validator selftest？
+Acceptance criteria:
+- 追蹤 `.githooks/pre-push` 到完整 `GATES`，以及 `.githooks/commit-msg` 如何把實際 message path 傳給 commit-message validator。
+- 說明 `git_gate` 的 fail-fast 順序、輸入狀態 hash、禁止 repo 內 receipt、原子 receipt 寫入及 gate 執行前後 mutation 偵測。
+- 解釋 `validate_skills_baseline.modified_case_files` 在非 Git checkout 如何退回掃描全部 case assets，以及 `validate_commit_message.main` 無 message path 時只跑 selftest 的差異。
+- 比較 `skill_ci`、`autoresearch_eval`、`wiki_graph_sync` 與 `weekly_audit` 的事件/path filters，指出 `.agents/**`、hooks、部分 data 或 workflow 自身變更是否會觸發相應工作。
+- 說明 pytest governance test 與 molecular-lineage validator 在無 Git history 時仍能驗證哪些靜態資料，哪些 history-backed 檢查只有顯式 flags 與 Git root 才成立。
+Source evidence:
+- `.githooks/pre-push:python3 "$ROOT/scripts/git_gate.py"`／`.githooks/commit-msg:validate_commit_message.py` — 本地 push 與 commit-message 入口。
+- `scripts/git_gate.py:GATES`／`input_state_sha256`／`write_receipt`／`main` — 定義完整 gate、穩定性 hash 與 receipt 行為。
+- `scripts/validate_skills_baseline.py:modified_case_files`／`main` — 定義 Git-aware 掃描與無 Git fallback。
+- `scripts/validate_commit_message.py:main`／`selftest` — 區分真實 commit message 驗證與無參數 selftest。
+- `.github/workflows/skill_ci.yml:on.pull_request.paths`／`.github/workflows/weekly_audit.yml:on.schedule` — 顯示主要 CI/audit 的觸發邊界。
+- `tests/test_skill_asset_governance.py:test_static_defense_scripts_pass`／`test_molecular_commit_lineage_gate_passes` — 證明 pytest 中執行的是腳本預設模式，而非 Git-history audit。
+
+warning: clamping SessionEnd hook timeout to 3s in <home>/.codex/plugins/cache/openai-codex/codex/1.0.6/hooks/hooks.json
+hook: SessionStart
+hook: SessionStart
+hook: SessionStart Completed
+hook: SessionStart Completed
+hook: PreToolUse
+2026-08-04T05:50:50.099764Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/zsh -lc 'rg --files .'`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+hook: PreToolUse Completed
+hook: PreToolUse
+2026-08-04T05:50:55.532066Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/zsh -lc 'rg --files .'`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+hook: PreToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+ exited 2 in 0ms:
+rg: openwiki: IO error for operation on openwiki: No such file or directory (os error 2)
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'ls -la /openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+ exited 1 in 0ms:
+ls: /openwiki: No such file or directory
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files .' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+ succeeded in 0ms:
+./validation/static-skill-validators.md
+./validation/synthetic-corpus-quality.md
+./validation/ablation-and-benchmark.md
+./validation/index.md
+./validation/behavioral-eval-and-judge.md
+./validation/semantic-arbitration.md
+./autoresearch-composer-lifecycle.md
+./terminal-operator/production-profiles-and-handoff.md
+./terminal-operator/evidence-cost.md
+./terminal-operator/index.md
+./terminal-operator/writer-publication.md
+./terminal-operator/async-lifecycle.md
+./terminal-operator/overview.md
+./structured-lifecycle-data.md
+./governance/molecular-commit-lineage.md
+./governance/index.md
+./governance/plan-package-compatibility.md
+./code-call-lifecycle.md
+./index.md
+./architecture/index.md
+./architecture/data-authority.md
+./architecture/defense-gate-chain.md
+./architecture/overview.md
+./skill-assets/index.md
+./skill-assets/contract.md
+./skill-assets/gemini-interactions.md
+./skill-assets/autoresearch-composer.md
+./testing/test-map.md
+./testing/index.md
+./asset-lifecycle-map.md
+./README.md
+./operations/entrypoint-matrix.md
+./operations/index.md
+./prompt-trace-assets.md
+./stateful-workflow.md
+./quickstart.md
+./openwiki.yaml
+./production-bottlenecks.md
+./usage.md
+./wiki-graph-sync-architecture.md
+./schema-standards.md
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "rg -n -i \"event_for_file|project_graph|write_external_graph|frontmatter|WikiDocument|vector|missing.secret|Neo4j|wiki_graph|pre-push|commit-msg|git_gate|modified_case_files|selftest|skill_ci|weekly_audit|autoresearch_eval|molecular|receipt|input_state|\\.agents|path filter|paths:\" --glob '*.md' ." in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+ succeeded in 0ms:
+./validation/static-skill-validators.md:4:description: The five non-behavioral validators, the behavior-preserving no-op purger, and which of them prove only their selftest under git_gate.
+./validation/static-skill-validators.md:9:covers: [static-validation, no-op-pruning, selftest-only-gates]
+./validation/static-skill-validators.md:26:| `validate_commit_message.py` | a commit message missing any of 11 traceability fields — see [Molecular commit lineage](../governance/molecular-commit-lineage.md) |
+./validation/static-skill-validators.md:31:`scripts/git_gate.py` invokes every gate as `python3 <gate>` with **no arguments**.
+./validation/static-skill-validators.md:33:- `validate_commit_message.py` normally takes a message file (that is how `.githooks/commit-msg` calls
+./validation/static-skill-validators.md:34:  it). Argument-less, it runs its selftest.
+./validation/static-skill-validators.md:37:So a green `git_gate.py` proves those two scripts still work — not that a real commit message or skill
+./validation/static-skill-validators.md:63:python3 scripts/validate_commit_message.py <message-file>   # the real check, not the selftest
+./validation/ablation-and-benchmark.md:41:Trigger: `.github/workflows/weekly_audit.yml`, Monday 03:00 UTC cron — and it runs **only** this
+./validation/ablation-and-benchmark.md:62:- A loader nonce and a runtime session model receipt bind the run to the model that actually served it.
+./terminal-operator/production-profiles-and-handoff.md:21:| `production-journey.ts` | legacy receipt | **No — legacy only, must not be used for admission** |
+./terminal-operator/production-profiles-and-handoff.md:22:| `writer-production-journey.ts` (local) | `small-loop-run-receipt` **v1** | **No** — the gate expects v2 |
+./terminal-operator/production-profiles-and-handoff.md:23:| `os-contained-production-profile.ts` | preflight receipt | **No** — preflight PASS cannot admit writer safety |
+./terminal-operator/production-profiles-and-handoff.md:24:| `writer-contained-production-profile.ts` (upstream, via `production-use.profile.json`) | v2 receipt | **Yes** — it invokes the real repo-local `writer-entrypoint.ts` inside the OS-contained carrier |
+./terminal-operator/production-profiles-and-handoff.md:42:  and emit a typed nonzero receipt.
+./terminal-operator/production-profiles-and-handoff.md:61:A sealed-review coordinator receipt is only one internal stage: `degraded`, missing-final,
+./terminal-operator/production-profiles-and-handoff.md:62:mutable-checkout, unfenced and non-atomic receipts are rejected, and a reviewer PASS is **not** async
+./validation/index.md:6:- [Static Skill Validators](static-skill-validators.md) - The five non-behavioral validators, the behavior-preserving no-op purger, and which of them prove only their selftest under git_gate.
+./schema-standards.md:4:description: The node, event, embedding and license-provenance contracts declared by data/wiki_graph/schema.json, and which field each gate actually enforces.
+./schema-standards.md:17:`data/wiki_graph/schema.json` is the single declaration every projection artifact is validated against.
+./schema-standards.md:40:## WikiDocument and WikiSection
+./schema-standards.md:48:| `WikiDocument` | `doc:<source_path>` | `title`, `source_path`, `commit_sha`, `content_sha256`, `schema_version`, `license` |
+./schema-standards.md:57:`default_embedding_model` declares the vector side:
+./schema-standards.md:72:`copyleft_risk` — five fields on every `WikiDocument`. Their defaults and the `W3.license_unknown`
+./schema-standards.md:85:| the five required files exist | `scripts/check_wiki_graph_sync.py` required-files list |
+./schema-standards.md:86:| the workflow really passes the flags it claims | `scripts/check_wiki_graph_sync.py` workflow literal check |
+./schema-standards.md:87:| this page and the architecture page state the contract | `scripts/check_wiki_graph_sync.py` page literal checks |
+./schema-standards.md:88:| a fresh projection reproduces from the current wiki | `scripts/check_wiki_graph_sync.py` re-runs `sync_wiki_to_graph.py` into a temporary directory |
+./schema-standards.md:94:python3 scripts/check_wiki_graph_sync.py
+./terminal-operator/evidence-cost.md:26:         -> axis-scoped observation receipt
+./terminal-operator/evidence-cost.md:29:         -> completion receipt
+./terminal-operator/evidence-cost.md:37:`evidence-cost-cache-cli.ts --request <request.json>` runs only after the referenced receipts exist. The
+./terminal-operator/evidence-cost.md:39:stage evidence, the oracle relation, and a **separate** cost-observation receipt. Cost fields are
+./terminal-operator/evidence-cost.md:63:deadline and a cancellation path, and receipt finalization runs in a **separate bounded phase** so a
+./terminal-operator/evidence-cost.md:66:It publishes content-addressed request, execution, axis-scoped observation and completion receipts.
+./terminal-operator/evidence-cost.md:81:| LLM tokens | `not-selected` until a trusted provider receipt exists |
+./wiki-graph-sync-architecture.md:25:    MD["LLM Wiki, human SSOT"] --> E["event_for_file"]
+./wiki-graph-sync-architecture.md:27:    E --> P["project_graph"]
+./wiki-graph-sync-architecture.md:29:    G --> V["Vector RAG chunks"]
+./wiki-graph-sync-architecture.md:38:`scripts/sync_wiki_to_graph.py::event_for_file()` turns one Markdown file into one
+./wiki-graph-sync-architecture.md:40:`data/wiki_graph/schema.json::event_schema_version`), `source_path`, `heading_path`, `commit_sha`,
+./wiki-graph-sync-architecture.md:60:- `.github/workflows/wiki_graph_sync.yml` runs the projection and **uploads it as a build artifact**;
+./wiki-graph-sync-architecture.md:63:## Projection: Vector RAG and GraphRAG from one pass
+./wiki-graph-sync-architecture.md:65:`project_graph()` emits three collections plus a retrieval descriptor:
+./wiki-graph-sync-architecture.md:69:| nodes | one `WikiDocument` per page; one `WikiSection` per heading |
+./wiki-graph-sync-architecture.md:73:The `retrieval` block declares both retrieval modes over the same local artifacts: **Vector RAG**
+./wiki-graph-sync-architecture.md:74:(`vector_store: local-json`, using the schema's `local-hash-embedding@0.1.0`) and **GraphRAG**
+./wiki-graph-sync-architecture.md:84:`parse_frontmatter()` in this script is deliberately minimal: it accepts a leading `---` block and
+./wiki-graph-sync-architecture.md:92:`license_payload()` attaches five provenance fields to each `WikiDocument`, reading them from the page's
+./wiki-graph-sync-architecture.md:103:`data/wiki_graph/schema.json::commercial_license_allowlist` is `MIT`, `Apache-2.0`, `BSD-2-Clause`,
+./wiki-graph-sync-architecture.md:119:`write_external_graph_if_enabled()` returns immediately unless `ENABLE_GRAPH_DB_WRITE == "true"` in the
+./wiki-graph-sync-architecture.md:122:`data/wiki_graph/schema.json` records the stance as `external_graph_write_policy: disabled-by-default`.
+./wiki-graph-sync-architecture.md:124:When both are set, the missing-secret path is the failure mode to recognise —
+./wiki-graph-sync-architecture.md:126:and raises `external graph write requested but missing secrets: ...` naming exactly which are absent,
+./wiki-graph-sync-architecture.md:131:- `GRAPH_DB_KIND=neo4j-http` — three `MERGE` statements (nodes, chunks, edges) posted to
+./wiki-graph-sync-architecture.md:132:  `<GRAPH_DB_URI>/db/<GRAPH_DB_DATABASE|neo4j>/tx/commit`; a non-empty `errors` array in the response
+./wiki-graph-sync-architecture.md:143:python3 scripts/check_wiki_graph_sync.py         # validates schema contract and artifacts
+./testing/test-map.md:33:| `test_static_defense_scripts_pass` | each of 25 static gates exits 0 **independently**. Unlike `git_gate.py`, it does not stop at the first failure, so it reports every broken gate in one run. It also covers `check_prompt_trace_assets.py`, which `git_gate.py` does not. |
+./testing/test-map.md:35:| `test_autoresearch_eval_and_trace_gates_pass` | the PR golden eval passes with `cloud_judge_enabled=false`, the trace sampler passes, and the lifecycle dataset display matches its generator |
+./testing/test-map.md:36:| `test_wiki_graph_sync_gate_passes` | a projection built into a **temporary directory** reproduces cleanly, then the gate passes — proving reproducibility without mutating the checked-in artifacts |
+./testing/test-map.md:37:| `test_molecular_commit_lineage_gate_passes` | the lineage validator's default structural mode passes |
+./testing/test-map.md:40:history. See [Molecular commit lineage](../governance/molecular-commit-lineage.md).
+./testing/test-map.md:42:## `tests/test_autoresearch_eval_suite.py`
+./testing/test-map.md:45:the local heuristic judge. This is the suite `.github/workflows/autoresearch_eval.yml` runs with
+./testing/test-map.md:67:There is no test for `.agents/skills/repo-terminal-operator/` in this repository — no `package.json`, no
+./README.md:35:python3 scripts/git_gate.py
+./README.md:74:- **[Governance](governance/)** — molecular commit lineage and plan-package compatibility.
+./README.md:85:- **[Defense gate chain](architecture/defense-gate-chain.md)** — `git_gate.py` internals and its
+./operations/entrypoint-matrix.md:4:description: Every hook and workflow with its exact argv, path filter, environment-variable format and side effects — plus the scripts nothing triggers automatically.
+./operations/entrypoint-matrix.md:25:| `.githooks/commit-msg` | `scripts/validate_commit_message.py` | `<message-file>` | none |
+./operations/entrypoint-matrix.md:26:| `.githooks/pre-push` | `scripts/git_gate.py` | none | none; exits 125 if any gate mutated the tree |
+./operations/entrypoint-matrix.md:30:| Workflow | Trigger | Path filter | Commands | Side effects |
+./operations/entrypoint-matrix.md:32:| `skill_ci.yml` | pull_request | `skills/**`, `scripts/**` | `python scripts/git_gate.py` | none |
+./operations/entrypoint-matrix.md:33:| `wiki_graph_sync.yml` | push, pull_request, workflow_dispatch | `openwiki/**/*.md`, `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, `scripts/check_wiki_graph_sync.py` | `sync_wiki_to_graph.py --wiki-root openwiki --schema … --event-log … --graph-out … --commit-sha "$GITHUB_SHA"`, then `check_wiki_graph_sync.py` | **uploads** `wiki-graph-local-projection` as an artifact; does **not** commit the regenerated files |
+./operations/entrypoint-matrix.md:34:| `autoresearch_eval.yml` | pull_request, workflow_dispatch | `skills/autoresearch_composer/**`, `data/autoresearch_golden/**`, `data/autoresearch_traces/**`, `scripts/eval_autoresearch_composer.py`, `scripts/sample_autoresearch_traces.py`, `tests/test_autoresearch_eval_suite.py` | `eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`, `sample_autoresearch_traces.py`, `pytest -q -m evals` | none |
+./operations/entrypoint-matrix.md:35:| `weekly_audit.yml` | cron `0 3 * * 1`, workflow_dispatch | — | `python scripts/ablation_engine.py` | none |
+./operations/entrypoint-matrix.md:37:Note what `weekly_audit.yml` does **not** run: `scripts/real_driver_ablation.py`. The weekly audit is
+./operations/entrypoint-matrix.md:46:| `ENABLE_GRAPH_DB_WRITE` | `sync_wiki_to_graph.py::write_external_graph_if_enabled()` | the string `"true"` | `vars.ENABLE_GRAPH_DB_WRITE` in `wiki_graph_sync.yml` — **matches** |
+./operations/entrypoint-matrix.md:48:| `GRAPH_DB_KIND` | same | `generic-http-json` or `neo4j-http`; anything else raises | `vars.GRAPH_DB_KIND`, defaulting to `generic-http-json` |
+./operations/entrypoint-matrix.md:50:| `ENABLE_LLM_JUDGE` | `eval_autoresearch_composer.py::cloud_judge()` | the string `"1"` | `autoresearch_eval.yml` passes `vars.ENABLE_CLOUD_EVALS`, i.e. `"true"` — **mismatch, the branch never activates** |
+./operations/entrypoint-matrix.md:52:| `GIT_GATE_FIXED_ELAPSED_MS` | `git_gate.py::elapsed_ms()` | integer string; overrides all timings | tests, for reproducible receipts |
+./operations/entrypoint-matrix.md:60:## The 23 gates `git_gate.py` covers
+./operations/entrypoint-matrix.md:81:## Gates that run argument-less and prove only a selftest
+./operations/entrypoint-matrix.md:91:| the 23-gate chain, stopping at the first failure | `git_gate.py`, hook and `skill_ci.yml` |
+./operations/entrypoint-matrix.md:92:| golden-dataset and trace assets | `autoresearch_eval.yml`, `pytest -m evals` |
+./operations/entrypoint-matrix.md:93:| the wiki→graph projection | `wiki_graph_sync.yml` |
+./operations/entrypoint-matrix.md:94:| a simulated weekly delta | `weekly_audit.yml` |
+./skill-assets/gemini-interactions.md:4:description: The quarantined Gemini Interactions asset — why a failing real-driver receipt is authoritative over a green 117/117 canary, what the current driver fixed, and what must be re-verified before promotion.
+./skill-assets/gemini-interactions.md:32:The authority is a **failing receipt**:
+./skill-assets/gemini-interactions.md:49:The normalization rule is stated in the receipt: *a case pass requires regex checks to pass and agent
+./skill-assets/gemini-interactions.md:86:`scripts/real_driver_ablation.py` has since been hardened against the exact defects the receipt names.
+./skill-assets/gemini-interactions.md:99:It also binds a loader nonce and a runtime session model receipt, so a run cannot silently be attributed
+./skill-assets/gemini-interactions.md:104:**No gate reads `status.json`.** `scripts/git_gate.py::GATES` does not include a check that binds the
+./skill-assets/gemini-interactions.md:105:status file to its `verification_receipt`, and no workflow does either. Nothing prevents this asset from
+./skill-assets/gemini-interactions.md:115:4. Write a **new dated** verification run under `data/verification_runs/`; receipts are never edited in
+./skill-assets/gemini-interactions.md:117:5. Update `status.json` to reference the new receipt.
+./skill-assets/gemini-interactions.md:119:   `status.production_routable` is consistent with the referenced receipt's `decision`.
+./operations/index.md:3:- [Entrypoint Matrix](entrypoint-matrix.md) - Every hook and workflow with its exact argv, path filter, environment-variable format and side effects — plus the scripts nothing triggers automatically.
+./asset-lifecycle-map.md:44:`.githooks/commit-msg` runs `scripts/validate_commit_message.py` against the message file.
+./asset-lifecycle-map.md:45:`.githooks/pre-push` runs `scripts/git_gate.py`, which executes 23 registered gates in order and stops
+./asset-lifecycle-map.md:49:`scripts/git_gate.py` also hashes the entire repository input state before and after the run and exits
+./asset-lifecycle-map.md:58:`.github/workflows/skill_ci.yml` re-runs `scripts/git_gate.py` on any pull request touching `skills/**`
+./asset-lifecycle-map.md:60:`wiki_graph_sync.yml`, `autoresearch_eval.yml`, and `weekly_audit.yml`. Their exact argv, path filters,
+./asset-lifecycle-map.md:71:on the authority of a failing real-driver receipt — see
+./asset-lifecycle-map.md:83:`.github/workflows/weekly_audit.yml` runs `scripts/ablation_engine.py` on a Monday 03:00 UTC cron. The
+./validation/behavioral-eval-and-judge.md:56:A second, separate fact: `.github/workflows/autoresearch_eval.yml` sets
+./skill-assets/index.md:5:- [gemini_interactions (quarantined)](gemini-interactions.md) - The quarantined Gemini Interactions asset — why a failing real-driver receipt is authoritative over a green 117/117 canary, what the current driver fixed, and what must be re-verified before promotion.
+./prompt-trace-assets.md:42:[Stateful workflow](stateful-workflow.md) refuses at the node level. The molecular commit message
+./prompt-trace-assets.md:46:[Molecular commit lineage](governance/molecular-commit-lineage.md).
+./prompt-trace-assets.md:76:    F --> G["gcr_molecular_commits.json"]
+./prompt-trace-assets.md:126:| the recorded run happened as described | **receipt claim only** — the dataset is an imported record, not something this checkout replays |
+./prompt-trace-assets.md:128:`scripts/check_prompt_trace_assets.py` is **not** in `scripts/git_gate.py::GATES`, so a routine push does
+./skill-assets/contract.md:84:`verification_receipt` path, itemised `reasons`, and a `next_action`. It is written by a human after
+./skill-assets/contract.md:85:reading a receipt.
+./skill-assets/contract.md:95:3. `python3 scripts/validator.py` until green, then `python3 scripts/git_gate.py`.
+./validation/semantic-arbitration.md:59:`data/semantic_arbitration_claims.json` is a **mutable registry**, not a receipt — entries change status
+./validation/semantic-arbitration.md:85:| that the three executed reviews found what they say | **receipt / data claim only** |
+./validation/semantic-arbitration.md:86:| the agy execution lessons | **receipt / data claim only** — imported from an external workspace |
+./stateful-workflow.md:78:Run the deterministic validators. In practice this is `python3 scripts/git_gate.py`, which sequences 23
+./stateful-workflow.md:82:Two of those gates run argument-less under git_gate and therefore prove only their own selftest path —
+./stateful-workflow.md:99:log and graph, and `scripts/check_wiki_graph_sync.py` validates the result.
+./terminal-operator/overview.md:17:`.agents/skills/repo-terminal-operator/` is ~9.7k lines of Bun TypeScript implementing a **leased
+./terminal-operator/overview.md:19:it, does it, and returns a typed receipt. It is invoked when `repo-neural-perception` delegates a
+./terminal-operator/overview.md:44:| output | `small-loop-run-receipt@v1` |
+./terminal-operator/overview.md:46:| preflight | `repo-terminal-preflight-receipt@v1` |
+./terminal-operator/overview.md:58:bun run repo-adapter.ts --selftest            # same, but fails if either profile has no real command
+./terminal-operator/overview.md:60:bun run repo-adapter.ts --run <packet>        # preflight -> code-quality -> production-use -> receipt
+./terminal-operator/overview.md:69:failure modes, bounded active files, red/green receipts, minimal-diff assertions, target repository,
+./terminal-operator/overview.md:71:are named directly: `claimSetCheck()` (the v2 hash-bound claim set) and `tddReceiptCheck()` (a failing
+./terminal-operator/overview.md:98:- Return `small-loop-run-receipt@v1` — but **not** admit, merge, release, or rewrite Git history.
+./architecture/index.md:3:- [Data Authority](data-authority.md) - Which artifact is authoritative for which fact, who may write it, how it is regenerated, and whether a claim is verifiable in this checkout or only a recorded receipt.
+./architecture/index.md:4:- [Defense Gate Chain](defense-gate-chain.md) - How scripts/git_gate.py sequences 23 gates, proves it did not mutate the repository, and writes a tamper-evident receipt.
+./production-bottlenecks.md:48:- `data/prompt_trace/prompt_trace_dataset.json` and `data/commit_lineage/gcr_molecular_commits.json`
+./production-bottlenecks.md:53:- This directory is not its own Git repository. `scripts/validate_molecular_commit_lineage.py
+./production-bottlenecks.md:62:`.agents/skills/repo-terminal-operator/` is ~9.7k lines of Bun TypeScript with no `package.json`, no
+./production-bottlenecks.md:70:  inside `scripts/git_gate.py`, which exercises only their selftest path. A green git_gate does not mean
+./production-bottlenecks.md:72:- `scripts/git_gate.py::GATES` has 23 entries and does not include
+./production-bottlenecks.md:75:- `.github/workflows/weekly_audit.yml` runs only the deterministic `scripts/ablation_engine.py`, never
+./production-bottlenecks.md:101:   `scripts/validate_molecular_commit_lineage.py` (585 lines) and the TypeScript module bodies were read
+./structured-lifecycle-data.md:49:| record_id | molecular commit | route edge | lineage edge | status | human gate |
+./structured-lifecycle-data.md:57:| `autoresearch-pr-golden@2026-07-23` | 4 | 1.0 | 0.96 | 3 | 2 | `autoresearch_evals=1, autoresearch_plan=2, native_yield=1` |
+./structured-lifecycle-data.md:58:| `autoresearch-nightly-golden@2026-07-23` | 3 | 1.0 | 0.96 | 3 | 2 | `autoresearch_evals=1, native_yield=2` |
+./autoresearch-composer-lifecycle.md:112:  provider call. Additionally `.github/workflows/autoresearch_eval.yml` passes the string `true` while
+./code-call-lifecycle.md:4:description: The call graph from git hooks and CI workflows through git_gate into each defense script, with the measured values each gate currently reports and the one stale validator expectation.
+./code-call-lifecycle.md:26:    participant Hook as .githooks/pre-push
+./code-call-lifecycle.md:27:    participant Gate as scripts/git_gate.py
+./code-call-lifecycle.md:29:    Dev->>Hook: pre-push
+./code-call-lifecycle.md:30:    Hook->>Gate: python3 scripts/git_gate.py
+./code-call-lifecycle.md:31:    Gate->>Gate: input_state_sha256() before
+./code-call-lifecycle.md:36:    Gate->>Gate: input_state_sha256() after
+./code-call-lifecycle.md:40:`.githooks/pre-push` → `scripts/git_gate.py` → the 23 entries of `GATES`, sequentially, stopping at the
+./code-call-lifecycle.md:41:first nonzero exit. `.githooks/commit-msg` → `scripts/validate_commit_message.py` with the message
+./code-call-lifecycle.md:45:push. `scripts/check_wiki_graph_sync.py` and `scripts/render_lifecycle_openwiki.py` are also in the
+./code-call-lifecycle.md:50:- `.github/workflows/skill_ci.yml` — on pull requests touching `skills/**` or `scripts/**`, runs
+./code-call-lifecycle.md:51:  `python scripts/git_gate.py`. Same chain as the hook, clean checkout.
+./code-call-lifecycle.md:52:- `.github/workflows/wiki_graph_sync.yml` — on push/PR touching `openwiki/**/*.md`,
+./code-call-lifecycle.md:53:  `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, or `scripts/check_wiki_graph_sync.py`.
+./code-call-lifecycle.md:55:  `--graph-out`, `--commit-sha "$GITHUB_SHA"`, then `scripts/check_wiki_graph_sync.py`, then uploads the
+./code-call-lifecycle.md:57:- `.github/workflows/autoresearch_eval.yml` — runs
+./code-call-lifecycle.md:60:- `.github/workflows/weekly_audit.yml` — Monday cron, runs only `scripts/ablation_engine.py`.
+./code-call-lifecycle.md:81:`.github/workflows/autoresearch_eval.yml` passes the string `true` — so the workflow's cloud job would
+./code-call-lifecycle.md:102:| `python3 scripts/validate_molecular_commit_lineage.py` | `PASS: molecular commit lineage` (ledger/receipt structure only) |
+./code-call-lifecycle.md:110:`gcr_molecular_commits.json: protected_history=157 compensated=157 failed=0 schema=v0.2`.
+./code-call-lifecycle.md:115:  `schema_version=molecular-commit-verification-run@0.2.0`, `status=pass`, `strict_message_count=20`.
+./code-call-lifecycle.md:116:- `data/commit_lineage/gcr_molecular_commits.json` — `schema_version=molecular-commit-lineage@0.2.0`,
+./code-call-lifecycle.md:128:- Whole chain: `python3 scripts/git_gate.py`
+./code-call-lifecycle.md:130:- Graph projection: `python3 scripts/sync_wiki_to_graph.py` then `python3 scripts/check_wiki_graph_sync.py`
+./terminal-operator/async-lifecycle.md:29:    F->>L: start — reopen HEAD, candidate refs, foreground receipt
+./terminal-operator/async-lifecycle.md:30:    L->>L: atomically seal candidate + receipt + job
+./terminal-operator/async-lifecycle.md:36:    F->>L: admit — reopen HEAD, bytes, receipt, job, result, cleanup, isolation
+./terminal-operator/async-lifecycle.md:37:    F-->>F: publish one immutable ownership receipt
+./terminal-operator/async-lifecycle.md:42:The internal state machine. It atomically seals candidate bytes, the foreground receipt and the
+./terminal-operator/async-lifecycle.md:81:| `start` | reopens current Git HEAD, bounded candidate refs, a producer-shared complete `small-loop-run-receipt@v1` assertion, and the complete shared worker-job parser, then atomically seals. **It never launches a worker.** |
+./terminal-operator/async-lifecycle.md:84:| `admit` | reopens HEAD, candidate bytes, foreground receipt, job, lifecycle result, cleanup, isolation and reviewer bindings, then publishes one immutable ownership receipt |
+./architecture/defense-gate-chain.md:4:description: How scripts/git_gate.py sequences 23 gates, proves it did not mutate the repository, and writes a tamper-evident receipt.
+./architecture/defense-gate-chain.md:9:covers: [gate-orchestration, input-state-hash, gate-receipt]
+./architecture/defense-gate-chain.md:17:`scripts/git_gate.py` is the single orchestrator. `.githooks/pre-push` and
+./architecture/defense-gate-chain.md:18:`.github/workflows/skill_ci.yml` both invoke it and nothing else.
+./architecture/defense-gate-chain.md:30:check_openwiki.py · check_wiki_graph_sync.py · render_lifecycle_openwiki.py
+./architecture/defense-gate-chain.md:32:validate_molecular_commit_lineage.py · no_op_pruner.py · no_ops_purger.py
+./architecture/defense-gate-chain.md:44:`input_state_sha256(root)` walks every file and symlink under the root — excluding `.git`,
+./architecture/defense-gate-chain.md:50:`FAIL: git gate changed receipt-bound repo inputs`, regardless of whether every gate passed. A gate
+./architecture/defense-gate-chain.md:55:## The receipt
+./architecture/defense-gate-chain.md:58:python3 scripts/git_gate.py --receipt /tmp/git-gate-receipt.json
+./architecture/defense-gate-chain.md:61:Schema `git-gate-receipt@0.1.0`, containing per-gate `command`, `exit_code`, `elapsed_ms`, full
+./architecture/defense-gate-chain.md:62:`stdout` / `stderr` and their SHA-256 digests, plus `input_state_sha256`,
+./architecture/defense-gate-chain.md:63:`final_input_state_sha256`, `gate_count`, `expected_gate_count`, `repo_root`, and a `status` that is
+./architecture/defense-gate-chain.md:69:- **`--receipt` must live outside `--repo-root`.** The parser rejects a path inside it, because writing
+./architecture/defense-gate-chain.md:70:  the receipt into the tree would change the very input-state hash the receipt attests to.
+./architecture/defense-gate-chain.md:71:- **The write is atomic.** `write_receipt()` creates `.{name}.{pid}.tmp` with mode `x` (fails if it
+./architecture/defense-gate-chain.md:73:  partial receipt.
+./architecture/defense-gate-chain.md:75:`GIT_GATE_FIXED_ELAPSED_MS` overrides all timings, which is what makes receipts byte-reproducible in
+./architecture/defense-gate-chain.md:85:validated (`validate_commit_message.py` runs argument-less here and exercises only its selftest); or
+./architecture/defense-gate-chain.md:92:python3 scripts/git_gate.py
+./architecture/defense-gate-chain.md:93:python3 scripts/git_gate.py --receipt /tmp/receipt.json   # then inspect status and gate_count
+./usage.md:9:covers: [local-runbook, narrow-validation, receipts]
+./usage.md:24:python3 scripts/git_gate.py              # the whole 23-gate chain
+./usage.md:27:`git_gate.py` is also what `.githooks/pre-push` and `.github/workflows/skill_ci.yml` run, so a green
+./usage.md:40:| an `openwiki/` page (graph side) | `python3 scripts/sync_wiki_to_graph.py` then `python3 scripts/check_wiki_graph_sync.py` | the projection regenerates and matches the schema contract |
+./usage.md:44:| `scripts/**` | `python3 scripts/git_gate.py` | everything, because a script can be a gate |
+./usage.md:47:Note the argument in the last row. Under `git_gate.py`, `validate_commit_message.py` and
+./usage.md:48:`validate_goal_constraints.py` run with **no arguments**, which exercises only their selftest path — see
+./usage.md:61:| `python3 scripts/validate_molecular_commit_lineage.py --require-current-history` | auditing commit history; **needs a discoverable Git root**, and this directory has none of its own |
+./usage.md:63:## Receipts
+./usage.md:65:`git_gate.py` can persist a machine-readable receipt:
+./usage.md:68:python3 scripts/git_gate.py --receipt /tmp/git-gate-receipt.json
+./usage.md:71:The receipt is `git-gate-receipt@0.1.0` and records per-gate exit codes, elapsed time, and SHA-256 of
+./usage.md:73:`--receipt` must point **outside** `--repo-root`; the script rejects a path inside it, because writing
+./usage.md:74:the receipt into the tree would change the input-state hash it is attesting to. If any gate mutates a
+./index.md:10:- [Code Call Lifecycle](code-call-lifecycle.md) - The call graph from git hooks and CI workflows through git_gate into each defense script, with the measured values each gate currently reports and the one stale validator expectation.
+./index.md:14:- [Schema Standards](schema-standards.md) - The node, event, embedding and license-provenance contracts declared by data/wiki_graph/schema.json, and which field each gate actually enforces.
+./governance/index.md:3:- [Molecular Commit Lineage](molecular-commit-lineage.md) - The eleven-field commit message contract, the compensating lineage ledger, and the difference between the default structural validation and a real history audit.
+./governance/molecular-commit-lineage.md:3:title: Molecular Commit Lineage
+./governance/molecular-commit-lineage.md:15:# Molecular Commit Lineage
+./governance/molecular-commit-lineage.md:23:`.githooks/commit-msg` → `scripts/validate_commit_message.py <message-file>`. All eleven
+./governance/molecular-commit-lineage.md:48:`PROJECT-SSOT.md` explains why the fields are so specific: *"Molecular commit messages must preserve
+./governance/molecular-commit-lineage.md:59:| `data/commit_lineage/gcr_molecular_commits.json` | `schema_version: molecular-commit-lineage@0.2.0`; 235 `compensated_commits`; 7 `legacy_detailed_commits`; 13 `protected_paths`; the source-conversation, materialization-route, plan-package, small-loop and final-repo absolute paths; `history_rewrite_policy`; `coverage_through`; `verification_run_abs` |
+./governance/molecular-commit-lineage.md:60:| `data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json` | `schema_version: molecular-commit-verification-run@0.2.0`; `status: pass`; `commit_count=235`; `compensated_commit_count=235`; `failed_commit_count=0`; `strict_message_count=20`; 235 `commit_shas`; 2 `proof_commands` |
+./governance/molecular-commit-lineage.md:72:`scripts/validate_molecular_commit_lineage.py`:
+./governance/molecular-commit-lineage.md:76:| default (in `git_gate.py`) | ledger and verification-receipt **structure**, SHA lists and counts. No Git history is read. |
+./governance/molecular-commit-lineage.md:79:| `--selftest` | self-check only |
+./governance/molecular-commit-lineage.md:100:python3 scripts/validate_molecular_commit_lineage.py                      # structural, default
+./governance/molecular-commit-lineage.md:101:python3 scripts/validate_molecular_commit_lineage.py --repo-root /abs/repo --require-current-history
+./governance/molecular-commit-lineage.md:105:Focused test: `tests/test_skill_asset_governance.py::test_molecular_commit_lineage_gate_passes`.
+./quickstart.md:39:| wiki → graph | `openwiki/` → `data/wiki_graph/` | [Wiki graph sync](wiki-graph-sync-architecture.md) |
+./quickstart.md:40:| vendored operator | `.agents/skills/repo-terminal-operator/` | [Terminal operator](terminal-operator/overview.md) |
+./quickstart.md:51:| add or change a defense gate | [Defense gate chain](architecture/defense-gate-chain.md) | `scripts/git_gate.py` | `GATES`, `input_state_sha256()`, `write_receipt()` | `test_static_defense_scripts_pass` | `python3 scripts/git_gate.py` |
+./quickstart.md:52:| change the golden dataset or eval logic | [Behavioral eval and judge](validation/behavioral-eval-and-judge.md) | `scripts/eval_autoresearch_composer.py`, `data/autoresearch_golden/` | `deterministic_guardrails()`, `local_llm_as_judge()`, `cloud_judge()` | `tests/test_autoresearch_eval_suite.py` | `python3 -m pytest -q -m evals` |
+./quickstart.md:56:| change the graph projection | [Wiki graph sync](wiki-graph-sync-architecture.md) | `scripts/sync_wiki_to_graph.py`, `data/wiki_graph/schema.json` | `event_for_file()`, `project_graph()` | `test_wiki_graph_sync_gate_passes` | `python3 scripts/sync_wiki_to_graph.py && python3 scripts/check_wiki_graph_sync.py` |
+./quickstart.md:57:| change lifecycle data | [Data authority](architecture/data-authority.md) | `data/lifecycle/**`, `scripts/render_lifecycle_openwiki.py` | `render()` | `test_autoresearch_eval_and_trace_gates_pass` | `python3 scripts/render_lifecycle_openwiki.py --write && python3 scripts/check_lifecycle_datasets.py` |
+./quickstart.md:59:| write a commit message | [Molecular commit lineage](governance/molecular-commit-lineage.md) | `.githooks/commit-msg`, `scripts/validate_commit_message.py` | `REQUIRED_FIELDS`, `workspace_root()` | — | `python3 scripts/validate_commit_message.py <file>` |
+./quickstart.md:61:| touch the vendored operator | [Terminal operator](terminal-operator/overview.md) | `.agents/skills/repo-terminal-operator/` | `publishWriterArtifact()`, `executeAsyncWorker()` | **none here** | not verifiable in this checkout |
+./quickstart.md:63:Everything at once, and what a push runs: `python3 scripts/git_gate.py`.
+./quickstart.md:75:| `python3 scripts/validate_molecular_commit_lineage.py --require-current-history` | auditing history; **needs a Git root this directory does not have** |
+./quickstart.md:89:   `verification_receipt`. Anchor: [gemini_interactions](skill-assets/gemini-interactions.md).
+./quickstart.md:90:3. **`.github/workflows/autoresearch_eval.yml` passes an unusable value.** It sets `ENABLE_LLM_JUDGE`
+./quickstart.md:94:4. **Two gates prove only a selftest under `git_gate.py`** — `validate_commit_message.py` and
+./quickstart.md:98:   `scripts/validate_molecular_commit_lineage.py` (585 lines) and the TypeScript module bodies
+./terminal-operator/writer-publication.md:28:| `async-admission-facade.ts` | the immutable ownership receipt |
+./terminal-operator/writer-publication.md:32:| `evidence-cost-collector.ts` | request, execution, observation and completion receipts |
+./terminal-operator/writer-publication.md:78:diagnostic and emit a typed nonzero failure receipt."*
+./architecture/overview.md:38:2. **Deterministic defense gates** — 30 scripts, 23 of them sequenced by `scripts/git_gate.py`. No
+./architecture/overview.md:42:   records, commit lineage, and verification receipts. Ownership per artifact in
+./architecture/overview.md:47:5. **Vendored terminal operator** — `.agents/skills/repo-terminal-operator/`, ~9.7k lines of Bun
+./architecture/overview.md:78:— is deliberately outside `git_gate.py` and outside every workflow. Read
+./architecture/data-authority.md:4:description: Which artifact is authoritative for which fact, who may write it, how it is regenerated, and whether a claim is verifiable in this checkout or only a recorded receipt.
+./architecture/data-authority.md:35:| `data/wiki_graph/event_log.jsonl` | audit trail | `sync_wiki_to_graph.py` | **fully overwritten** each run |
+./architecture/data-authority.md:36:| `data/wiki_graph/sample_graph.json` | projection | `sync_wiki_to_graph.py` | **fully overwritten** each run |
+./architecture/data-authority.md:37:| `data/verification_runs/**` | immutable receipt of a completed run | human, only by adding a new dated file | never edited in place |
+./architecture/data-authority.md:40:| `data/commit_lineage/gcr_molecular_commits.json` | compensating lineage ledger | human | validated, not regenerated |
+./architecture/data-authority.md:44:- A **verification run** is a receipt. It records what a completed run measured, is dated in its
+./architecture/data-authority.md:46:- The **semantic arbitration claims** file is not a receipt. It is a live registry whose entries carry
+./architecture/data-authority.md:60:| **receipt / data claim only** | recorded by a past run; this checkout does not replay it | `A2_FAIL_DO_NOT_PROMOTE` in the real-driver verification run |
+./architecture/data-authority.md:61:| **requires explicit external input** | needs a workspace or Git root that is not here | `validate_molecular_commit_lineage.py --require-current-history` |
+./architecture/data-authority.md:83:`check_wiki_graph_sync.py`) verify without writing, which is why they are safe inside
+./governance/plan-package-compatibility.md:32:> molecular commit plan. Final repo output owns skill assets, local/CI defense scripts, workflow hooks,
+./governance/plan-package-compatibility.md:44:[Molecular commit lineage](molecular-commit-lineage.md) implements: *"Every production file must trace
+./governance/plan-package-compatibility.md:45:to an intent slice, route, draft template, validator, and molecular commit."*
+./governance/plan-package-compatibility.md:50:the shape of the generated repo (`molecular_commit_count: 10`, `governance_template_count: 16`,
+./governance/plan-package-compatibility.md:88:| the frozen-source SHA-256 corresponds to a real conversation | **receipt / data claim only** — the source file is outside this tree |
+./governance/plan-package-compatibility.md:98:Neither is in `scripts/git_gate.py::GATES`; run them when the contract files change. See
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,220p' wiki-graph-sync-architecture.md; sed -n '1,180p' schema-standards.md; sed -n '1,150p' operations/entrypoint-matrix.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+ succeeded in 0ms:
+---
+type: Architecture
+title: Wiki Graph Sync Architecture
+description: Local-first Event Sourcing that projects the Markdown wiki into an event log and a hybrid retrieval graph, its overwrite semantics, and the two-part guard on external graph writes.
+tags: [event-sourcing, retrieval, projection]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [event-sourcing, hybrid-retrieval, graph-projection]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Wiki Graph Sync Architecture
+
+`PROJECT-SSOT.md` fixes the ownership: *"Wiki-to-Graph sync is local-first Event Sourcing: Markdown is
+human SSOT, event log is audit trail, graph JSON is default projection, external Graph DB write is
+opt-in."* Everything below follows from that sentence. The **LLM Wiki** — the Markdown under
+`openwiki/` that humans and agents read — is upstream of everything else here; the graph is derived and
+disposable.
+
+```mermaid
+flowchart LR
+    MD["LLM Wiki, human SSOT"] --> E["event_for_file"]
+    E --> L["event_log.jsonl, audit trail"]
+    E --> P["project_graph"]
+    P --> G["sample_graph.json, projection"]
+    G --> V["Vector RAG chunks"]
+    G --> GR["GraphRAG nodes and edges"]
+    G -.-> X["external Graph DB"]
+```
+
+*The dotted edge is opt-in only and requires both the CLI flag and the environment variable.*
+
+## Event Sourcing
+
+`scripts/sync_wiki_to_graph.py::event_for_file()` turns one Markdown file into one
+`wiki_page_indexed` event carrying `event_id`, `schema_version` (from
+`data/wiki_graph/schema.json::event_schema_version`), `source_path`, `heading_path`, `commit_sha`,
+`content_sha256`, `occurred_at`, and a payload with the title, the full heading tree, outbound links,
+code-block count, and a license block.
+
+Two properties matter and are easy to misread:
+
+- **`event_id` is deterministic**, not random: `"evt:" + sha256(f"{relative}:{commit_sha}:{content_hash}")[:24]`.
+  The same page at the same commit with the same bytes always produces the same id.
+- **`occurred_at` is a fixed constant**, `GENERATED_EVENT_TIMESTAMP = "2026-07-23T00:00:00Z"`. It is not
+  a clock reading. Do not treat event ordering by timestamp as meaningful.
+
+## Overwrite semantics — this log is not append-only
+
+Despite the Event Sourcing framing, `main()` rebuilds the whole set each run and calls
+`args.event_log.write_text(...)` and `args.graph_out.write_text(...)`. Both files are **batch
+overwritten**, not appended. Consequences a reader must know:
+
+- The event log reflects only the wiki as it existed at the last run. History is not accumulated.
+- Until the next run, a checked-in projection can reference pages that no longer exist, or omit pages
+  that do. A stale projection is normal between runs, not a corruption.
+- `.github/workflows/wiki_graph_sync.yml` runs the projection and **uploads it as a build artifact**;
+  it does not commit the regenerated files back to the repository.
+
+## Projection: Vector RAG and GraphRAG from one pass
+
+`project_graph()` emits three collections plus a retrieval descriptor:
+
+| Output | Shape |
+|---|---|
+| nodes | one `WikiDocument` per page; one `WikiSection` per heading |
+| edges | `HAS_SECTION` (doc→section), `LINKS_TO` (doc→raw href), `USES_SCHEMA` (doc→schema version) |
+| chunks | one per heading, text = the joined heading path, tagged with `embedding_model_id` |
+
+The `retrieval` block declares both retrieval modes over the same local artifacts: **Vector RAG**
+(`vector_store: local-json`, using the schema's `local-hash-embedding@0.1.0`) and **GraphRAG**
+(`graph_store: local-json`, `external_write_enabled: false`), with a `fusion.required_fields` list of
+`source_path`, `heading_path`, `commit_sha`, `schema_version` so a fused result can always be traced
+back to a page and a commit.
+
+`LINKS_TO` edges use the raw href string as the destination, so a link to a page that does not exist
+still produces an edge to a dangling id. Link correctness is a wiki-side concern, not a graph-side one.
+
+## Front matter constraint
+
+`parse_frontmatter()` in this script is deliberately minimal: it accepts a leading `---` block and
+splits each line on the first `": "` only. Keys whose value is on a following line, nested mappings, and
+block lists are not parsed. Page front matter that must survive this projection has to be flat
+`key: value` pairs. This is why the `title` used for a node falls back to the first heading when the
+front matter cannot supply one.
+
+## License provenance carried on every node
+
+`license_payload()` attaches five provenance fields to each `WikiDocument`, reading them from the page's
+front matter and falling back to a fixed default when the page says nothing:
+
+| Field | Default when the page declares nothing |
+|---|---|
+| `code_license` | `MIT` |
+| `model_license` | `N/A-deterministic-local-hash-no-model-weights` |
+| `data_license` | `local-project-docs` |
+| `commercial_use` | `allowed-local-artifact` |
+| `copyleft_risk` | `none` |
+
+`data/wiki_graph/schema.json::commercial_license_allowlist` is `MIT`, `Apache-2.0`, `BSD-2-Clause`,
+`BSD-3-Clause`, `ISC`, and `required_provenance_fields` lists exactly the five fields above, so a node
+missing any of them is a schema violation rather than a silent gap.
+
+The condition to recognise is a page that carries no license front matter at all:
+
+| Condition | Behavior | Disposition | Why |
+|---|---|---|---|
+| `W3.license_unknown` | the five defaults above are applied | track | acceptable default — these artifacts are local project documentation, and the embedding model has no model weights to license |
+| declared license outside the allowlist | recorded on the node as written | review | the allowlist expresses what is safe for commercial reuse, not what the projector will accept |
+
+Tracking rather than failing is deliberate: the projector's job is to record provenance faithfully, and
+a wiki page with no license header is the normal case in this repository.
+
+## External graph write is opt-in and needs both switches
+
+`write_external_graph_if_enabled()` returns immediately unless `ENABLE_GRAPH_DB_WRITE == "true"` in the
+environment, and it is only reached when the CLI was given `--write-external-graph`. **Both** are
+required; setting the environment variable alone does nothing, and passing the flag alone does nothing.
+`data/wiki_graph/schema.json` records the stance as `external_graph_write_policy: disabled-by-default`.
+
+When both are set, the missing-secret path is the failure mode to recognise —
+`W5.graph_secrets_missing`: the function collects `GRAPH_DB_URI`, `GRAPH_DB_USER`, `GRAPH_DB_PASSWORD`
+and raises `external graph write requested but missing secrets: ...` naming exactly which are absent,
+rather than attempting a partial write. Two transports are supported, selected by `GRAPH_DB_KIND`:
+
+- `GRAPH_DB_KIND=generic-http-json` — one POST of `{"graph": …}` to `GRAPH_DB_URI`, Basic auth from
+  `GRAPH_DB_USER`/`GRAPH_DB_PASSWORD`, 30 s timeout.
+- `GRAPH_DB_KIND=neo4j-http` — three `MERGE` statements (nodes, chunks, edges) posted to
+  `<GRAPH_DB_URI>/db/<GRAPH_DB_DATABASE|neo4j>/tx/commit`; a non-empty `errors` array in the response
+  raises rather than being logged.
+
+Any other value raises `unsupported GRAPH_DB_KIND`. The workflow's opt-in job is gated on the
+repository variable `vars.ENABLE_GRAPH_DB_WRITE == 'true'` and reads the three secrets from repository
+secrets.
+
+## Validation
+
+```sh
+python3 scripts/sync_wiki_to_graph.py            # writes event log + graph from openwiki/
+python3 scripts/check_wiki_graph_sync.py         # validates schema contract and artifacts
+```
+
+Schema field-by-field detail is in [Schema standards](schema-standards.md). The gate's own required
+files and provenance fields are enumerated there.
+---
+type: Schema
+title: Schema Standards
+description: The node, event, embedding and license-provenance contracts declared by data/wiki_graph/schema.json, and which field each gate actually enforces.
+tags: [schema, provenance]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [graph-schema, event-schema, license-provenance]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Schema Standards
+
+`data/wiki_graph/schema.json` is the single declaration every projection artifact is validated against.
+It carries two independent version strings, because the event contract and the graph contract move
+separately:
+
+| Key | Value |
+|---|---|
+| `schema_version` | `wiki-graph-schema@0.1.0` |
+| `event_schema_version` | `wiki-event@0.1.0` |
+| `hybrid_retrieval_contract` | `hybrid-retrieval-contract@0.1.0` |
+| `external_graph_write_policy` | `disabled-by-default` |
+
+## WikiEvent
+
+The event contract, versioned `wiki-event@0.1.0`. `required_event_fields` enumerates what every
+`wiki_page_indexed` record must carry:
+
+`event_id`, `event_type`, `source_path`, `commit_sha`, `content_sha256`, `occurred_at`, `payload`.
+
+`event_id` is derived, not allocated — `sha256(source_path:commit_sha:content_sha256)` truncated to 24
+hex characters and prefixed `evt:`. `occurred_at` is the fixed `GENERATED_EVENT_TIMESTAMP` constant, so
+it identifies the generator, not a moment. `payload` holds the title, the heading tree, outbound links,
+the code-block count, and the license block.
+
+## WikiDocument and WikiSection
+
+The graph contract, versioned `wiki-graph-schema@0.1.0`. `required_graph_fields` is
+`nodes`, `edges`, `chunks`, `retrieval` — a projection missing any of the four is invalid even if the
+individual records are well formed.
+
+| Node type | Identity | Carries |
+|---|---|---|
+| `WikiDocument` | `doc:<source_path>` | `title`, `source_path`, `commit_sha`, `content_sha256`, `schema_version`, `license` |
+| `WikiSection` | `section:<source_path>:<index>` | `source_path`, `heading_path`, `level`, `content_sha256` |
+
+Edges are `HAS_SECTION` (document to its sections), `LINKS_TO` (document to a raw href), and
+`USES_SCHEMA` (document to the graph schema version). Every edge records `source_event_id` and
+`commit_sha`, so any edge can be traced back to the event that produced it.
+
+## EmbeddingMetadata
+
+`default_embedding_model` declares the vector side:
+
+| Field | Value |
+|---|---|
+| `embedding_model_id` | `local-hash-embedding@0.1.0` |
+| `dimension` | `16` |
+| `model_license` | `N/A-deterministic-local-hash-no-model-weights` |
+
+Every chunk carries `embedding_model_id`, so a chunk written under one embedding model is
+distinguishable from a later one. The model is a deterministic local hash with no downloaded weights —
+which is why its license slot is explicitly not-applicable rather than blank.
+
+## LicenseProvenance
+
+`required_provenance_fields` is `code_license`, `model_license`, `data_license`, `commercial_use`,
+`copyleft_risk` — five fields on every `WikiDocument`. Their defaults and the `W3.license_unknown`
+disposition are documented in
+[Wiki graph sync architecture](wiki-graph-sync-architecture.md#license-provenance-carried-on-every-node).
+
+`commercial_license_allowlist` names the licenses considered safe for commercial reuse:
+`MIT`, `Apache-2.0`, `BSD-2-Clause`, `BSD-3-Clause`, `ISC`. It is an allowlist for review, not a filter
+the projector applies — a page declaring something else is still projected, with its declaration
+recorded as written.
+
+## What enforces what
+
+| Enforcement | Where |
+|---|---|
+| the five required files exist | `scripts/check_wiki_graph_sync.py` required-files list |
+| the workflow really passes the flags it claims | `scripts/check_wiki_graph_sync.py` workflow literal check |
+| this page and the architecture page state the contract | `scripts/check_wiki_graph_sync.py` page literal checks |
+| a fresh projection reproduces from the current wiki | `scripts/check_wiki_graph_sync.py` re-runs `sync_wiki_to_graph.py` into a temporary directory |
+| the field lists above | consumed by `scripts/sync_wiki_to_graph.py` at projection time |
+
+## Validation
+
+```sh
+python3 scripts/check_wiki_graph_sync.py
+```
+---
+type: Reference
+title: Entrypoint Matrix
+description: Every hook and workflow with its exact argv, path filter, environment-variable format and side effects — plus the scripts nothing triggers automatically.
+tags: [operations, ci, triggers]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [trigger-matrix, ci-coverage, opt-in-variables]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Entrypoint Matrix
+
+What actually runs, when, with which arguments. Read this before assuming a script is covered.
+
+## Local hooks
+
+Both require `git config core.hooksPath .githooks`. They are per-clone and not enforced server-side.
+
+| Hook | Runs | Argv | Side effects |
+|---|---|---|---|
+| `.githooks/commit-msg` | `scripts/validate_commit_message.py` | `<message-file>` | none |
+| `.githooks/pre-push` | `scripts/git_gate.py` | none | none; exits 125 if any gate mutated the tree |
+
+## Workflows
+
+| Workflow | Trigger | Path filter | Commands | Side effects |
+|---|---|---|---|---|
+| `skill_ci.yml` | pull_request | `skills/**`, `scripts/**` | `python scripts/git_gate.py` | none |
+| `wiki_graph_sync.yml` | push, pull_request, workflow_dispatch | `openwiki/**/*.md`, `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, `scripts/check_wiki_graph_sync.py` | `sync_wiki_to_graph.py --wiki-root openwiki --schema … --event-log … --graph-out … --commit-sha "$GITHUB_SHA"`, then `check_wiki_graph_sync.py` | **uploads** `wiki-graph-local-projection` as an artifact; does **not** commit the regenerated files |
+| `autoresearch_eval.yml` | pull_request, workflow_dispatch | `skills/autoresearch_composer/**`, `data/autoresearch_golden/**`, `data/autoresearch_traces/**`, `scripts/eval_autoresearch_composer.py`, `scripts/sample_autoresearch_traces.py`, `tests/test_autoresearch_eval_suite.py` | `eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`, `sample_autoresearch_traces.py`, `pytest -q -m evals` | none |
+| `weekly_audit.yml` | cron `0 3 * * 1`, workflow_dispatch | — | `python scripts/ablation_engine.py` | none |
+
+Note what `weekly_audit.yml` does **not** run: `scripts/real_driver_ablation.py`. The weekly audit is
+deterministic and simulated; nothing schedules a real-agent measurement.
+
+## Opt-in variables and their exact formats
+
+This is where two mismatches live. Formats are not interchangeable.
+
+| Variable | Read by | Accepted value | Set by |
+|---|---|---|---|
+| `ENABLE_GRAPH_DB_WRITE` | `sync_wiki_to_graph.py::write_external_graph_if_enabled()` | the string `"true"` | `vars.ENABLE_GRAPH_DB_WRITE` in `wiki_graph_sync.yml` — **matches** |
+| `--write-external-graph` | CLI flag on the same script | present/absent | passed only by the opt-in job |
+| `GRAPH_DB_KIND` | same | `generic-http-json` or `neo4j-http`; anything else raises | `vars.GRAPH_DB_KIND`, defaulting to `generic-http-json` |
+| `GRAPH_DB_URI` / `GRAPH_DB_USER` / `GRAPH_DB_PASSWORD` | same | required together; a missing one raises naming which | repository secrets |
+| `ENABLE_LLM_JUDGE` | `eval_autoresearch_composer.py::cloud_judge()` | the string `"1"` | `autoresearch_eval.yml` passes `vars.ENABLE_CLOUD_EVALS`, i.e. `"true"` — **mismatch, the branch never activates** |
+| `OPENAI_API_KEY` | same | required only when `ENABLE_LLM_JUDGE == "1"` | repository secret |
+| `GIT_GATE_FIXED_ELAPSED_MS` | `git_gate.py::elapsed_ms()` | integer string; overrides all timings | tests, for reproducible receipts |
+| `REPO_EVIDENCE_COLLECTOR_PRODUCTION` | the TypeScript evidence-cost collector | `1` | manual only |
+
+The external graph write needs **both** `--write-external-graph` and `ENABLE_GRAPH_DB_WRITE=true`;
+either alone is a no-op. The cloud judge is unreachable from CI even when enabled, and would return a
+placeholder `SKIP` if it were reached — see
+[Behavioral eval and judge](../validation/behavioral-eval-and-judge.md).
+
+## The 23 gates `git_gate.py` covers
+
+Listed in order on [Defense gate chain](../architecture/defense-gate-chain.md).
+
+## Scripts nothing triggers automatically
+
+These are **not** in `GATES` and not in any workflow. Someone must run them.
+
+| Script | Run it when | Documented on |
+|---|---|---|
+| `check_plan_package_compat.py` | `PROJECT-SSOT.md` / `plan-package.compat.yaml` / `.plan-package.lock.yaml` changed | [Plan package compatibility](../governance/plan-package-compatibility.md) |
+| `test_plan_package_compat.sh` | same | same |
+| `check_prompt_trace_assets.py` | `data/prompt_trace/**` changed | [Prompt trace assets](../prompt-trace-assets.md) |
+| `sync_wiki_to_graph.py` | a wiki page changed and you want the local projection refreshed | [Wiki graph sync](../wiki-graph-sync-architecture.md) |
+| `real_driver_ablation.py` | you are about to claim a real behavioral delta | [Ablation and benchmark](../validation/ablation-and-benchmark.md) |
+| `render_lifecycle_openwiki.py --write` | `data/lifecycle/**` changed (the gate runs the compare mode, not the write mode) | [Data authority](../architecture/data-authority.md) |
+
+`check_prompt_trace_assets.py` is covered indirectly by
+`tests/test_skill_asset_governance.py::test_static_defense_scripts_pass`, which runs every static gate
+independently — so `pytest` catches things a `git push` does not.
+
+## Gates that run argument-less and prove only a selftest
+
+`validate_commit_message.py` and `validate_goal_constraints.py`. See
+[Static skill validators](../validation/static-skill-validators.md).
+
+## Coverage summary
+
+| Surface | Covered by |
+|---|---|
+| every static gate, independently, reporting all failures | `pytest tests/test_skill_asset_governance.py` |
+| the 23-gate chain, stopping at the first failure | `git_gate.py`, hook and `skill_ci.yml` |
+| golden-dataset and trace assets | `autoresearch_eval.yml`, `pytest -m evals` |
+| the wiki→graph projection | `wiki_graph_sync.yml` |
+| a simulated weekly delta | `weekly_audit.yml` |
+| **a real agent's behavior** | nothing automatic — only a manual `real_driver_ablation.py` run |
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg -n -i "HTTPError|URLError|non-2|response|errors array|missing.secret|success external|successful external|external write|checker|required.*field|heading stack|heading_path|code.block|path filter|permissions|contents: read|activation|artifact" wiki-graph-sync-architecture.md schema-standards.md operations/entrypoint-matrix.md code-call-lifecycle.md testing/test-map.md architecture/data-authority.md' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+ succeeded in 0ms:
+schema-standards.md:17:`data/wiki_graph/schema.json` is the single declaration every projection artifact is validated against.
+schema-standards.md:30:The event contract, versioned `wiki-event@0.1.0`. `required_event_fields` enumerates what every
+schema-standards.md:38:the code-block count, and the license block.
+schema-standards.md:42:The graph contract, versioned `wiki-graph-schema@0.1.0`. `required_graph_fields` is
+schema-standards.md:49:| `WikiSection` | `section:<source_path>:<index>` | `source_path`, `heading_path`, `level`, `content_sha256` |
+schema-standards.md:71:`required_provenance_fields` is `code_license`, `model_license`, `data_license`, `commercial_use`,
+wiki-graph-sync-architecture.md:40:`data/wiki_graph/schema.json::event_schema_version`), `source_path`, `heading_path`, `commit_sha`,
+wiki-graph-sync-architecture.md:42:code-block count, and a license block.
+wiki-graph-sync-architecture.md:60:- `.github/workflows/wiki_graph_sync.yml` runs the projection and **uploads it as a build artifact**;
+wiki-graph-sync-architecture.md:73:The `retrieval` block declares both retrieval modes over the same local artifacts: **Vector RAG**
+wiki-graph-sync-architecture.md:75:(`graph_store: local-json`, `external_write_enabled: false`), with a `fusion.required_fields` list of
+wiki-graph-sync-architecture.md:76:`source_path`, `heading_path`, `commit_sha`, `schema_version` so a fused result can always be traced
+wiki-graph-sync-architecture.md:100:| `commercial_use` | `allowed-local-artifact` |
+wiki-graph-sync-architecture.md:104:`BSD-3-Clause`, `ISC`, and `required_provenance_fields` lists exactly the five fields above, so a node
+wiki-graph-sync-architecture.md:111:| `W3.license_unknown` | the five defaults above are applied | track | acceptable default — these artifacts are local project documentation, and the embedding model has no model weights to license |
+wiki-graph-sync-architecture.md:124:When both are set, the missing-secret path is the failure mode to recognise —
+wiki-graph-sync-architecture.md:126:and raises `external graph write requested but missing secrets: ...` naming exactly which are absent,
+wiki-graph-sync-architecture.md:132:  `<GRAPH_DB_URI>/db/<GRAPH_DB_DATABASE|neo4j>/tx/commit`; a non-empty `errors` array in the response
+wiki-graph-sync-architecture.md:143:python3 scripts/check_wiki_graph_sync.py         # validates schema contract and artifacts
+architecture/data-authority.md:4:description: Which artifact is authoritative for which fact, who may write it, how it is regenerated, and whether a claim is verifiable in this checkout or only a recorded receipt.
+testing/test-map.md:32:| `test_skill_asset_structure` | ~57 required paths exist — the hooks, all four workflows, the twelve `openwiki/` contract paths, the skill assets, the named scripts, and every `data/` artifact. This is the test that turns a deleted file into a red suite. |
+testing/test-map.md:36:| `test_wiki_graph_sync_gate_passes` | a projection built into a **temporary directory** reproduces cleanly, then the gate passes — proving reproducibility without mutating the checked-in artifacts |
+operations/entrypoint-matrix.md:4:description: Every hook and workflow with its exact argv, path filter, environment-variable format and side effects — plus the scripts nothing triggers automatically.
+operations/entrypoint-matrix.md:30:| Workflow | Trigger | Path filter | Commands | Side effects |
+operations/entrypoint-matrix.md:33:| `wiki_graph_sync.yml` | push, pull_request, workflow_dispatch | `openwiki/**/*.md`, `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, `scripts/check_wiki_graph_sync.py` | `sync_wiki_to_graph.py --wiki-root openwiki --schema … --event-log … --graph-out … --commit-sha "$GITHUB_SHA"`, then `check_wiki_graph_sync.py` | **uploads** `wiki-graph-local-projection` as an artifact; does **not** commit the regenerated files |
+code-call-lifecycle.md:56:  projection as an artifact. It does not commit the projection.
+code-call-lifecycle.md:71:  -> validate_case_schema()            # REQUIRED_CASE_FIELDS
+code-call-lifecycle.md:84:`scripts/llm_judge.py` is the separate double-lock parser used when an external judge response must be
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "rg -n -i \"check_wiki_graph_sync|missing secrets|successful external|success.*external|integration guarantee|retrieval.required|required_event|required_provenance|required_graph|event_id|content_sha256\" --glob '*.md' ." in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+ succeeded in 0ms:
+./operations/entrypoint-matrix.md:33:| `wiki_graph_sync.yml` | push, pull_request, workflow_dispatch | `openwiki/**/*.md`, `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, `scripts/check_wiki_graph_sync.py` | `sync_wiki_to_graph.py --wiki-root openwiki --schema … --event-log … --graph-out … --commit-sha "$GITHUB_SHA"`, then `check_wiki_graph_sync.py` | **uploads** `wiki-graph-local-projection` as an artifact; does **not** commit the regenerated files |
+./quickstart.md:56:| change the graph projection | [Wiki graph sync](wiki-graph-sync-architecture.md) | `scripts/sync_wiki_to_graph.py`, `data/wiki_graph/schema.json` | `event_for_file()`, `project_graph()` | `test_wiki_graph_sync_gate_passes` | `python3 scripts/sync_wiki_to_graph.py && python3 scripts/check_wiki_graph_sync.py` |
+./wiki-graph-sync-architecture.md:39:`wiki_page_indexed` event carrying `event_id`, `schema_version` (from
+./wiki-graph-sync-architecture.md:41:`content_sha256`, `occurred_at`, and a payload with the title, the full heading tree, outbound links,
+./wiki-graph-sync-architecture.md:46:- **`event_id` is deterministic**, not random: `"evt:" + sha256(f"{relative}:{commit_sha}:{content_hash}")[:24]`.
+./wiki-graph-sync-architecture.md:104:`BSD-3-Clause`, `ISC`, and `required_provenance_fields` lists exactly the five fields above, so a node
+./wiki-graph-sync-architecture.md:126:and raises `external graph write requested but missing secrets: ...` naming exactly which are absent,
+./wiki-graph-sync-architecture.md:143:python3 scripts/check_wiki_graph_sync.py         # validates schema contract and artifacts
+./schema-standards.md:30:The event contract, versioned `wiki-event@0.1.0`. `required_event_fields` enumerates what every
+./schema-standards.md:33:`event_id`, `event_type`, `source_path`, `commit_sha`, `content_sha256`, `occurred_at`, `payload`.
+./schema-standards.md:35:`event_id` is derived, not allocated — `sha256(source_path:commit_sha:content_sha256)` truncated to 24
+./schema-standards.md:42:The graph contract, versioned `wiki-graph-schema@0.1.0`. `required_graph_fields` is
+./schema-standards.md:48:| `WikiDocument` | `doc:<source_path>` | `title`, `source_path`, `commit_sha`, `content_sha256`, `schema_version`, `license` |
+./schema-standards.md:49:| `WikiSection` | `section:<source_path>:<index>` | `source_path`, `heading_path`, `level`, `content_sha256` |
+./schema-standards.md:52:`USES_SCHEMA` (document to the graph schema version). Every edge records `source_event_id` and
+./schema-standards.md:71:`required_provenance_fields` is `code_license`, `model_license`, `data_license`, `commercial_use`,
+./schema-standards.md:85:| the five required files exist | `scripts/check_wiki_graph_sync.py` required-files list |
+./schema-standards.md:86:| the workflow really passes the flags it claims | `scripts/check_wiki_graph_sync.py` workflow literal check |
+./schema-standards.md:87:| this page and the architecture page state the contract | `scripts/check_wiki_graph_sync.py` page literal checks |
+./schema-standards.md:88:| a fresh projection reproduces from the current wiki | `scripts/check_wiki_graph_sync.py` re-runs `sync_wiki_to_graph.py` into a temporary directory |
+./schema-standards.md:94:python3 scripts/check_wiki_graph_sync.py
+./architecture/data-authority.md:83:`check_wiki_graph_sync.py`) verify without writing, which is why they are safe inside
+./stateful-workflow.md:99:log and graph, and `scripts/check_wiki_graph_sync.py` validates the result.
+./usage.md:40:| an `openwiki/` page (graph side) | `python3 scripts/sync_wiki_to_graph.py` then `python3 scripts/check_wiki_graph_sync.py` | the projection regenerates and matches the schema contract |
+./code-call-lifecycle.md:45:push. `scripts/check_wiki_graph_sync.py` and `scripts/render_lifecycle_openwiki.py` are also in the
+./code-call-lifecycle.md:53:  `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, or `scripts/check_wiki_graph_sync.py`.
+./code-call-lifecycle.md:55:  `--graph-out`, `--commit-sha "$GITHUB_SHA"`, then `scripts/check_wiki_graph_sync.py`, then uploads the
+./code-call-lifecycle.md:130:- Graph projection: `python3 scripts/sync_wiki_to_graph.py` then `python3 scripts/check_wiki_graph_sync.py`
+./architecture/defense-gate-chain.md:30:check_openwiki.py · check_wiki_graph_sync.py · render_lifecycle_openwiki.py
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "rg -n -i \"permissions|contents[ :]read|external-graph-write-disabled|local-first-wiki|workflow_dispatch|pull_request|push\" --glob '*.md' ." in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+ succeeded in 0ms:
+./terminal-operator/production-profiles-and-handoff.md:71:May add, or idempotently reuse, only the `forgejo` remote. Pushes the exact hash-bound HEAD to
+./terminal-operator/production-profiles-and-handoff.md:76:readback mismatch. `forgejoPushArgs()` builds the argv; `GitHandoffFailure` is the typed error.
+./terminal-operator/production-profiles-and-handoff.md:81:is absent before pushing, forbids force and upstream mutation, and reads the exact hash back. An
+./terminal-operator/overview.md:103:- The Forgejo seam pushes Git state but cannot create repositories, issues, PRs, or merges.
+./governance/molecular-commit-lineage.md:81:The default mode is what a normal push runs. It proves the ledger is internally consistent — not that
+./code-call-lifecycle.md:25:    participant Dev as git push
+./code-call-lifecycle.md:26:    participant Hook as .githooks/pre-push
+./code-call-lifecycle.md:29:    Dev->>Hook: pre-push
+./code-call-lifecycle.md:40:`.githooks/pre-push` → `scripts/git_gate.py` → the 23 entries of `GATES`, sequentially, stopping at the
+./code-call-lifecycle.md:45:push. `scripts/check_wiki_graph_sync.py` and `scripts/render_lifecycle_openwiki.py` are also in the
+./code-call-lifecycle.md:52:- `.github/workflows/wiki_graph_sync.yml` — on push/PR touching `openwiki/**/*.md`,
+./architecture/defense-gate-chain.md:17:`scripts/git_gate.py` is the single orchestrator. `.githooks/pre-push` and
+./architecture/overview.md:55:`scripts/check_openwiki.py` is itself one of the 23 gates, a stale wiki fails a push. The graph is a
+./prompt-trace-assets.md:128:`scripts/check_prompt_trace_assets.py` is **not** in `scripts/git_gate.py::GATES`, so a routine push does
+./quickstart.md:27:`scripts/check_openwiki.py` is one of the 23 gates `git push` runs, and one page must be byte-equal to a
+./quickstart.md:63:Everything at once, and what a push runs: `python3 scripts/git_gate.py`.
+./usage.md:27:`git_gate.py` is also what `.githooks/pre-push` and `.github/workflows/skill_ci.yml` run, so a green
+./usage.md:32:Run the whole chain before pushing, but while iterating use the smallest thing that fails if your change
+./operations/entrypoint-matrix.md:26:| `.githooks/pre-push` | `scripts/git_gate.py` | none | none; exits 125 if any gate mutated the tree |
+./operations/entrypoint-matrix.md:32:| `skill_ci.yml` | pull_request | `skills/**`, `scripts/**` | `python scripts/git_gate.py` | none |
+./operations/entrypoint-matrix.md:33:| `wiki_graph_sync.yml` | push, pull_request, workflow_dispatch | `openwiki/**/*.md`, `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, `scripts/check_wiki_graph_sync.py` | `sync_wiki_to_graph.py --wiki-root openwiki --schema … --event-log … --graph-out … --commit-sha "$GITHUB_SHA"`, then `check_wiki_graph_sync.py` | **uploads** `wiki-graph-local-projection` as an artifact; does **not** commit the regenerated files |
+./operations/entrypoint-matrix.md:34:| `autoresearch_eval.yml` | pull_request, workflow_dispatch | `skills/autoresearch_composer/**`, `data/autoresearch_golden/**`, `data/autoresearch_traces/**`, `scripts/eval_autoresearch_composer.py`, `scripts/sample_autoresearch_traces.py`, `tests/test_autoresearch_eval_suite.py` | `eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`, `sample_autoresearch_traces.py`, `pytest -q -m evals` | none |
+./operations/entrypoint-matrix.md:35:| `weekly_audit.yml` | cron `0 3 * * 1`, workflow_dispatch | — | `python scripts/ablation_engine.py` | none |
+./operations/entrypoint-matrix.md:79:independently — so `pytest` catches things a `git push` does not.
+./asset-lifecycle-map.md:24:    C["Compile Phase"] --> H["Git Commit and Push Hook"]
+./asset-lifecycle-map.md:42:## Git Commit/Push Hook
+./asset-lifecycle-map.md:45:`.githooks/pre-push` runs `scripts/git_gate.py`, which executes 23 registered gates in order and stops
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,180p' architecture/defense-gate-chain.md; sed -n '1,150p' validation/static-skill-validators.md; sed -n '1,150p' governance/molecular-commit-lineage.md; sed -n '1,120p' testing/test-map.md; sed -n '1,140p' code-call-lifecycle.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-XkeMUw
+ succeeded in 0ms:
+---
+type: Architecture
+title: Defense Gate Chain
+description: How scripts/git_gate.py sequences 23 gates, proves it did not mutate the repository, and writes a tamper-evident receipt.
+tags: [gates, runtime]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [gate-orchestration, input-state-hash, gate-receipt]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Defense Gate Chain
+
+`scripts/git_gate.py` is the single orchestrator. `.githooks/pre-push` and
+`.github/workflows/skill_ci.yml` both invoke it and nothing else.
+
+## The 23 gates, in order
+
+`GATES` is a literal list, executed top to bottom:
+
+```text
+validator.py · validate_skills_baseline.py · skill_description_linter.py
+validate_progressive_disclosure.py · validate_goal_constraints.py · validate_commit_message.py
+github_skill_harvester.py · synthetic_case_generator.py · synthetic_case_quality_report.py
+semantic_arbitration_report.py · interactions_patch_assert_runner.py · local_regex_runner.py
+benchmark_runner.py · ablation_engine.py · llm_judge.py
+check_openwiki.py · check_wiki_graph_sync.py · render_lifecycle_openwiki.py
+check_lifecycle_datasets.py · check_autoresearch_lifecycle.py
+validate_molecular_commit_lineage.py · no_op_pruner.py · no_ops_purger.py
+```
+
+Each runs as `subprocess.run([sys.executable, root/gate], cwd=root)`. **Execution stops at the first
+nonzero exit** — later gates simply do not run, so a failure report is a prefix of the chain, not a
+full survey. Reading a failure as "only one thing is wrong" is a mistake; run again after fixing.
+
+Ordering is deliberate: the cheap static asset checks come first, the documentation and evidence gates
+last, so the common failure surfaces fastest.
+
+## Gates must not mutate the repository
+
+`input_state_sha256(root)` walks every file and symlink under the root — excluding `.git`,
+`__pycache__`, `.pytest_cache`, `.DS_Store` and `*.pyc` — and folds relative path, permission bits,
+and either the symlink target or the file bytes into one SHA-256. It runs **before and after** the
+whole chain.
+
+If the two hashes differ, the run exits **125** and prints
+`FAIL: git gate changed receipt-bound repo inputs`, regardless of whether every gate passed. A gate
+that writes a file is itself a defect. This is why `render_lifecycle_openwiki.py` appears in `GATES` in
+its default (compare) mode rather than `--write`: writing is an author action, verifying is a gate
+action.
+
+## The receipt
+
+```sh
+python3 scripts/git_gate.py --receipt /tmp/git-gate-receipt.json
+```
+
+Schema `git-gate-receipt@0.1.0`, containing per-gate `command`, `exit_code`, `elapsed_ms`, full
+`stdout` / `stderr` and their SHA-256 digests, plus `input_state_sha256`,
+`final_input_state_sha256`, `gate_count`, `expected_gate_count`, `repo_root`, and a `status` that is
+`passed` only when the exit code is zero **and** every gate ran **and** the input state was stable.
+A short chain that stopped early can never report `passed`.
+
+Two implementation details are load-bearing:
+
+- **`--receipt` must live outside `--repo-root`.** The parser rejects a path inside it, because writing
+  the receipt into the tree would change the very input-state hash the receipt attests to.
+- **The write is atomic.** `write_receipt()` creates `.{name}.{pid}.tmp` with mode `x` (fails if it
+  exists), chmods it `0600`, then `os.replace()`s it into place, so a concurrent reader never sees a
+  partial receipt.
+
+`GIT_GATE_FIXED_ELAPSED_MS` overrides all timings, which is what makes receipts byte-reproducible in
+tests.
+
+## What a green chain does and does not prove
+
+Proves: the asset contract holds; the deterministic runners reproduce their expected telemetry; the
+required wiki pages exist with their required literals; the lifecycle display matches its generator; no
+gate mutated the tree.
+
+Does not prove: that an agent behaves better with a skill loaded; that a real commit message was
+validated (`validate_commit_message.py` runs argument-less here and exercises only its selftest); or
+that the gates outside this list ran at all. See [Entrypoint matrix](../operations/entrypoint-matrix.md)
+and [Production bottlenecks](../production-bottlenecks.md).
+
+## Validation
+
+```sh
+python3 scripts/git_gate.py
+python3 scripts/git_gate.py --receipt /tmp/receipt.json   # then inspect status and gate_count
+```
+
+Focused test: `tests/test_skill_asset_governance.py::test_static_defense_scripts_pass` runs each gate
+independently, so it reports *every* failing gate rather than stopping at the first.
+---
+type: Reference
+title: Static Skill Validators
+description: The five non-behavioral validators, the behavior-preserving no-op purger, and which of them prove only their selftest under git_gate.
+tags: [validation, static-analysis]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [static-validation, no-op-pruning, selftest-only-gates]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Static Skill Validators
+
+Text-only checks. None of them runs an agent; all of them run in the default chain.
+
+| Script | Rejects |
+|---|---|
+| `validator.py` | a `cases.json` violating the [baseline](../skill-assets/contract.md) — count, fields, weak checks, polarity, near-duplicates |
+| `validate_skills_baseline.py` | the same, but scoped by `git status --porcelain` to modified case files, falling back to all |
+| `skill_description_linter.py` | a description that is not a dense route boundary |
+| `validate_progressive_disclosure.py` | reference-grade detail left inside the router instead of `references/` |
+| `validate_goal_constraints.py` | brittle step lists where goal/constraint phrasing is required |
+| `validate_commit_message.py` | a commit message missing any of 11 traceability fields — see [Molecular commit lineage](../governance/molecular-commit-lineage.md) |
+| `github_skill_harvester.py` | nothing; it reports metrics (`skill_count`, `suspected_ai`) with no network access |
+
+## Two of them prove less than their name suggests
+
+`scripts/git_gate.py` invokes every gate as `python3 <gate>` with **no arguments**.
+
+- `validate_commit_message.py` normally takes a message file (that is how `.githooks/commit-msg` calls
+  it). Argument-less, it runs its selftest.
+- `validate_goal_constraints.py` behaves the same way.
+
+So a green `git_gate.py` proves those two scripts still work — not that a real commit message or skill
+file passed them. The commit hook is where the real check happens, and the hook is opt-in per clone
+(`git config core.hooksPath .githooks`). This is recorded in
+[Production bottlenecks](../production-bottlenecks.md).
+
+## no_op_pruner and no_ops_purger
+
+`NO_OPS_PATTERNS` is a bilingual list of prompt filler — `clean code`, `easy to read`, `high quality`,
+`robust architecture`, `best practice`, `beautiful code`, `please`, `highly recommended`, and the
+Chinese equivalents `優雅`, `乾淨`, `高質量`, `最佳實踐`, `請確保`, `易讀`, `健壯`.
+
+`no_op_pruner.py` reports matches without changing anything. `no_ops_purger.py` can remove them, and its
+mechanism is the interesting part: for each candidate line it builds the text *without* that line and
+re-scores it with `run_p2_evaluation()`. The line is dropped **only if the score is unchanged**. A
+phrase that looks like filler but actually carries behavior stays.
+
+That is the difference between pruning and deletion: the purger is not allowed to trade behavior for
+token count. Its current report is `purged_count=0 tokens_saved=0`, which is the correct outcome for
+prompts that have already been cleaned.
+
+## Validation
+
+```sh
+python3 scripts/validator.py
+python3 scripts/validate_skills_baseline.py --all
+python3 scripts/no_op_pruner.py           # dry run, reports only
+python3 scripts/validate_commit_message.py <message-file>   # the real check, not the selftest
+```
+---
+type: Reference
+title: Molecular Commit Lineage
+description: The eleven-field commit message contract, the compensating lineage ledger, and the difference between the default structural validation and a real history audit.
+tags: [governance, traceability, git]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [commit-traceability, lineage-ledger, history-audit-modes]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Molecular Commit Lineage
+
+Every commit that touches a protected path must be traceable back to the intent slice that motivated
+it. Two mechanisms carry that: a message contract enforced at commit time, and a compensating ledger
+for history written before the contract existed.
+
+## The commit message contract
+
+`.githooks/commit-msg` → `scripts/validate_commit_message.py <message-file>`. All eleven
+`REQUIRED_FIELDS` must be present:
+
+```text
+Intent-Slice:  Route:  Plan-Package:  Small-Loop:  Final-Repo:
+Exchange-Format:  Exchange-Packet:
+Fixed-Prompt-Context:  Iteration-Auto-Context:  Emergent-Prompt-Context:
+Dataflow:
+```
+
+The last three mirror the three prompt slots in
+[Prompt trace assets](../prompt-trace-assets.md) — the same three-way split, enforced at commit time as
+well as in the dataset.
+
+Beyond presence, four values are checked:
+
+- `Intent-Slice:` must match `GCR-SLICE-\d{2}`.
+- `Plan-Package:`, `Small-Loop:` and `Final-Repo:` must equal exact absolute paths derived from
+  `workspace_root()`, which walks up looking for `loop_wiki/evolve-unknown-discovery-plan-truth` and
+  falls back to a literal `<host-repo>`.
+
+That fallback is a real portability limit — see the root-local-runtime section of
+[Production bottlenecks](../production-bottlenecks.md). It also means the check is machine-specific:
+the same message can pass on one workstation and fail on another.
+
+`PROJECT-SSOT.md` explains why the fields are so specific: *"Molecular commit messages must preserve
+fixed_prompt_context, iteration_auto_context, emergent_prompt_context, and absolute-path dataflow
+evidence."*
+
+## The compensating ledger
+
+Commits written before the strict gate are **not rewritten** — `PROJECT-SSOT.md` says so explicitly, and
+their machine traceability is compensated instead by two artifacts:
+
+| Artifact | Contents |
+|---|---|
+| `data/commit_lineage/gcr_molecular_commits.json` | `schema_version: molecular-commit-lineage@0.2.0`; 235 `compensated_commits`; 7 `legacy_detailed_commits`; 13 `protected_paths`; the source-conversation, materialization-route, plan-package, small-loop and final-repo absolute paths; `history_rewrite_policy`; `coverage_through`; `verification_run_abs` |
+| `data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json` | `schema_version: molecular-commit-verification-run@0.2.0`; `status: pass`; `commit_count=235`; `compensated_commit_count=235`; `failed_commit_count=0`; `strict_message_count=20`; 235 `commit_shas`; 2 `proof_commands` |
+
+So the authoritative counts are **protected_history=235 compensated=235 failed=0 schema=v0.2**.
+`scripts/check_openwiki.py:73` still expects an older pair of counts; that discrepancy is documented on
+[Code call lifecycle](../code-call-lifecycle.md) and tracked in the Backlog of
+[Quickstart](../quickstart.md).
+
+Note the ratio: 20 commits carry a strict message, 235 are compensated. The ledger is doing most of the
+work, which is exactly what "compensating" means.
+
+## Two validation modes, very different strength
+
+`scripts/validate_molecular_commit_lineage.py`:
+
+| Invocation | What it actually checks |
+|---|---|
+| default (in `git_gate.py`) | ledger and verification-receipt **structure**, SHA lists and counts. No Git history is read. |
+| `--audit-protected-history` | reads Git history for the protected paths |
+| `--require-current-history` | additionally requires current history to satisfy strict three-surface lineage |
+| `--selftest` | self-check only |
+
+The default mode is what a normal push runs. It proves the ledger is internally consistent — not that
+the commits it names exist in any repository. Even that pass is not fully self-contained: it
+dereferences the ledger's absolute external `verification_run_abs`.
+
+**The history modes need a Git root this directory does not have.** `repo/agent-skills-repo/` is not its
+own repository. Running `--require-current-history` here walks up to the enclosing repository and audits
+*that* repository's commits; in a detached copy it fails with
+`--audit-protected-history requires --repo-root or a discoverable Git root`. Any history result must
+name which repository was audited, or it is not interpretable.
+
+Recovering the intent chain from history, when a Git root is available:
+
+```sh
+git log --all --format='%H%x09%s%x09%b' --grep='Intent-Slice: GCR-SLICE-'
+```
+
+## Validation
+
+```sh
+python3 scripts/validate_molecular_commit_lineage.py                      # structural, default
+python3 scripts/validate_molecular_commit_lineage.py --repo-root /abs/repo --require-current-history
+python3 scripts/validate_commit_message.py <message-file>
+```
+
+Focused test: `tests/test_skill_asset_governance.py::test_molecular_commit_lineage_gate_passes`.
+---
+type: Reference
+title: Test Map
+description: What each pytest module proves, described by behavior and invariant so the right suite can be retrieved without reading it from the top.
+tags: [testing]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [test-coverage-map, eval-markers]
+libraries: [pytest]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Test Map
+
+`pyproject.toml` sets `testpaths = ["tests"]` and registers three markers: `evals` (local-first golden
+dataset and deterministic judge), `llm_judge` (cloud path, disabled by default), `trace` (local trace
+sampling and guardrails).
+
+```sh
+python3 -m pytest -q            # everything
+python3 -m pytest -q -m evals   # golden-dataset and judge only
+```
+
+## `tests/test_skill_asset_governance.py`
+
+The structural and gate-level suite. Five tests, each proving a different class of invariant:
+
+| Test | Invariant |
+|---|---|
+| `test_skill_asset_structure` | ~57 required paths exist — the hooks, all four workflows, the twelve `openwiki/` contract paths, the skill assets, the named scripts, and every `data/` artifact. This is the test that turns a deleted file into a red suite. |
+| `test_static_defense_scripts_pass` | each of 25 static gates exits 0 **independently**. Unlike `git_gate.py`, it does not stop at the first failure, so it reports every broken gate in one run. It also covers `check_prompt_trace_assets.py`, which `git_gate.py` does not. |
+| `test_p11_synthetic_and_zero_llm_telemetry` | the canary telemetry is exact, not merely green — `synthetic_cases=117`, `typescript=59`, `python=58`, `total_cases_evaluated=117`, `passed_cases=117`, `zero_llm_api_calls=0`, `case_count=10`, `total_trials=50`, `task_count=100`, `delta_high_quality=0.15`, `delta_low_quality=-0.2`. A drifting number fails the suite. |
+| `test_autoresearch_eval_and_trace_gates_pass` | the PR golden eval passes with `cloud_judge_enabled=false`, the trace sampler passes, and the lifecycle dataset display matches its generator |
+| `test_wiki_graph_sync_gate_passes` | a projection built into a **temporary directory** reproduces cleanly, then the gate passes — proving reproducibility without mutating the checked-in artifacts |
+| `test_molecular_commit_lineage_gate_passes` | the lineage validator's default structural mode passes |
+
+Note what the last one does not do: it runs the default mode, so it proves ledger structure, not Git
+history. See [Molecular commit lineage](../governance/molecular-commit-lineage.md).
+
+## `tests/test_autoresearch_eval_suite.py`
+
+Marked `evals`. Exercises the golden-dataset harness — schema validation, deterministic guardrails, and
+the local heuristic judge. This is the suite `.github/workflows/autoresearch_eval.yml` runs with
+`-m evals`. See [Behavioral eval and judge](../validation/behavioral-eval-and-judge.md).
+
+## `tests/test_real_driver_ablation.py`
+
+The largest and most behavioral suite (282 lines), covering the driver that actually calls an agent.
+Retrieve it by the failure it proves rather than by symbol:
+
+| Behavior proven | Test |
+|---|---|
+| an agent command without `{task}` is rejected | `test_agent_command_must_contain_task_placeholder` |
+| a `codex exec` command without `--skip-git-repo-check` is rejected, because each invocation gets an ephemeral cwd | `test_codex_command_requires_skip_git_repo_check_for_ephemeral_cwd` |
+| a stale `--resume` is rejected with `cwd_kind` in stderr | resume-binding test |
+| a nonzero agent exit can never produce a passing ablation (exit 3, `agent_failures > 0`, `verdict FAIL`) | `test_nonzero_agent_exit_can_never_produce_a_passing_ablation` |
+| a timeout is recorded as a case failure instead of crashing the batch | `test_agent_timeout_is_recorded_as_failure_instead_of_crashing_batch` |
+
+`tests/fixtures/real_driver_mock_agent.py` is the stand-in agent, so these run without spending real
+agent calls. See [gemini_interactions](../skill-assets/gemini-interactions.md) for why each invariant
+exists.
+
+## No TypeScript tests
+
+There is no test for `.agents/skills/repo-terminal-operator/` in this repository — no `package.json`, no
+Bun toolchain, and the suites its contract references live in an absent upstream tree. See
+[Terminal operator overview](../terminal-operator/overview.md).
+---
+type: Reference
+title: Code Call Lifecycle
+description: The call graph from git hooks and CI workflows through git_gate into each defense script, with the measured values each gate currently reports and the one stale validator expectation.
+tags: [call-graph, gates, ci]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [call-graph, defense-gates, measured-telemetry]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Code Call Lifecycle
+
+Who calls what, in order, and what each call currently reports. Every number on this page was
+reproduced by running the script named beside it; where a number depends on which dataset is passed,
+the dataset is named.
+
+## Local hook path
+
+```mermaid
+sequenceDiagram
+    participant Dev as git push
+    participant Hook as .githooks/pre-push
+    participant Gate as scripts/git_gate.py
+    participant G as 23 registered gates
+    Dev->>Hook: pre-push
+    Hook->>Gate: python3 scripts/git_gate.py
+    Gate->>Gate: input_state_sha256() before
+    loop each gate in GATES
+        Gate->>G: subprocess python3 <gate>
+        G-->>Gate: exit code + stdout/stderr
+    end
+    Gate->>Gate: input_state_sha256() after
+    Gate-->>Hook: exit 0 / first failing exit / 125 if inputs changed
+```
+
+`.githooks/pre-push` → `scripts/git_gate.py` → the 23 entries of `GATES`, sequentially, stopping at the
+first nonzero exit. `.githooks/commit-msg` → `scripts/validate_commit_message.py` with the message
+file as its argument.
+
+`scripts/check_openwiki.py` is one of those 23 gates, which is why a documentation change can fail a
+push. `scripts/check_wiki_graph_sync.py` and `scripts/render_lifecycle_openwiki.py` are also in the
+list.
+
+## CI path
+
+- `.github/workflows/skill_ci.yml` — on pull requests touching `skills/**` or `scripts/**`, runs
+  `python scripts/git_gate.py`. Same chain as the hook, clean checkout.
+- `.github/workflows/wiki_graph_sync.yml` — on push/PR touching `openwiki/**/*.md`,
+  `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, or `scripts/check_wiki_graph_sync.py`.
+  Runs `scripts/sync_wiki_to_graph.py` with explicit `--wiki-root openwiki`, `--schema`, `--event-log`,
+  `--graph-out`, `--commit-sha "$GITHUB_SHA"`, then `scripts/check_wiki_graph_sync.py`, then uploads the
+  projection as an artifact. It does not commit the projection.
+- `.github/workflows/autoresearch_eval.yml` — runs
+  `scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`,
+  `scripts/sample_autoresearch_traces.py`, and `pytest -m evals`.
+- `.github/workflows/weekly_audit.yml` — Monday cron, runs only `scripts/ablation_engine.py`.
+
+Not reached by any of the above: `scripts/check_plan_package_compat.py`,
+`scripts/check_prompt_trace_assets.py`, and `scripts/real_driver_ablation.py`. They are invoked
+deliberately. See [Entrypoint matrix](operations/entrypoint-matrix.md).
+
+## Autoresearch-Composer Eval Call Graph
+
+```text
+data/autoresearch_golden/pr_golden_set.json
+  -> eval_autoresearch_composer.py::load_cases()
+  -> validate_case_schema()            # REQUIRED_CASE_FIELDS
+  -> simulate_autoresearch_plan()      # route + states + text
+  -> deterministic_guardrails()        # route equality, must_include, must_not_include
+  -> local_llm_as_judge()              # heuristic; PASS at score >= 0.85 and zero guardrail failures
+  -> stdout telemetry
+```
+
+`local_llm_as_judge()` is the default judge. `cloud_judge()` is the alternative branch and returns
+`verdict: SKIP` with `judge_mode: cloud-placeholder-disabled-in-seed`; it issues no API call. It
+activates only when `ENABLE_LLM_JUDGE` equals the string `"1"`, while
+`.github/workflows/autoresearch_eval.yml` passes the string `true` — so the workflow's cloud job would
+not activate it even if enabled.
+
+`scripts/llm_judge.py` is the separate double-lock parser used when an external judge response must be
+accepted: it extracts JSON from an XML-shielded payload, rejects non-finite scores, and rejects unless
+`verdict == PASS`, `score >= 0.85`, and the reasoning contains no `breach detected`.
+
+## Measured values
+
+Reproduced by running each command in the repository root:
+
+| Command | Reported |
+|---|---|
+| `python3 scripts/eval_autoresearch_composer.py` | `pr_golden_set.json: cases=4 passed=4`, `mode=local`, `cloud_judge_enabled=false` |
+| `python3 scripts/sample_autoresearch_traces.py` | `sample_count=3 observed_state_count=5` |
+| `python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json` | `delta=1.0 verdict=PASS`, `case_count=12`, `success_rate=1.0` |
+| `python3 scripts/ablation_engine.py` (default gemini cases) | `delta=0.50 case_count=10 success_rate=1.0 verdict=PASS` |
+| `python3 scripts/synthetic_case_generator.py` | `synthetic_cases=117 typescript=59 python=58` |
+| `python3 scripts/interactions_patch_assert_runner.py` | `total_cases_evaluated=117 passed_cases=117 zero_llm_api_calls=0` |
+| `python3 scripts/local_regex_runner.py` | `case_count=10 total_trials=50 zero_llm_api_calls=0` |
+| `python3 scripts/benchmark_runner.py` | `task_count=100 delta_high_quality=0.15 delta_low_quality=-0.2` |
+| `python3 scripts/validate_molecular_commit_lineage.py` | `PASS: molecular commit lineage` (ledger/receipt structure only) |
+
+The two ablation rows are the same script on different datasets. Quoting `delta=1.0` without naming
+`skills/autoresearch_composer/cases.json` misreports the default behavior.
+
+## Commit lineage: authoritative counts, and a stale validator expectation
+
+`scripts/check_openwiki.py:73` still expects this page to contain the literal string
+`gcr_molecular_commits.json: protected_history=157 compensated=157 failed=0 schema=v0.2`.
+That expectation is **stale**. The authoritative evidence in this repository is:
+
+- `data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json` —
+  `commit_count=235`, `compensated_commit_count=235`, `failed_commit_count=0`,
+  `schema_version=molecular-commit-verification-run@0.2.0`, `status=pass`, `strict_message_count=20`.
+- `data/commit_lineage/gcr_molecular_commits.json` — `schema_version=molecular-commit-lineage@0.2.0`,
+  235 entries in `compensated_commits`, 7 in `legacy_detailed_commits`, 13 `protected_paths`.
+
+The string `157` appears in those two files only as an incidental substring of SHA-256 digests. The
+correct current statement is **protected_history=235 compensated=235 failed=0 schema=v0.2**. The quoted
+sentence above is reproduced solely because `check_openwiki.py` matches by substring containment and
+still expects it; nothing on this page asserts 157 as a measurement. Correcting
+`scripts/check_openwiki.py:73` to 235 is a one-value change and is tracked in the Backlog of
+[Quickstart](quickstart.md).
+
+## Validation
+
+- Whole chain: `python3 scripts/git_gate.py`
+- This page's own gate: `python3 scripts/check_openwiki.py`
+- Graph projection: `python3 scripts/sync_wiki_to_graph.py` then `python3 scripts/check_wiki_graph_sync.py`
+
+codex
+<results>
+  <result id="Q-08" status="PARTIAL">
+    <missing>/openwiki/wiki-graph-sync-architecture.md lacks the heading-stack/link/code-fence extraction rules, generic HTTP transport/non-2xx failure path, and successful external-write integration-test limitation. /openwiki/schema-standards.md lacks the checker’s exact schema, provenance, retrieval, and missing-secret assertions. /openwiki/operations/entrypoint-matrix.md lacks the external job’s permissions.</missing>
+  </result>
+  <result id="Q-09" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+hook: Stop
+hook: Stop Completed
+tokens used
+52,923

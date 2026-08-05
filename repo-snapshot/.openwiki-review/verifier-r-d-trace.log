@@ -1,0 +1,824 @@
+OpenAI Codex v0.146.0
+--------
+workdir: /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AiQVJO
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fcb62-f826-7432-8f56-05d3d69b2938
+--------
+user
+
+You verify whether OpenWiki answers a batch of one to three source-derived engineering questions.
+
+Search only files under /openwiki. Never inspect repository source or files outside /openwiki. Never write or modify files.
+
+On an initial verification, evaluate each supplied question against every supplied acceptance criterion. On a retry where acceptance criteria are intentionally omitted, verify that every prior missing item is now answered by the listed changed pages. Do not weaken, expand, or invent requirements. Keep each result independent even when questions share pages.
+
+Status rules:
+- PASS: every criterion is answered accurately and specifically by /openwiki.
+- PARTIAL: at least one criterion is answered, but material details are missing.
+- FAIL: the wiki cannot provide a useful answer.
+- A documented evidence limit may satisfy a criterion when the wiki explicitly establishes that the source provides no guarantee, behavior, or focused test.
+
+For PARTIAL or FAIL, identify missing facts precisely enough for the parent agent to update the canonical pages and include the relevant wiki page when known. Do not restate answers, criteria, or supporting evidence. For PASS, return only None as the missing value.
+
+Return exactly:
+
+<results>
+  <result id="Q-01" status="PASS | PARTIAL | FAIL">
+    <missing>None | concise missing facts and relevant wiki pages</missing>
+  </result>
+</results>
+
+Example:
+
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/workflows/job-lifecycle.md lacks the retry limit, terminal exhaustion transition, and focused failure test.</missing>
+  </result>
+  <result id="Q-02" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+
+Return only the results block, with one result for every supplied question in the original order.
+
+---
+
+Retry verification. Each question below previously returned PARTIAL. Acceptance criteria are
+intentionally omitted: verify only that every prior missing item is now answered by the listed changed
+pages. Do not weaken, expand, or invent requirements. Return one result per question, in order.
+
+[Q-06]: 在解除 `skills/gemini_interactions/status.json:status` 的 quarantine 前，應如何解讀 deterministic regex gates 與 `.agents` 無關的真實 agent ablation：`scripts/real_driver_ablation.py:main`、`scripts/ablation_engine.py:evaluate`、`scripts/synthetic_case_quality_report.py:analyze_cases` 分別能證明什麼、不能證明什麼？
+
+Prior missing items:
+- /openwiki/validation/ablation-and-benchmark.md 與 /openwiki/skill-assets/gemini-interactions.md 缺少 loader probe 的判定條件、artifact path containment，以及 resume 對 argv、arm、case、run、cwd、model receipt 的逐項重驗規則。
+
+Wiki pages changed to resolve it:
+- openwiki/validation/ablation-and-benchmark.md
+- openwiki/skill-assets/gemini-interactions.md
+
+[Q-07]: 若要真正啟用 autoresearch cloud judge 或調整 promotion gate，`.github/workflows/autoresearch_eval.yml:jobs`、`scripts/eval_autoresearch_composer.py:cloud_judge` 與 `scripts/check_lifecycle_datasets.py:main` 目前如何互動，哪些設定會只產生 SKIP 卻看似成功？
+
+Prior missing items:
+- /openwiki/validation/behavioral-eval-and-judge.md 未說明主迴圈僅聚合 deterministic failure 與 judge FAIL，亦未交代 cloud SKIP 對退出碼及 passed/report 語意的影響；/openwiki/operations/entrypoint-matrix.md 未明載 cloud job 的 ENABLE_CLOUD_EVALS == 'true' 條件；/openwiki/structured-lifecycle-data.md 未完整說明 check_lifecycle_datasets.py 對 eval summary、trace privacy、drift distribution、promotion record 與 human_admit_binding 的交叉一致性檢查。
+
+Wiki pages changed to resolve it:
+- openwiki/validation/behavioral-eval-and-judge.md
+- openwiki/operations/entrypoint-matrix.md
+- openwiki/lifecycle/structured-datasets.md
+
+warning: clamping SessionEnd hook timeout to 3s in <home>/.codex/plugins/cache/openai-codex/codex/1.0.6/hooks/hooks.json
+hook: SessionStart
+hook: SessionStart
+hook: SessionStart Completed
+hook: SessionStart Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'pwd && rg --files openwiki | sort' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AiQVJO
+ succeeded in 0ms:
+/private/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AiQVJO
+openwiki/README.md
+openwiki/architecture/data-authority.md
+openwiki/architecture/defense-gate-chain.md
+openwiki/architecture/index.md
+openwiki/architecture/overview.md
+openwiki/asset-lifecycle-map.md
+openwiki/autoresearch-composer-lifecycle.md
+openwiki/code-call-lifecycle.md
+openwiki/governance/index.md
+openwiki/governance/molecular-commit-lineage.md
+openwiki/governance/plan-package-compatibility.md
+openwiki/index.md
+openwiki/lifecycle/index.md
+openwiki/lifecycle/structured-datasets.md
+openwiki/openwiki.yaml
+openwiki/operations/entrypoint-matrix.md
+openwiki/operations/index.md
+openwiki/production-bottlenecks.md
+openwiki/prompt-trace-assets.md
+openwiki/quickstart.md
+openwiki/schema-standards.md
+openwiki/skill-assets/autoresearch-composer.md
+openwiki/skill-assets/contract.md
+openwiki/skill-assets/gemini-interactions.md
+openwiki/skill-assets/index.md
+openwiki/stateful-workflow.md
+openwiki/structured-lifecycle-data.md
+openwiki/terminal-operator/async-lifecycle.md
+openwiki/terminal-operator/evidence-cost.md
+openwiki/terminal-operator/index.md
+openwiki/terminal-operator/overview.md
+openwiki/terminal-operator/production-profiles-and-handoff.md
+openwiki/terminal-operator/writer-publication.md
+openwiki/testing/index.md
+openwiki/testing/test-map.md
+openwiki/usage.md
+openwiki/validation/ablation-and-benchmark.md
+openwiki/validation/behavioral-eval-and-judge.md
+openwiki/validation/index.md
+openwiki/validation/semantic-arbitration.md
+openwiki/validation/static-skill-validators.md
+openwiki/validation/synthetic-corpus-quality.md
+openwiki/wiki-graph-sync-architecture.md
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,260p' openwiki/validation/ablation-and-benchmark.md && sed -n '1,300p' openwiki/skill-assets/gemini-interactions.md && sed -n '1,320p' openwiki/validation/behavioral-eval-and-judge.md && sed -n '1,260p' openwiki/operations/entrypoint-matrix.md && sed -n '1,340p' openwiki/lifecycle/structured-datasets.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AiQVJO
+ succeeded in 0ms:
+---
+type: Reference
+title: Ablation and Benchmark
+description: The simulated ablation engine, the real-driver ablation that actually calls an agent, and the benchmark matrix — with the boundary between simulated and real evidence stated explicitly.
+tags: [ablation, benchmark, evidence]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [ablation-delta, real-driver-evidence, benchmark-matrix]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Ablation and Benchmark
+
+Three measurement tools with very different evidential weight. Confusing them is the main hazard.
+
+## `ablation_engine.py` — simulated, deterministic, in the default chain
+
+Runs the same cases with and without skill context and compares success rates. `TARGET_DELTA = 0.05`;
+below that the run exits 2 with `FAIL: ablation delta too small`.
+
+Its "agent" is `simulate_agent()`, a hand-written branch table keyed on `skill_slug` and prompt
+substrings. **No model is called.** A new skill slug without a branch there will not be simulated
+meaningfully.
+
+`regex_pass()` evaluates `expected_checks` as regexes with one special prefix: a check beginning
+`FORBID:` inverts, failing the case when the pattern *is* present.
+
+The delta is dataset-dependent, and quoting it without the dataset is a misreport:
+
+| Dataset | Telemetry |
+|---|---|
+| `skills/gemini_interactions/cases.json` (default) | `delta=0.50 case_count=10 success_rate=1.0 verdict=PASS` |
+| `skills/autoresearch_composer/cases.json` | `delta=1.0 case_count=12 with_skill=1.0 without_skill=0.0`, `positive_case_count=6`, `negative_case_count=6`, `negative_with_skill_success_rate=1.0` |
+
+`scripts/check_autoresearch_lifecycle.py` re-runs the second row and requires all five of those values;
+the negative-arm requirement is what stops an always-firing asset from scoring well on positives alone.
+
+Trigger: `.github/workflows/weekly_audit.yml`, Monday 03:00 UTC cron — and it runs **only** this
+script, never the real driver.
+
+## `real_driver_ablation.py` — real agent, deliberately outside every automatic trigger
+
+This is the only tool in the repository that produces evidence about an actual agent, and it is in no
+`GATES` list and no workflow. It is invoked by hand, spends real agent calls, and its output is what a
+promotion decision must cite.
+
+Its hardening is a direct response to a failed run (see
+[gemini_interactions](../skill-assets/gemini-interactions.md)), and each invariant has a test in
+`tests/test_real_driver_ablation.py`:
+
+- `--agent-cmd` must contain the `{task}` placeholder, else exit 2.
+- A `codex exec` command must carry `--skip-git-repo-check`, because each invocation gets an **ephemeral
+  per-invocation cwd** — the fix for cross-sample contamination.
+- A stale `--resume` is rejected with `cwd_kind` in stderr.
+- A nonzero agent exit can never produce a passing ablation: exit 3, `agent_failures > 0`,
+  `verdict FAIL`.
+- A timeout is recorded as a case failure rather than crashing the batch.
+- Partial output is rejected, not given partial credit.
+- A loader nonce and a runtime session model receipt bind the run to the model that actually served it.
+
+```sh
+python3 scripts/real_driver_ablation.py --agent-cmd 'codex exec --skip-git-repo-check {task}' \
+    --runs 3 --threshold 0.2 --artifacts /tmp/ablation --json
+```
+
+Preregister the threshold before running. The recorded failure exists because a 0.20 threshold was
+preregistered and a 0.10 delta was measured — that only means something because the order was fixed in
+advance.
+
+### The loader probe: proving the skill was actually loaded
+
+Before any case runs, the driver invokes the agent **twice** with the same probe task:
+
+> `Loader probe: output EVAL_NONCE exactly if it exists in supplied skill context; otherwise output NO_NONCE.`
+
+once wrapped in the skill context (which carries a freshly generated `nonce`), and once bare. The
+verdict is a two-sided condition:
+
+```python
+loader_probe_passed = nonce in probe_with["output"] and nonce not in probe_without["output"]
+```
+
+Both halves matter. The nonce appearing in the with-skill arm proves the context reached the agent; its
+**absence** from the without-skill arm proves the two arms are genuinely different. If the probe fails,
+every subsequent delta is measuring nothing, so the run cannot pass regardless of its numbers.
+
+### The verdict is five conjuncts, not one
+
+```python
+passed = (loader_probe_passed and metadata_complete
+          and agent_failures == 0 and probe_failures == 0
+          and delta >= args.threshold)
+```
+
+| Conjunct | Meaning |
+|---|---|
+| `loader_probe_passed` | the skill context demonstrably reached the agent and only the with-skill arm |
+| `metadata_complete` | `len(models) == 1` **and** every run resolved to that same model — a run served by a different model invalidates the comparison |
+| `agent_failures == 0` | no case exited non-zero; a timeout is exit 124 and counts here |
+| `probe_failures == 0` | neither probe invocation itself failed |
+| `delta >= threshold` | the preregistered bar |
+
+A green delta with a failed probe, a mixed model set, or a single timeout is still a **fail**. The
+report is `real-driver-ablation@0.2.0` and records `inputs` (cases path and SHA-256, skill path and
+SHA-256, runs, workers, threshold), the full `loader_probe` block including both probe outputs, and
+`runtime` with `resolved_models`, `model_source: runtime-session-metadata` and `metadata_complete`.
+
+### Artifact path containment
+
+Every per-run artifact goes through `safe_artifact_path(root, arm, case_id, f"run-{n}.json")`, which
+resolves both the artifacts root and the destination and requires
+`destination.is_relative_to(artifacts_root)`, raising
+`artifact path escapes artifacts root: <parts>` otherwise. Since `case_id` comes from the dataset, this
+is what stops a crafted or careless id containing `..` from writing outside the artifacts tree.
+
+### `--resume` revalidates rather than trusts
+
+`load_resumable_run()` will not reuse a stored artifact until it re-proves every binding.
+
+**Five identity fields must match exactly**, and mismatches are reported by name:
+
+| Field | Expected |
+|---|---|
+| `arm` | the arm being resumed |
+| `case_id` | the case being resumed |
+| `run` | the run index |
+| `argv` | the **full expected argv** — a changed `--agent-cmd` invalidates the resume |
+| `cwd_kind` | the literal `"ephemeral-temp"` — an artifact from the old shared-cwd runner can never be resumed |
+
+That last row is the fix for the contamination that quarantined `gemini_interactions`: artifacts
+produced under a shared repository cwd are structurally unresumable, so a repaired run cannot silently
+inherit contaminated samples.
+
+**Then the model receipt is re-derived, not read.** The stored `resolved_model_receipt` must be a
+string path that is not a symlink, is an existing file, and whose resolved path lies **inside**
+`session_root`; `resolved_model` must be a string. The driver then calls
+`resolve_model(result["thread_id"], session_root)` afresh and requires both that the re-resolved model
+equals the stored `resolved_model` and that the matched receipt path resolves to the same file —
+otherwise `existing artifact <path> has invalid model receipt binding`.
+
+So a resumed run cannot be attributed to a model it was not actually served by, and a receipt pointing
+outside the session root is rejected rather than followed.
+
+## `benchmark_runner.py` — a fixed matrix, not a measurement
+
+Reports `task_count=100 delta_high_quality=0.15 delta_low_quality=-0.2`. It is a deterministic matrix
+describing the expected shape of a quality delta (a good asset helps, a bad asset hurts), not an
+observation of this repository's assets. Useful as a regression tripwire on the scoring code; useless as
+evidence about a skill.
+
+## `github_skill_harvester.py`
+
+Reports `skill_count` and `suspected_ai` from local files with no network access. Inventory, not
+evaluation.
+
+## Which one to cite
+
+| Claim you want to make | Tool that can support it |
+|---|---|
+| "the case corpus still behaves as specified" | `ablation_engine.py` |
+| "the scoring code did not regress" | `benchmark_runner.py` |
+| "this skill improves a real agent" | **only** `real_driver_ablation.py`, with a preregistered threshold |
+
+## Validation
+
+```sh
+python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json
+python3 scripts/benchmark_runner.py
+python3 -m pytest -q tests/test_real_driver_ablation.py
+```
+---
+type: Reference
+title: gemini_interactions (quarantined)
+description: The quarantined Gemini Interactions asset — why a failing real-driver receipt is authoritative over a green 117/117 canary, what the current driver fixed, and what must be re-verified before promotion.
+tags: [skill-assets, quarantine, promotion]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [quarantine-decision, real-driver-ablation, canary-limits]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# gemini_interactions — quarantined
+
+> `skills/gemini_interactions/status.json` — `status: quarantined`,
+> `production_routable: false`, decided `2026-07-27`.
+
+Read this before routing the asset anywhere. Its static gates are green and its regex canary is
+117/117; neither of those is why it is quarantined, and neither overrides the decision.
+
+## The asset
+
+`skills/gemini_interactions/skills.md` routes Gemini Interactions API work: generate or audit code when
+the task asks for that API, prefer current Interactions method names, and load
+`references/deploy_guide.md` only for deployment detail. It declines Angular components, Vue components,
+static data extraction, and unrelated cloud deployment.
+
+## Why it is quarantined
+
+The authority is a **failing receipt**:
+`data/verification_runs/gemini_interactions_real_driver_2026-07-27.json`,
+`real-driver-ablation-verification-run@0.1.0`, `status: fail`, `decision: A2_FAIL_DO_NOT_PROMOTE`,
+model `gpt-5.6-sol`.
+
+| Measurement | Value |
+|---|---|
+| cases × runs per arm | 10 × 3 → 60 total case runs |
+| preregistered threshold | `0.2` |
+| raw summary delta | `0.1333` |
+| **normalized delta** | **`0.10`** |
+| normalized with-skill success rate | `0.5` |
+| normalized without-skill success rate | `0.4` |
+| agent failures | `4` (exit code 124, timeouts) |
+| metadata complete | `false` |
+| arm totals | with_skill 15/30 (2 timeouts), without_skill 12/30 (2 timeouts) |
+
+The normalization rule is stated in the receipt: *a case pass requires regex checks to pass and agent
+exit_code to equal zero; four timed-out partial outputs are failures.* That is why the normalized delta
+(0.10) is lower than the raw one (0.1333) — partial output is not scored as partial credit.
+
+`status.json` records four reasons, and only the first is about the number:
+
+1. normalized delta 0.10 below the preregistered 0.20 threshold;
+2. four of sixty case runs timed out, so runtime metadata was incomplete;
+3. negative cases forbid their own requested domain words, which confounds correct non-activation with
+   refusal to perform the user's task — a **case-corpus defect**, not an asset defect;
+4. the completed run shared a repository cwd across samples, so agent-created files were visible to
+   later cases and sample independence was contaminated.
+
+Reason 3 is the diagnostic worth carrying forward: the measurement could not distinguish "the skill
+correctly did not fire" from "the agent refused the task". Reason 4 says the samples were not
+independent, so even the number that was produced is not trustworthy.
+
+`next_action` is explicit: repair the case corpus in a new bounded plan, use the driver's ephemeral
+per-invocation cwd with `codex --skip-git-repo-check`, then run a **newly preregistered** ablation —
+and *do not rerun this plan a fourth time*.
+
+## Why the green canary does not override it
+
+`scripts/synthetic_case_generator.py` produces 117 fixtures (typescript=59, python=58);
+`scripts/interactions_patch_assert_runner.py` reports `total_cases_evaluated=117 passed_cases=117
+zero_llm_api_calls=0`; `scripts/local_regex_runner.py` reports `case_count=10 total_trials=50`;
+`scripts/ablation_engine.py` on the default gemini cases reports `delta=0.50`.
+
+Every one of those is a **simulation or a regex match**, with zero model calls by construction. The
+repository's own compatibility manifest labels the scope honestly:
+`p11_current_scope: local-zero-llm-regex-canary` and `synthetic_case_quality_status: insufficient`. See
+[Synthetic corpus quality](../validation/synthetic-corpus-quality.md).
+
+One real-agent measurement exists, and it failed.
+
+## What the current driver fixed
+
+`scripts/real_driver_ablation.py` has since been hardened against the exact defects the receipt names.
+Each invariant below is proven by a test in `tests/test_real_driver_ablation.py`:
+
+| Invariant | Behavior | Proven by |
+|---|---|---|
+| the agent command must be templated | `--agent-cmd` without `{task}` exits 2 | `test_agent_command_must_contain_task_placeholder` |
+| ephemeral cwd needs the codex flag | a `codex exec` command lacking `--skip-git-repo-check` exits 2 | `test_codex_command_requires_skip_git_repo_check_for_ephemeral_cwd` |
+| per-invocation ephemeral cwd | each invocation runs in its own directory, so agent side effects cannot leak between samples | the same test's premise |
+| stale resume is rejected | the stored artifact must match `arm`, `case_id`, `run`, the **full expected `argv`**, and `cwd_kind == "ephemeral-temp"`; a mismatch exits 2 naming the offending fields, `cwd_kind` among them | resume-binding test |
+| a nonzero agent exit can never pass | exit 3, `telemetry.agent_failures > 0`, `verdict FAIL` | `test_nonzero_agent_exit_can_never_produce_a_passing_ablation` |
+| a timeout is a case failure, not a crash | the batch completes and records the failure | `test_agent_timeout_is_recorded_as_failure_instead_of_crashing_batch` |
+| partial output is rejected | not scored as partial credit | normalization rule above |
+| artifacts cannot escape their root | `safe_artifact_path()` resolves both root and destination and requires `destination.is_relative_to(artifacts_root)`, else `artifact path escapes artifacts root` — the guard on a `case_id` taken from the dataset | path-containment guard |
+| the run must prove the skill was loaded | a two-sided nonce probe: the nonce must appear in the with-skill arm **and** be absent from the without-skill arm | `loader_probe.passed` in the report |
+| a resumed run cannot be misattributed | `resolved_model` is **re-derived** from session metadata and compared to the stored value, and the receipt path must be a non-symlink file resolving inside `session_root` | receipt-binding check |
+
+The `cwd_kind == "ephemeral-temp"` requirement is the direct structural fix for reason 4 above:
+artifacts produced by the old shared-cwd runner are **unresumable by construction**, so a repaired run
+cannot silently inherit contaminated samples. Full mechanics on
+[Ablation and benchmark](../validation/ablation-and-benchmark.md).
+
+The verdict is five conjuncts —
+`loader_probe_passed and metadata_complete and agent_failures == 0 and probe_failures == 0 and delta >= threshold`
+— so the 2026-07-27 run would have failed on `metadata_complete` and `agent_failures` even if its delta
+had cleared the preregistered bar. The delta is the headline, not the whole gate.
+
+## The quarantine is documented, not enforced
+
+**No gate reads `status.json`.** `scripts/git_gate.py::GATES` does not include a check that binds the
+status file to its `verification_receipt`, and no workflow does either. Nothing prevents this asset from
+being loaded; the file records a decision a human made.
+
+## Before promotion, all of this must change and be re-verified
+
+1. Repair the negative cases so they no longer forbid their own requested domain words — the corpus
+   defect from reason 3. Then `python3 scripts/validator.py`.
+2. Preregister a new threshold in a new bounded plan; do not reuse the 2026-07-27 preregistration.
+3. Run `scripts/real_driver_ablation.py` with the ephemeral per-invocation cwd and
+   `codex --skip-git-repo-check`, with complete runtime metadata and zero timeouts.
+4. Write a **new dated** verification run under `data/verification_runs/`; receipts are never edited in
+   place.
+5. Update `status.json` to reference the new receipt.
+6. Optionally, close the enforcement gap by making a gate assert that
+   `status.production_routable` is consistent with the referenced receipt's `decision`.
+
+## Validation
+
+```sh
+python3 scripts/validator.py
+python3 scripts/interactions_patch_assert_runner.py     # canary only — not behavioral evidence
+python3 -m pytest -q tests/test_real_driver_ablation.py
+```
+---
+type: Reference
+title: Behavioral Eval and Judge
+description: The golden-dataset eval harness, its deterministic guardrails, the local heuristic judge, the double-lock verdict parser, and the fact that the cloud judge makes no API call.
+tags: [evals, judge]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [golden-dataset-eval, deterministic-guardrails, judge-double-lock]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Behavioral Eval and Judge
+
+## The harness
+
+`scripts/eval_autoresearch_composer.py` accepts a dataset as a JSON list, a JSON object with a `cases`
+key, or JSONL — `--dataset` selects the file, `--mode local|cloud` the judge.
+
+Every case must carry all of `REQUIRED_CASE_FIELDS`: `id`, `prompt`, `expected_route`, `must_include`,
+`must_not_include`, `judge_rubric`, `trace_tags`, `risk_level`. `must_include`, `must_not_include` and
+`trace_tags` must be `list[str]`. A malformed case is an error, not a skipped case.
+
+## Guardrails run before any judge
+
+`deterministic_guardrails()` returns a failure list built from three checks:
+
+1. the produced route equals `expected_route`;
+2. every `must_include` literal appears in the produced text;
+3. no `must_not_include` literal appears.
+
+Only then does a judge see the result. This ordering is the design: a judge cannot rescue a wrong route
+or a forbidden literal. The judge's job is to grade what survived, not to arbitrate correctness.
+
+## The local judge is a heuristic
+
+`local_llm_as_judge()` assigns `0.96` when the guardrail list is empty, and
+`max(0.0, 0.82 - 0.05 × failures)` otherwise; the verdict is `PASS` when the score is at least `0.85`
+**and** there were zero guardrail failures. In other words it is a deterministic restatement of the
+guardrail result with a number attached — it adds no independent signal. Treat its score as a label,
+not as evidence.
+
+## The cloud judge makes no API call
+
+`cloud_judge()` is the `--mode cloud` branch:
+
+- If `ENABLE_LLM_JUDGE != "1"`, it returns `judge_mode: cloud-disabled`, verdict `SKIP`.
+- If it is `"1"` but `OPENAI_API_KEY` is unset, it raises — the key is required *only* on that path.
+- If both are set, it returns `judge_mode: cloud-placeholder-disabled-in-seed`, verdict `SKIP`,
+  reasoning *"cloud/API call path is intentionally not activated in the local-first seed"*.
+
+There is no HTTP request anywhere in that function. The cloud judge is a wired-but-unimplemented seam.
+
+### What a cloud `SKIP` does to the exit code
+
+This is the trap. `main()` appends to `failures` only when
+`case_failures or judge["verdict"] == "FAIL"`. A `SKIP` is neither, so:
+
+- the run **exits 0**;
+- `passed_cases` is computed as `len(cases) - len(failures)`, so every skipped case counts as
+  **passed**;
+- `cloud_judge_enabled` is `True` only when `ENABLE_LLM_JUDGE == "1"` *and* `--mode cloud`.
+
+A cloud-mode run in which no case was actually judged therefore reports a full pass. The only signal
+that nothing happened is `judge_mode: cloud-disabled` or `cloud-placeholder-disabled-in-seed` inside
+`results[]`, which the summary line does not surface. Read `--json` output, not the summary, before
+believing a cloud-mode result.
+
+A second, separate fact: `.github/workflows/autoresearch_eval.yml` sets
+`ENABLE_LLM_JUDGE: ${{ vars.ENABLE_CLOUD_EVALS }}`, i.e. the string `true`, while the code compares
+against `"1"`. Even if a maintainer enabled the repository variable, the branch would take the
+`cloud-disabled` path. Both facts matter: the seam is unimplemented **and** the workflow would not reach
+it.
+
+## The double-lock verdict parser
+
+`scripts/llm_judge.py` is the component that would accept an *external* judge's answer, and it is
+deliberately hostile to malformed input:
+
+1. the response is wrapped in `<judge_output>…</judge_output>` before parsing — an XML shield, so a
+   bare payload cannot smuggle structure;
+2. the first `{…}` block is extracted and parsed with `parse_constant` raising, so `NaN`, `Infinity`
+   and `-Infinity` are rejected rather than silently accepted;
+3. the score must be finite;
+4. the verdict is accepted only when `verdict == PASS` **and** `score >= 0.85` **and** the reasoning
+   contains no `breach detected`.
+
+Point 4 is the double lock: a high score cannot override a stated breach, and a clean reasoning string
+cannot override a low score. Anything else exits 2 with `FAIL: double-lock judge rejection`.
+
+## Trace sampling
+
+`scripts/sample_autoresearch_traces.py` validates the local-first trace samples and reports
+`sample_count=3 observed_state_count=5 cloud_judge_enabled=false`. Traces stay on the local filesystem;
+their privacy classification is on [Prompt trace assets](../prompt-trace-assets.md).
+
+## Validation
+
+```sh
+python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json
+python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/nightly_golden_set.jsonl
+python3 scripts/llm_judge.py --response '{"verdict":"PASS","score":0.91,"reasoning":"clean"}'
+python3 -m pytest -q -m evals
+```
+---
+type: Reference
+title: Entrypoint Matrix
+description: Every hook and workflow with its exact argv, path filter, environment-variable format and side effects — plus the scripts nothing triggers automatically.
+tags: [operations, ci, triggers]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [trigger-matrix, ci-coverage, opt-in-variables]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Entrypoint Matrix
+
+What actually runs, when, with which arguments. Read this before assuming a script is covered.
+
+## Local hooks
+
+Both require `git config core.hooksPath .githooks`. They are per-clone and not enforced server-side.
+
+| Hook | Runs | Argv | Side effects |
+|---|---|---|---|
+| `.githooks/commit-msg` | `scripts/validate_commit_message.py` | `<message-file>` | none |
+| `.githooks/pre-push` | `scripts/git_gate.py` | none | none; exits 125 if any gate mutated the tree |
+
+## Workflows
+
+| Workflow | Trigger | Path filter | Commands | Side effects |
+|---|---|---|---|---|
+| `skill_ci.yml` | pull_request | `skills/**`, `scripts/**` | `python scripts/git_gate.py` | none |
+| `wiki_graph_sync.yml` | push, pull_request, workflow_dispatch | `openwiki/**/*.md`, `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, `scripts/check_wiki_graph_sync.py` | `sync_wiki_to_graph.py --wiki-root openwiki --schema … --event-log … --graph-out … --commit-sha "$GITHUB_SHA"`, then `check_wiki_graph_sync.py` | **uploads** `wiki-graph-local-projection` as an artifact; does **not** commit the regenerated files |
+| `autoresearch_eval.yml` | pull_request, workflow_dispatch | `skills/autoresearch_composer/**`, `data/autoresearch_golden/**`, `data/autoresearch_traces/**`, `scripts/eval_autoresearch_composer.py`, `scripts/sample_autoresearch_traces.py`, `tests/test_autoresearch_eval_suite.py` | `eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`, `sample_autoresearch_traces.py`, `pytest -q -m evals` | none |
+| `weekly_audit.yml` | cron `0 3 * * 1`, workflow_dispatch | — | `python scripts/ablation_engine.py` | none |
+
+Note what `weekly_audit.yml` does **not** run: `scripts/real_driver_ablation.py`. The weekly audit is
+deterministic and simulated; nothing schedules a real-agent measurement.
+
+## Opt-in variables and their exact formats
+
+This is where two mismatches live. Formats are not interchangeable.
+
+| Variable | Read by | Accepted value | Set by |
+|---|---|---|---|
+| `ENABLE_GRAPH_DB_WRITE` | `sync_wiki_to_graph.py::write_external_graph_if_enabled()` | the string `"true"` | `vars.ENABLE_GRAPH_DB_WRITE` in `wiki_graph_sync.yml` — **matches** |
+| `--write-external-graph` | CLI flag on the same script | present/absent | passed only by the opt-in job |
+| `GRAPH_DB_KIND` | same | `generic-http-json` or `neo4j-http`; anything else raises | `vars.GRAPH_DB_KIND`, defaulting to `generic-http-json` |
+| `GRAPH_DB_URI` / `GRAPH_DB_USER` / `GRAPH_DB_PASSWORD` | same | required together; a missing one raises naming which | repository secrets |
+| `ENABLE_LLM_JUDGE` | `eval_autoresearch_composer.py::cloud_judge()` | the string `"1"` | `autoresearch_eval.yml` passes `vars.ENABLE_CLOUD_EVALS`, i.e. `"true"` — **mismatch, the branch never activates** |
+| `OPENAI_API_KEY` | same | required only when `ENABLE_LLM_JUDGE == "1"` | repository secret |
+| `GIT_GATE_FIXED_ELAPSED_MS` | `git_gate.py::elapsed_ms()` | integer string; overrides all timings | tests, for reproducible receipts |
+| `REPO_EVIDENCE_COLLECTOR_PRODUCTION` | the TypeScript evidence-cost collector | `1` | manual only |
+
+The external graph write needs **both** `--write-external-graph` and `ENABLE_GRAPH_DB_WRITE=true`;
+either alone is a no-op. The cloud judge is unreachable from CI even when enabled, and would return a
+placeholder `SKIP` if it were reached — see
+[Behavioral eval and judge](../validation/behavioral-eval-and-judge.md).
+
+## The 23 gates `git_gate.py` covers
+
+Listed in order on [Defense gate chain](../architecture/defense-gate-chain.md).
+
+## Scripts nothing triggers automatically
+
+These are **not** in `GATES` and not in any workflow. Someone must run them.
+
+| Script | Run it when | Documented on |
+|---|---|---|
+| `check_plan_package_compat.py` | `PROJECT-SSOT.md` / `plan-package.compat.yaml` / `.plan-package.lock.yaml` changed | [Plan package compatibility](../governance/plan-package-compatibility.md) |
+| `test_plan_package_compat.sh` | same | same |
+| `check_prompt_trace_assets.py` | `data/prompt_trace/**` changed | [Prompt trace assets](../prompt-trace-assets.md) |
+| `sync_wiki_to_graph.py` | a wiki page changed and you want the local projection refreshed | [Wiki graph sync](../wiki-graph-sync-architecture.md) |
+| `real_driver_ablation.py` | you are about to claim a real behavioral delta | [Ablation and benchmark](../validation/ablation-and-benchmark.md) |
+| `render_lifecycle_openwiki.py --write` | `data/lifecycle/**` changed (the gate runs the compare mode, not the write mode) | [Data authority](../architecture/data-authority.md) |
+
+`check_prompt_trace_assets.py` is covered indirectly by
+`tests/test_skill_asset_governance.py::test_static_defense_scripts_pass`, which runs every static gate
+independently — so `pytest` catches things a `git push` does not.
+
+## Gates that run argument-less and prove only a selftest
+
+`validate_commit_message.py` and `validate_goal_constraints.py`. See
+[Static skill validators](../validation/static-skill-validators.md).
+
+## Opt-in jobs: activation conditions and permissions
+
+Both conditional jobs are gated on a **repository variable**, not a secret, so enabling them is a
+visible configuration change:
+
+| Job | Condition | Permissions | Secrets read |
+|---|---|---|---|
+| `wiki_graph_sync.yml` → `local-first-wiki-graph-sync` | always, on the path filter | `contents: read`, `actions: read` | none |
+| `wiki_graph_sync.yml` → `external-graph-write-disabled-by-default` | `${{ vars.ENABLE_GRAPH_DB_WRITE == 'true' }}` | `contents: read` | `GRAPH_DB_URI`, `GRAPH_DB_USER`, `GRAPH_DB_PASSWORD` |
+| `autoresearch_eval.yml` → `local-first-eval` | always, on the path filter | default | none |
+| `autoresearch_eval.yml` → `cloud-judge-disabled-by-default` | `${{ vars.ENABLE_CLOUD_EVALS == 'true' }}` | default | `OPENAI_API_KEY` |
+
+The external-write job is the only one granted access to graph secrets, and it holds `contents: read`
+only — it cannot push the projection back.
+
+## What does NOT trigger CI
+
+Path filters are narrow, and several substantial areas fall outside every one of them. Changing any of
+these produces **no** pull-request check:
+
+| Path | Why it matters |
+|---|---|
+| `.agents/skills/repo-terminal-operator/**` | the entire ~9.7k-line vendored TypeScript operator |
+| `.githooks/**` | the hooks themselves; a broken hook is not caught until someone pushes |
+| `.github/workflows/**` | a workflow editing itself does not re-trigger on its own path filter |
+| `data/wiki_graph/event_log.jsonl`, `data/wiki_graph/sample_graph.json` | the projection artifacts; only `schema.json` is in the filter |
+| `data/prompt_trace/**` | `check_prompt_trace_assets.py` is in no filter and no `GATES` list |
+| `data/lifecycle/**` | reached only indirectly, when `scripts/**` changes trigger `skill_ci` |
+| `data/commit_lineage/**`, `data/verification_runs/**` | lineage ledger and receipts |
+| `PROJECT-SSOT.md`, `plan-package.compat.yaml`, `.plan-package.lock.yaml` | the project contract itself |
+| `skills/*/status.json` | promotion decisions |
+| `tests/**` except `tests/test_autoresearch_eval_suite.py` | the governance suite |
+
+`python3 -m pytest -q` covers most of these locally, which is why the runbook treats it as the
+pre-release check rather than an optional extra. See [Usage](../usage.md).
+
+## Coverage summary
+
+| Surface | Covered by |
+|---|---|
+| every static gate, independently, reporting all failures | `pytest tests/test_skill_asset_governance.py` |
+| the 23-gate chain, stopping at the first failure | `git_gate.py`, hook and `skill_ci.yml` |
+| golden-dataset and trace assets | `autoresearch_eval.yml`, `pytest -m evals` |
+| the wiki→graph projection | `wiki_graph_sync.yml` |
+| a simulated weekly delta | `weekly_audit.yml` |
+| **a real agent's behavior** | nothing automatic — only a manual `real_driver_ablation.py` run |
+---
+type: Reference
+title: Structured Lifecycle Datasets
+description: The data/lifecycle SSOT behind the generated display page, and every cross-consistency rule check_lifecycle_datasets.py enforces across eval summary, privacy, drift, promotion records and the human-admit binding.
+tags: [lifecycle, datasets, promotion]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [lifecycle-ssot, cross-consistency-gate, human-admit-binding]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Structured Lifecycle Datasets
+
+`data/lifecycle/` is the machine-readable SSOT for skill promotion state.
+[Structured Lifecycle Data](../structured-lifecycle-data.md) is its **generated** display layer — that
+page is produced by `scripts/render_lifecycle_openwiki.py` and must stay byte-equal to
+`--stdout`, so it cannot carry commentary. This page holds the commentary.
+
+## The seven artifacts
+
+| Path | Holds |
+|---|---|
+| `skill_optimization_registry.json` | the managed skills and their `current_status` |
+| `golden_dataset_versions.json` | dataset versions and case counts |
+| `eval_runs/autoresearch_composer_2026-07-23.json` | the recorded run's `result_summary` |
+| `promotion_records.json` | promotion decisions and their human-admit binding |
+| `dataset_drift_history.jsonl` | per-version drift rows |
+| `trace_privacy_classification.json` | per-dataset cloud policy |
+| `../autoresearch_traces/failure_trace_samples.jsonl` | the failure traces the drift rows count |
+
+## What `check_lifecycle_datasets.py` enforces
+
+This gate is unusual: it does not merely validate each file, it requires the files to **agree with each
+other and with a re-run of the renderer**. Every rule below is a separate failure message.
+
+### Generation
+
+The display page must equal `render_lifecycle_openwiki.py --stdout` exactly, else
+`structured lifecycle openwiki must equal renderer output`. Hand-editing it is therefore a gate failure,
+not a style issue.
+
+### Registry
+
+Exactly one managed skill, with `skill_id == "autoresearch_composer"` and
+`current_status == "production-seed-candidate"`. A second skill or a promoted status fails.
+
+### Dataset versions
+
+| Version | Required case count |
+|---|---|
+| `autoresearch-pr-golden@2026-07-23` | 4 |
+| `autoresearch-nightly-golden@2026-07-23` | 3 |
+
+### Eval-run summary
+
+Seven fields, each pinned:
+
+```text
+pr_cases 4 · pr_passed 4 · nightly_cases 3 · nightly_passed 3
+trace_samples 3 · failure_trace_samples 2 · ablation_delta 1.0 · status PASS
+```
+
+These are the same numbers the live commands report — see
+[Autoresearch-composer lifecycle](../autoresearch-composer-lifecycle.md). The gate is what stops the
+recorded run and the reproducible run from drifting apart.
+
+### Trace privacy
+
+Root `cloud_upload_allowed` must be `false`, **and** every entry in `datasets[]` must carry
+`cloud_allowed: false`. A single dataset opting in fails the gate by name. This is a hard local-only
+stance, not a default.
+
+### Drift history
+
+Exactly **2** seed rows. Each row must have `pass_rate == 1.0` and `failure_trace_sample_count == 2`,
+must contain a non-empty `route_distribution` mapping, and — the interesting one —
+**`sum(route_distribution.values())` must equal that row's `case_count`**. A drift row cannot claim a
+route breakdown that fails to account for every case.
+
+### Failure traces
+
+Exactly **2** rows, each with `verdict == "FAIL"` and `cloud_judge_enabled` explicitly `false`. The
+failure corpus is local-only by construction.
+
+### Promotion record and the human-admit binding
+
+Exactly one record, with `promotion_status == "candidate_until_human_admit"` and
+`human_admit == "required_before_promotion"`.
+
+Its `human_admit_binding` must be a structured object with `binding_status == "prepared_unsigned"` —
+prepared, and explicitly not signed. Six keys must be present, and four of them are cross-checked:
+
+| Key | Rule |
+|---|---|
+| `dataset_versions` | must **equal the promotion record's own** `dataset_versions` |
+| `molecular_commit` | must **equal the promotion record's own** `molecular_commit` |
+| `plan_package_input_ids` | must be exactly `gcr-047d548-conversation`, `real-synthetic-case-generation-research`, `gcr-37731ad-eval-guardrails-lifecycle`, `gcr-874b5c-event-sourcing-graphrag` |
+| `route` | must be `ROUTES.md#plan-package-materialization` |
+| `routes_edge_id` | must be `plan-package-materialization` |
+| `lineage_edge_id` | must be `EDGE-066` |
+
+The design intent is worth stating plainly: a human admit is not a boolean somebody flips. Before the
+signature can even be offered, the record must already bind *which* dataset versions, *which* molecular
+commit, *which* four plan-package inputs, *which* route, and *which* lineage edge the promotion would
+cover — and the binding's copies must match the record's own. `prepared_unsigned` is the state where
+everything is pinned and only the human decision is missing.
+
+### Display literals
+
+Sixteen literals must appear on the generated page, including `4/4`, `3/3`, `delta=1.0`,
+`candidate_until_human_admit`, `plan-package-materialization`, `EDGE-066`,
+`failure_trace_sample_count` and `route_distribution`. Because that page is generated, these are
+effectively assertions about the **renderer**: if `render_lifecycle_openwiki.py` stops emitting one of
+them, the gate fails even though the data is intact.
+
+## Changing any of this
+
+```sh
+# edit the JSON under data/lifecycle/, then:
+python3 scripts/render_lifecycle_openwiki.py --write
+python3 scripts/check_lifecycle_datasets.py
+```
+
+Editing the display page directly is never the fix. If a number needs to change, change the dataset and
+regenerate; if the page's shape needs to change, change the renderer.
+
+Ownership rules for every artifact here: [Data authority](../architecture/data-authority.md).
+
+codex
+<results>
+  <result id="Q-06" status="PASS">
+    <missing>None</missing>
+  </result>
+  <result id="Q-07" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+hook: Stop
+hook: Stop Completed
+tokens used
+22,376

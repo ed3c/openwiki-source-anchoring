@@ -298,6 +298,11 @@ gate run 24 times.
 | C fresh, no gate | 35 | 590 | 2 | 41.3% | 100% | 563K / 74 min |
 | **D fresh + gate** | 37 | **1053** | **0** | **100%** | **100%** | **590K / 79 min** |
 
+Every column above except cost is recomputed on each push by `harness/src/audit_arms.ts` against
+[`repo-snapshot/`](repo-snapshot/) and compared to `harness/arms-baseline.json`. Before 2026-08-05
+these were numbers a reader had to take on trust: the target was not in the repository, and the
+CI step that claimed to audit the arms only checked that five directories existed.
+
 **Five percent more cost for the difference between 41% and 100%**, and arm D wrote *more* than
 arm C — 50 pages against 48, 36,730 words against 35,530 — so the scope-narrowing the prior warns
 about did not appear even under gate pressure, which is the condition the prior is about.

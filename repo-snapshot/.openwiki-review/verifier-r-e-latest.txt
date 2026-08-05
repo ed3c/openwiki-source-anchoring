@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-08" status="PARTIAL">
+    <missing>/openwiki/schema-standards.md 仍未逐項列明 checker 實際驗證的 schema、provenance 與 retrieval 欄位，只概述其會驗證重建的 event log 與 graph。</missing>
+  </result>
+  <result id="Q-09" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>

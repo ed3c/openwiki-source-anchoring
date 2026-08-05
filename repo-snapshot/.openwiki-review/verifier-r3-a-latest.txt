@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-01" status="PASS">
+    <missing>None</missing>
+  </result>
+  <result id="Q-02" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/async-lifecycle.md 只說明 dispatch 的 lease 上下界，仍缺少實際 lease 時間值（包括 claim 時間與到期時間）的精確計算方式。</missing>
+  </result>
+</results>

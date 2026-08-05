@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-06" status="PARTIAL">
+    <missing>/openwiki/validation/ablation-and-benchmark.md 與 /openwiki/skill-assets/gemini-interactions.md 缺少 loader probe 的判定條件、artifact path containment，以及 resume 對 argv、arm、case、run、cwd、model receipt 的逐項重驗規則。</missing>
+  </result>
+  <result id="Q-07" status="PARTIAL">
+    <missing>/openwiki/validation/behavioral-eval-and-judge.md 未說明主迴圈僅聚合 deterministic failure 與 judge FAIL，亦未交代 cloud SKIP 對退出碼及 passed/report 語意的影響；/openwiki/operations/entrypoint-matrix.md 未明載 cloud job 的 ENABLE_CLOUD_EVALS == 'true' 條件；/openwiki/structured-lifecycle-data.md 未完整說明 check_lifecycle_datasets.py 對 eval summary、trace privacy、drift distribution、promotion record 與 human_admit_binding 的交叉一致性檢查。</missing>
+  </result>
+</results>

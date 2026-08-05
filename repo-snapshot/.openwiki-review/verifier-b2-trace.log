@@ -1,0 +1,900 @@
+OpenAI Codex v0.146.0
+--------
+workdir: /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-9PRlRR
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fcb54-80cb-7391-b824-a96798369fb7
+--------
+user
+
+You verify whether OpenWiki answers a batch of one to three source-derived engineering questions.
+
+Search only files under /openwiki. Never inspect repository source or files outside /openwiki. Never write or modify files.
+
+On an initial verification, evaluate each supplied question against every supplied acceptance criterion. On a retry where acceptance criteria are intentionally omitted, verify that every prior missing item is now answered by the listed changed pages. Do not weaken, expand, or invent requirements. Keep each result independent even when questions share pages.
+
+Status rules:
+- PASS: every criterion is answered accurately and specifically by /openwiki.
+- PARTIAL: at least one criterion is answered, but material details are missing.
+- FAIL: the wiki cannot provide a useful answer.
+- A documented evidence limit may satisfy a criterion when the wiki explicitly establishes that the source provides no guarantee, behavior, or focused test.
+
+For PARTIAL or FAIL, identify missing facts precisely enough for the parent agent to update the canonical pages and include the relevant wiki page when known. Do not restate answers, criteria, or supporting evidence. For PASS, return only None as the missing value.
+
+Return exactly:
+
+<results>
+  <result id="Q-01" status="PASS | PARTIAL | FAIL">
+    <missing>None | concise missing facts and relevant wiki pages</missing>
+  </result>
+</results>
+
+Example:
+
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/workflows/job-lifecycle.md lacks the retry limit, terminal exhaustion transition, and focused failure test.</missing>
+  </result>
+  <result id="Q-02" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+
+Return only the results block, with one result for every supplied question in the original order.
+
+---
+
+Verify whether the OpenWiki answers the following source-derived questions.
+
+This is the initial verification wave. Evaluate each question against every supplied acceptance
+criterion using only files under the wiki you can see. Return one result per question, in order.
+
+[Q-03]: `.agents/skills/repo-terminal-operator/writer-publication.ts:publishWriterArtifact` 如何藉由 `.agents/skills/repo-terminal-operator/writer-native.ts:openWriterDirectory` 實現 symlink-safe、競爭安全且可復原的不可變發布；若要改動 pending-file 或 hard-link 協定，哪些 crash 與 cleanup 行為不可破壞？
+Acceptance criteria:
+- 追蹤 root／parent descriptor 的 anchored walk、`O_NOFOLLOW`、inode identity 檢查及 bounded lock acquisition。
+- 區分首次 `published`、相同內容的 `matched-existing`、不同內容的 conflict，以及無法取得 lock 時的 bounded busy failure。
+- 解釋 pending file 在 link 前與 link 後中斷時，`recoverPending` 如何分別產生 `pre-link` 與 `post-link` recovery，並清除 residue。
+- 說明 fsync、readback、descriptor cleanup 與 `WriterPublicationFailure.artifactCreated` 如何保存「可能已發布」的診斷。
+- 指出 production journey 對四個 concurrent writers、衝突、兩個注入中斷點、timeout／cancellation 與資源回收的判定。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/writer-native.ts:openWriterDirectory`／`acquireWriterLock` — 建立 anchored directory 與有限重試鎖。
+- `.agents/skills/repo-terminal-operator/writer-publication.ts:recoverPending`／`publishLocked`／`publishWriterArtifact` — 實作 immutable hard-link publication 與 crash recovery。
+- `.agents/skills/repo-terminal-operator/writer-publication-lifecycle.ts:publicationResult` — 聚合主要錯誤與 cleanup 錯誤並保留 artifact-created 狀態。
+- `.agents/skills/repo-terminal-operator/writer-production-race-scenario.ts:writerRaceScenario` — 驗證 concurrent、conflict、pre-link 與 post-link recovery。
+- `.agents/skills/repo-terminal-operator/writer-production-scenarios.ts:writerResourceScenario` — 驗證 subprocess、timer、streams、timeout 與 cancellation cleanup。
+
+[Q-04]: 一個 `terminal-slice-packet` 從 `.agents/skills/repo-terminal-operator/repo-preflight.ts:runPreflightChecks` 進入 `.agents/skills/repo-terminal-operator/small-loop-runner.ts:runSmallLoop` 後，如何被轉成可驗證的 code-quality、production-use 與最終 receipt；新增 gate 或測試階段時必須同步哪些 contract？
+Acceptance criteria:
+- 區分 v1 與 v2 packet 的驗證，並說明 target repo、entrypoint、HEAD、lease、allowed paths、claim set 與 TDD receipt 的 preflight 規則。
+- 說明 task-quality stages 如何依 phase 執行、同 phase 如何收集所有結果、前一 phase 失敗後哪些 stage 會標為 blocked。
+- 解釋為何測試命令 exit code 為零仍須解析出至少一個 Bun test case，以及 subprocess cleanup 欄位如何影響 pass。
+- 說明 `gateReceiptErrors` 如何拒絕 profile command drift、非 typed receipt、不完整 production safety 或錯誤 evidence scope。
+- 描述 `runSmallLoop` 在開始與結束時如何重新檢查 HEAD、收集 changed paths，並形成 failed／blocked／passed 的最終 receipt。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/repo-preflight.ts:runPreflightChecks` — 聚合 packet contract、lease、HEAD、路徑與 evidence preflight。
+- `.agents/skills/repo-terminal-operator/repo-preflight-evidence.ts:claimSetCheck`／`tddReceiptCheck` — 驗證 v2 claim-set hash 與 red/green/minimal-diff receipts。
+- `.agents/skills/repo-terminal-operator/task-quality-runner.ts:executeTaskQuality`／`runPhase`／`runStage` — 實作 phased gates、test-count 與 cleanup 判定。
+- `.agents/skills/repo-terminal-operator/small-loop-gate-contract.ts:gateReceiptErrors` — 驗證 code-quality 與 production-use typed receipts。
+- `.agents/skills/repo-terminal-operator/small-loop-runner.ts:runSmallLoop` — 組合 preflight、gates、HEAD 重驗與最終 receipt。
+
+warning: clamping SessionEnd hook timeout to 3s in <home>/.codex/plugins/cache/openai-codex/codex/1.0.6/hooks/hooks.json
+hook: SessionStart
+hook: SessionStart
+hook: SessionStart Completed
+hook: SessionStart Completed
+hook: PreToolUse
+2026-08-04T05:52:32.968302Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/zsh -lc 'rg --files /openwiki'`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+hook: PreToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-9PRlRR
+ succeeded in 0ms:
+openwiki/validation/static-skill-validators.md
+openwiki/validation/synthetic-corpus-quality.md
+openwiki/validation/ablation-and-benchmark.md
+openwiki/validation/index.md
+openwiki/validation/behavioral-eval-and-judge.md
+openwiki/validation/semantic-arbitration.md
+openwiki/autoresearch-composer-lifecycle.md
+openwiki/terminal-operator/production-profiles-and-handoff.md
+openwiki/terminal-operator/evidence-cost.md
+openwiki/terminal-operator/index.md
+openwiki/terminal-operator/writer-publication.md
+openwiki/terminal-operator/async-lifecycle.md
+openwiki/terminal-operator/overview.md
+openwiki/structured-lifecycle-data.md
+openwiki/governance/molecular-commit-lineage.md
+openwiki/governance/index.md
+openwiki/governance/plan-package-compatibility.md
+openwiki/code-call-lifecycle.md
+openwiki/index.md
+openwiki/architecture/index.md
+openwiki/architecture/data-authority.md
+openwiki/architecture/defense-gate-chain.md
+openwiki/architecture/overview.md
+openwiki/skill-assets/index.md
+openwiki/skill-assets/contract.md
+openwiki/skill-assets/gemini-interactions.md
+openwiki/skill-assets/autoresearch-composer.md
+openwiki/testing/test-map.md
+openwiki/testing/index.md
+openwiki/asset-lifecycle-map.md
+openwiki/README.md
+openwiki/operations/entrypoint-matrix.md
+openwiki/operations/index.md
+openwiki/prompt-trace-assets.md
+openwiki/stateful-workflow.md
+openwiki/quickstart.md
+openwiki/openwiki.yaml
+openwiki/production-bottlenecks.md
+openwiki/usage.md
+openwiki/wiki-graph-sync-architecture.md
+openwiki/schema-standards.md
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg -n -i "openWriterDirectory|anchored|O_NOFOLLOW|inode|lock|pending|recoverPending|pre-link|post-link|artifactCreated|four|4 concurrent|concurrent writers|terminal-slice-packet|runPreflightChecks|claim set|claim-set|TDD|task-quality|blocked|Bun test|gateReceiptErrors|profile command|typed receipt|production safety|evidence scope|runSmallLoop|changed paths|HEAD|lease|allowed paths" openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-9PRlRR
+ succeeded in 0ms:
+openwiki/code-call-lifecycle.md:84:`scripts/llm_judge.py` is the separate double-lock parser used when an external judge response must be
+openwiki/validation/static-skill-validators.md:45:`robust architecture`, `best practice`, `beautiful code`, `please`, `highly recommended`, and the
+openwiki/governance/molecular-commit-lineage.md:37:Beyond presence, four values are checked:
+openwiki/terminal-operator/production-profiles-and-handoff.md:39:- No shared-state read/await/write sequence. Use process isolation, or one explicit bounded lock/lease
+openwiki/terminal-operator/production-profiles-and-handoff.md:71:May add, or idempotently reuse, only the `forgejo` remote. Pushes the exact hash-bound HEAD to
+openwiki/terminal-operator/production-profiles-and-handoff.md:72:`refs/heads/main` **without force and without upstream mutation**, preserves `origin`, and reads the
+openwiki/terminal-operator/production-profiles-and-handoff.md:75:Typed nonzero failure on: stale HEAD, conflicting remote, bootstrap hash drift, cleanup failure, or a
+openwiki/terminal-operator/production-profiles-and-handoff.md:80:Bounded to a `refs/heads/pr/*` target and **create-only**: it validates the ref, proves the remote ref
+openwiki/validation/behavioral-eval-and-judge.md:4:description: The golden-dataset eval harness, its deterministic guardrails, the local heuristic judge, the double-lock verdict parser, and the fact that the cloud judge makes no API call.
+openwiki/validation/behavioral-eval-and-judge.md:9:covers: [golden-dataset-eval, deterministic-guardrails, judge-double-lock]
+openwiki/validation/behavioral-eval-and-judge.md:62:## The double-lock verdict parser
+openwiki/validation/behavioral-eval-and-judge.md:69:2. the first `{…}` block is extracted and parsed with `parse_constant` raising, so `NaN`, `Infinity`
+openwiki/validation/behavioral-eval-and-judge.md:75:Point 4 is the double lock: a high score cannot override a stated breach, and a clean reasoning string
+openwiki/validation/behavioral-eval-and-judge.md:76:cannot override a low score. Anything else exits 2 with `FAIL: double-lock judge rejection`.
+openwiki/validation/index.md:4:- [Behavioral Eval and Judge](behavioral-eval-and-judge.md) - The golden-dataset eval harness, its deterministic guardrails, the local heuristic judge, the double-lock verdict parser, and the fact that the cloud judge makes no API call.
+openwiki/governance/index.md:4:- [Plan Package Compatibility](plan-package-compatibility.md) - PROJECT-SSOT.md as the project contract, plan-package.compat.yaml as its machine-readable surface, the provenance lock, and the gate that enforces the negative half.
+openwiki/validation/synthetic-corpus-quality.md:53:job is to make the corpus's weakness visible on every run, not to block on it. Blocking would create
+openwiki/validation/synthetic-corpus-quality.md:76:5. a quality gate that blocks rather than reports, once 1–4 hold.
+openwiki/terminal-operator/evidence-cost.md:51:This projector never runs a worker or grants admission. Its four-projector race probe belongs to opt-in
+openwiki/terminal-operator/evidence-cost.md:60:Git HEAD, and the exact argv.
+openwiki/terminal-operator/evidence-cost.md:67:Any timeout, cancellation, nonzero exit, stream/registry/sentinel leak, nested hash drift, or HEAD drift
+openwiki/terminal-operator/evidence-cost.md:82:| stage source closure | explicitly `not-selected` — collector HEAD proves its own bundle, not every file the stage may read |
+openwiki/production-bottlenecks.md:24:The headline telemetry — `total_cases_evaluated=117 passed_cases=117 zero_llm_api_calls=0` from
+openwiki/production-bottlenecks.md:64:adapter configuration and Bun test suites that do not exist in this checkout. It is vendored source, not
+openwiki/production-bottlenecks.md:82:## Adversarial review is pending, not absent-therefore-fine
+openwiki/production-bottlenecks.md:85:`pending_adversarial_reviews=3` with `semantic_arbitration_status=candidate_until_human_admit`. The
+openwiki/stateful-workflow.md:49:provenance lock and compatibility guards, and does **not** own plan packets, small-loop routes, or
+openwiki/stateful-workflow.md:58:`native-yield:tdd`, `/autoresearch:evals`, or `/autoresearch:plan`. The native-yield routes are the
+openwiki/stateful-workflow.md:64:Write `skills/<slug>/skills.md` with the four sections (WHY, HOW, WHEN, WHEN NOT) and move deployment
+openwiki/governance/plan-package-compatibility.md:4:description: PROJECT-SSOT.md as the project contract, plan-package.compat.yaml as its machine-readable surface, the provenance lock, and the gate that enforces the negative half.
+openwiki/governance/plan-package-compatibility.md:9:covers: [project-contract, forbidden-paths, provenance-lock]
+openwiki/governance/plan-package-compatibility.md:24:| `.plan-package.lock.yaml` | the provenance lock |
+openwiki/governance/plan-package-compatibility.md:33:> provenance lock, and compatibility guards. **Final repo output must not contain small-loop control
+openwiki/wiki-graph-sync-architecture.md:40:`data/wiki_graph/schema.json::event_schema_version`), `source_path`, `heading_path`, `commit_sha`,
+openwiki/wiki-graph-sync-architecture.md:41:`content_sha256`, `occurred_at`, and a payload with the title, the full heading tree, outbound links,
+openwiki/wiki-graph-sync-architecture.md:42:code-block count, and a license block.
+openwiki/wiki-graph-sync-architecture.md:49:  a clock reading. Do not treat event ordering by timestamp as meaningful.
+openwiki/wiki-graph-sync-architecture.md:69:| nodes | one `WikiDocument` per page; one `WikiSection` per heading |
+openwiki/wiki-graph-sync-architecture.md:71:| chunks | one per heading, text = the joined heading path, tagged with `embedding_model_id` |
+openwiki/wiki-graph-sync-architecture.md:73:The `retrieval` block declares both retrieval modes over the same local artifacts: **Vector RAG**
+openwiki/wiki-graph-sync-architecture.md:76:`source_path`, `heading_path`, `commit_sha`, `schema_version` so a fused result can always be traced
+openwiki/wiki-graph-sync-architecture.md:84:`parse_frontmatter()` in this script is deliberately minimal: it accepts a leading `---` block and
+openwiki/wiki-graph-sync-architecture.md:86:block lists are not parsed. Page front matter that must survive this projection has to be flat
+openwiki/wiki-graph-sync-architecture.md:87:`key: value` pairs. This is why the `title` used for a node falls back to the first heading when the
+openwiki/wiki-graph-sync-architecture.md:115:a wiki page with no license header is the normal case in this repository.
+openwiki/skill-assets/contract.md:25:## `skills.md` — four sections, nothing else
+openwiki/skill-assets/contract.md:27:The router is four labelled sections and is meant to stay dense:
+openwiki/skill-assets/contract.md:38:`skills/autoresearch_composer/skills.md` declines general SDLC planning, TDD fixes, security reviews,
+openwiki/skill-assets/contract.md:92:1. Create `skills/<slug>/skills.md` with the four sections; keep detail in `references/`.
+openwiki/validation/semantic-arbitration.md:30:pending_adversarial_reviews=3
+openwiki/validation/semantic-arbitration.md:37:Three claims, three executed reviews, **three still pending**. The gate exits 0 and prints those numbers
+openwiki/validation/semantic-arbitration.md:38:rather than failing — the same reporting-not-blocking stance as
+openwiki/validation/semantic-arbitration.md:39:[synthetic corpus quality](synthetic-corpus-quality.md). What it will not do is let a pending review
+openwiki/validation/semantic-arbitration.md:50:That last clause is the whole design. The failure mode it blocks is the quiet inference "no adversary
+openwiki/architecture/overview.md:58:The unusual property to internalise: **documentation is load-bearing here.** Four gates read pages under
+openwiki/architecture/overview.md:66:wiki-graph sync entry, the openwiki entry, and the plan compatibility lock.
+openwiki/terminal-operator/index.md:7:- [Writer Publication](writer-publication.md) - publishWriterArtifact — the atomic persistence core shared by nine modules, its FFI locking and crash-recovery mechanism, and its failure taxonomy.
+openwiki/usage.md:57:| `python3 -m pytest -q` | before a release, or after touching `scripts/` broadly; it re-runs every static gate as a subprocess |
+openwiki/usage.md:59:| `python3 scripts/check_plan_package_compat.py` | `PROJECT-SSOT.md`, `plan-package.compat.yaml`, or `.plan-package.lock.yaml` changed |
+openwiki/terminal-operator/async-lifecycle.md:17:Four modules, four different authorities. The distinction that matters most: **`async-worker-carrier.ts`
+openwiki/terminal-operator/async-lifecycle.md:29:    F->>L: start — reopen HEAD, candidate refs, foreground receipt
+openwiki/terminal-operator/async-lifecycle.md:36:    F->>L: admit — reopen HEAD, bytes, receipt, job, result, cleanup, isolation
+openwiki/terminal-operator/async-lifecycle.md:65:enforces lease/fencing/deadline (`minimumAsyncWorkerLeaseMs()`), records the result transaction, and
+openwiki/terminal-operator/async-lifecycle.md:77:`async-admission-facade-cli.ts --request <request.json>` with four verbs:
+openwiki/terminal-operator/async-lifecycle.md:81:| `start` | reopens current Git HEAD, bounded candidate refs, a producer-shared complete `small-loop-run-receipt@v1` assertion, and the complete shared worker-job parser, then atomically seals. **It never launches a worker.** |
+openwiki/terminal-operator/async-lifecycle.md:84:| `admit` | reopens HEAD, candidate bytes, foreground receipt, job, lifecycle result, cleanup, isolation and reviewer bindings, then publishes one immutable ownership receipt |
+openwiki/terminal-operator/async-lifecycle.md:91:Requests are anchored repo-relative artifacts; every CLI failure is a typed nonzero error. The facade
+openwiki/terminal-operator/async-lifecycle.md:98:- **Lease and fencing**: an expired worker is fenced, not trusted; leases have a computed minimum.
+openwiki/terminal-operator/overview.md:9:covers: [terminal-slice-packet, preflight-checks, vendored-boundary]
+openwiki/terminal-operator/overview.md:17:`.agents/skills/repo-terminal-operator/` is ~9.7k lines of Bun TypeScript implementing a **leased
+openwiki/terminal-operator/overview.md:19:it, does it, and returns a typed receipt. It is invoked when `repo-neural-perception` delegates a
+openwiki/terminal-operator/overview.md:20:`terminal-slice-packet@v2` to this repository.
+openwiki/terminal-operator/overview.md:32:schemas, and the Bun test suites `task-quality-contract.ts` references. There is also **no
+openwiki/terminal-operator/overview.md:43:| input | `terminal-slice-packet@v2` (v1 retained only for backward-compatible preflight) |
+openwiki/terminal-operator/overview.md:48:A v2 packet must hash-bind its complete `guided-claim-set@v1`. Commands are run as argv arrays; a packet
+openwiki/terminal-operator/overview.md:59:bun run repo-adapter.ts --preflight <packet>  # lease/HEAD/path gate only
+openwiki/terminal-operator/overview.md:63:`--run` blocks production-use after a code-quality failure, so the two profiles are ordered but not
+openwiki/terminal-operator/overview.md:70:expected Git head, live write lease, allowed paths, and the generated-core bundle. Two exported checks
+openwiki/terminal-operator/overview.md:71:are named directly: `claimSetCheck()` (the v2 hash-bound claim set) and `tddReceiptCheck()` (a failing
+openwiki/terminal-operator/overview.md:74:The operator may modify only `allowed_paths`, only while the expected HEAD and the lease remain valid,
+openwiki/terminal-operator/overview.md:83:`task-quality-contract.ts` is the registration chain for the task profile: four bounded static stages
+openwiki/terminal-operator/overview.md:98:- Return `small-loop-run-receipt@v1` — but **not** admit, merge, release, or rewrite Git history.
+openwiki/asset-lifecycle-map.md:77:double-lock parse used to accept or reject a judge verdict (`verdict == PASS`, `score >= 0.85`, and no
+openwiki/schema-standards.md:37:it identifies the generator, not a moment. `payload` holds the title, the heading tree, outbound links,
+openwiki/schema-standards.md:38:the code-block count, and the license block.
+openwiki/schema-standards.md:43:`nodes`, `edges`, `chunks`, `retrieval` — a projection missing any of the four is invalid even if the
+openwiki/schema-standards.md:49:| `WikiSection` | `section:<source_path>:<index>` | `source_path`, `heading_path`, `level`, `content_sha256` |
+openwiki/terminal-operator/writer-publication.md:4:description: publishWriterArtifact — the atomic persistence core shared by nine modules, its FFI locking and crash-recovery mechanism, and its failure taxonomy.
+openwiki/terminal-operator/writer-publication.md:43:- **Directory-relative syscalls via Bun FFI** — `openat`, `linkat`, `unlinkat`, `flock`. Paths are
+openwiki/terminal-operator/writer-publication.md:46:- **`O_NOFOLLOW`** — a symlink in the target position is an error, not a redirect.
+openwiki/terminal-operator/writer-publication.md:47:- **Root and parent inode identity** — the identity of the directories is verified, not just their
+openwiki/terminal-operator/writer-publication.md:49:- **Pending hard link then `fsync`** — content is written and durably flushed to a pending name, then
+openwiki/terminal-operator/writer-publication.md:54:- **Pre-link and post-link crash recovery** — a crash before the link leaves an orphan pending file that
+openwiki/terminal-operator/writer-publication.md:55:  is reclaimed; a crash after the link leaves a complete artifact plus a stale pending name, which is
+openwiki/terminal-operator/writer-publication.md:71:| precondition | the root, parent or lease was not what the request bound |
+openwiki/skill-assets/autoresearch-composer.md:41:| `unit test`, `failing`, `bug fix` | `native-yield:tdd` | S0 → S1 → S2 → S4 |
+openwiki/skill-assets/autoresearch-composer.md:75:`WHEN NOT`: general SDLC planning, TDD fixes, security reviews, bug diagnosis, design grilling, family
+openwiki/skill-assets/autoresearch-composer.md:76:eval-case authoring. The first four are exactly what the `native-yield:*` routes hand back.
+openwiki/skill-assets/gemini-interactions.md:50:exit_code to equal zero; four timed-out partial outputs are failures.* That is why the normalized delta
+openwiki/skill-assets/gemini-interactions.md:53:`status.json` records four reasons, and only the first is about the number:
+openwiki/skill-assets/gemini-interactions.md:56:2. four of sixty case runs timed out, so runtime metadata was incomplete;
+openwiki/skill-assets/gemini-interactions.md:68:and *do not rerun this plan a fourth time*.
+openwiki/quickstart.md:26:**Documentation here is load-bearing.** Four gates read pages under `openwiki/`,
+openwiki/quickstart.md:73:| `python3 -m pytest -q` | before release, or after broad `scripts/` changes — it runs every static gate independently and reports all failures |
+openwiki/operations/entrypoint-matrix.md:70:| `check_plan_package_compat.py` | `PROJECT-SSOT.md` / `plan-package.compat.yaml` / `.plan-package.lock.yaml` changed | [Plan package compatibility](../governance/plan-package-compatibility.md) |
+openwiki/testing/test-map.md:32:| `test_skill_asset_structure` | ~57 required paths exist — the hooks, all four workflows, the twelve `openwiki/` contract paths, the skill assets, the named scripts, and every `data/` artifact. This is the test that turns a deleted file into a red suite. |
+openwiki/testing/test-map.md:61:`tests/fixtures/real_driver_mock_agent.py` is the stand-in agent, so these run without spending real
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,220p' openwiki/terminal-operator/writer-publication.md
+sed -n '1,180p' openwiki/terminal-operator/overview.md
+sed -n '1,180p' openwiki/terminal-operator/evidence-cost.md
+sed -n '1,180p' openwiki/terminal-operator/production-profiles-and-handoff.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-9PRlRR
+ succeeded in 0ms:
+---
+type: Architecture
+title: Writer Publication
+description: publishWriterArtifact — the atomic persistence core shared by nine modules, its FFI locking and crash-recovery mechanism, and its failure taxonomy.
+tags: [terminal-operator, persistence, atomicity]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [atomic-publish, crash-recovery, shared-persistence]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Writer Publication
+
+`writer-publication.ts` owns `publishWriterArtifact()`, the one function every other module uses to put
+a byte on disk durably. It is the shared persistence core, and a change here affects everything.
+
+## Nine consumers
+
+| Module | Publishes |
+|---|---|
+| `writer-publication.ts` | owner |
+| `writer-entrypoint.ts` | the public writer seam, and the admission-relevant one |
+| `async-worker-carrier.ts` | worker transaction state and results |
+| `async-job-lifecycle.ts` | seals and CAS lifecycle events |
+| `async-admission-facade.ts` | the immutable ownership receipt |
+| `async-control-plane.ts` | projected queue and redrive refs |
+| `async-progress-store.ts` | worker progress |
+| `evidence-cost-cache.ts` | canonical requests and cache entries |
+| `evidence-cost-collector.ts` | request, execution, observation and completion receipts |
+
+The entrypoint and the worker are material boundaries in their own right — the first is the public
+seam, the second publishes results from a subprocess-bearing transaction — and neither is "just another
+async module".
+
+## Why it is not just `writeFile`
+
+Every guarantee below exists because a crashed or racing writer must never leave a half-published
+artifact that a later reader treats as complete.
+
+- **Directory-relative syscalls via Bun FFI** — `openat`, `linkat`, `unlinkat`, `flock`. Paths are
+  resolved once against an open directory handle rather than re-resolved per operation, so a directory
+  swapped underneath the writer cannot redirect the write.
+- **`O_NOFOLLOW`** — a symlink in the target position is an error, not a redirect.
+- **Root and parent inode identity** — the identity of the directories is verified, not just their
+  names, closing the rename-the-directory race.
+- **Pending hard link then `fsync`** — content is written and durably flushed to a pending name, then
+  `linkat` publishes it. Publication is a single atomic link, so a reader sees the final name only when
+  the bytes are already durable.
+- **Publish-readback** — after linking, the artifact is reopened and verified. A publish that cannot be
+  read back is a failure, not a success with a warning.
+- **Pre-link and post-link crash recovery** — a crash before the link leaves an orphan pending file that
+  is reclaimed; a crash after the link leaves a complete artifact plus a stale pending name, which is
+  cleaned without touching the published bytes.
+- **`matched-existing` versus `conflict`** — republishing identical bytes to an existing name is
+  idempotent success; different bytes to the same name is a typed conflict. Idempotent republication is
+  what makes the two-admitter convergence in
+  [async lifecycle](async-lifecycle.md) safe.
+- **Aggregated cleanup failure** — cleanup errors are collected and surfaced as a terminal failure
+  rather than being swallowed. `SKILL.md` states the rule for the whole operator: *"Treat cleanup
+  failures as terminal failures, not log-only warnings."*
+
+## Failure taxonomy
+
+Failures are typed and distinguished, because the recovery differs:
+
+| Class | Meaning |
+|---|---|
+| precondition | the root, parent or lease was not what the request bound |
+| conflict | the name exists with different bytes |
+| integrity | readback did not match what was published |
+| cleanup | the artifact published but cleanup failed — still terminal |
+| system | a syscall failed; the original diagnostic is preserved |
+
+`SKILL.md`: *"No empty catch or default-value fallback after a system failure. Preserve the original
+diagnostic and emit a typed nonzero failure receipt."*
+
+## Probes
+
+The behaviors that only appear under stress have dedicated scenario modules:
+`writer-production-race-scenario.ts`, `writer-production-scenarios.ts`,
+`writer-production-observer.ts`, `writer-production-fixture.ts`, and
+`writer-publication-probe.ts` / `writer-publication-read.ts` /
+`writer-publication-lifecycle.ts` / `writer-publication-contract.ts`. These cover concurrent
+publication, kill-mid-publish, and cleanup-failure paths.
+
+**They cannot run here.** There is no Bun toolchain, no `package.json`, and the contained production
+profile they need lives in an absent upstream tree — see
+[Terminal operator overview](overview.md) and
+[Production profiles and handoff](production-profiles-and-handoff.md).
+
+## If you change this file
+
+Every consumer above inherits the change. The narrowest meaningful check is the writer's own contract
+and probe modules, followed by the production profile that exercises the real carrier — not a unit test
+of a single caller.
+---
+type: Architecture
+title: Terminal Operator Overview
+description: The vendored Bun/TypeScript terminal-slice operator — its packet contract, CLI surface, quality profiles, and the external dependencies that make it unrunnable from this checkout.
+tags: [terminal-operator, vendored, contracts]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [terminal-slice-packet, preflight-checks, vendored-boundary]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Terminal Operator Overview
+
+`.agents/skills/repo-terminal-operator/` is ~9.7k lines of Bun TypeScript implementing a **leased
+terminal-slice implementer**: an agent that is handed one bounded slice of work, verifies it may touch
+it, does it, and returns a typed receipt. It is invoked when `repo-neural-perception` delegates a
+`terminal-slice-packet@v2` to this repository.
+
+## Three tiers of what is actually here
+
+Read this first; it determines what any other statement on these pages can mean.
+
+**Vendored and present** — 50 `.ts` modules, three profiles (`code-quality.profile.json`,
+`production-use.profile.json`, `production-use` variants), `generated-core/manifest.json`, and
+`SKILL.md`.
+
+**Required but absent from this checkout** — `runtime/`, `skills/repo-neural-perception/` (which owns
+the `production-use.md` SSOT and `writer-contained-production-profile.ts`), adapter configuration,
+schemas, and the Bun test suites `task-quality-contract.ts` references. There is also **no
+`package.json`, no `tsconfig.json`, and no local TypeScript test** in this tree.
+
+**Consequence** — this copy cannot be executed or verified standalone. Nothing on these pages is
+evidence produced here; it is contract read from vendored source. External test suites must not be cited
+as evidence available in this repository.
+
+## Contracts
+
+| Direction | Contract |
+|---|---|
+| input | `terminal-slice-packet@v2` (v1 retained only for backward-compatible preflight) |
+| output | `small-loop-run-receipt@v1` |
+| description | `repo-terminal-operator-description@v1` |
+| preflight | `repo-terminal-preflight-receipt@v1` |
+
+A v2 packet must hash-bind its complete `guided-claim-set@v1`. Commands are run as argv arrays; a packet
+is never interpolated into a shell string.
+
+## CLI surface
+
+`repo-adapter.ts` is the entrypoint, resolving `outputRepo` two levels above the module directory and
+`workspaceRoot` two above that:
+
+```sh
+bun run repo-adapter.ts --describe            # profile summary
+bun run repo-adapter.ts --selftest            # same, but fails if either profile has no real command
+bun run repo-adapter.ts --preflight <packet>  # lease/HEAD/path gate only
+bun run repo-adapter.ts --run <packet>        # preflight -> code-quality -> production-use -> receipt
+```
+
+`--run` blocks production-use after a code-quality failure, so the two profiles are ordered but not
+merged. Exit codes: `0` passed, `2` failed, `64` usage.
+
+## Preflight
+
+`repo-preflight.ts` gates before any edit. It verifies the objective, invariants, public contract,
+failure modes, bounded active files, red/green receipts, minimal-diff assertions, target repository,
+expected Git head, live write lease, allowed paths, and the generated-core bundle. Two exported checks
+are named directly: `claimSetCheck()` (the v2 hash-bound claim set) and `tddReceiptCheck()` (a failing
+public-behavior test must exist before implementation).
+
+The operator may modify only `allowed_paths`, only while the expected HEAD and the lease remain valid,
+and must recheck both before publishing a candidate. Scope drift is a structured failure, not a
+negotiation.
+
+## Quality profiles are independent
+
+`code-quality.profile.json` and `production-use.profile.json` run **independently**; neither substitutes
+for the other, and a green test substitutes for neither.
+
+`task-quality-contract.ts` is the registration chain for the task profile: four bounded static stages
+run in a parallel phase — typed ESLint, Prettier check, strict TypeScript, dependency boundaries — and
+the bounded focused behavior suites run **only when every static stage passes**. The contract's
+sharpest rule: *exit code zero without an observed test count is a failure*. A suite that silently
+selected nothing cannot report success.
+
+The task profile deliberately records coverage as `not-selected` rather than claiming a misleading
+aggregate over subprocess-tested modules, and routes coverage/race/leak admission to
+`production-use/writer-entrypoint` instead. See
+[Production profiles and handoff](production-profiles-and-handoff.md).
+
+## What it may never do
+
+From `SKILL.md`, and worth stating because several modules look like they could:
+
+- Return `small-loop-run-receipt@v1` — but **not** admit, merge, release, or rewrite Git history.
+- A preflight PASS emits the next writer-production mode; it **cannot** admit writer safety.
+- The control plane may project queue and redrive refs but must not discover implicit work, execute
+  workers, update `計畫.md`, change Forgejo, or admit a result.
+- The evidence-cost projector never runs a worker or grants admission.
+- The Forgejo seam pushes Git state but cannot create repositories, issues, PRs, or merges.
+
+## Pages
+
+- [Async lifecycle](async-lifecycle.md) — seal, projection, worker, admission, and what really executes.
+- [Writer publication](writer-publication.md) — the atomic persistence core nine modules depend on.
+- [Evidence cost](evidence-cost.md) — cost measurement and the unclosed v1/v2 handoff.
+- [Production profiles and handoff](production-profiles-and-handoff.md) — admission-valid profiles and
+  the Forgejo boundary.
+---
+type: Architecture
+title: Evidence Cost
+description: The cost cache and collector, their hash-bound request flow, the axis semantics that refuse to report a measured zero, and the unclosed v1/v2 handoff between them.
+tags: [terminal-operator, measurement, cost]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [cost-measurement, content-addressed-cache, axis-semantics]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Evidence Cost
+
+Two modules measure what producing a piece of evidence costs. Neither can grant admission, and — as
+shipped — the collector's output cannot be fed back into the cache.
+
+## End-to-end flow
+
+```text
+request  -> canonical content-addressed request (publish, then reopen)
+         -> ready-stage progress
+         -> execution (collector only, under an owned process-group carrier)
+         -> axis-scoped observation receipt
+         -> cache entry
+         -> ledger
+         -> completion receipt
+```
+
+Every arrow publishes through [writer publication](writer-publication.md), and every consumer *reopens*
+what it was handed rather than trusting the value passed in.
+
+## `evidence-cost-cache.ts` — a projector, not a runner
+
+`evidence-cost-cache-cli.ts --request <request.json>` runs only after the referenced receipts exist. The
+request must hash-bind every source input, the cross-cutting plan, the toolchain argv and version, the
+stage evidence, the oracle relation, and a **separate** cost-observation receipt. Cost fields are
+derived from the reopened observation and are never accepted directly from the request — the request
+says which observation, not what it cost.
+
+It publishes a canonical content-addressed request atomically, reopens it, and only then classifies a
+cache hit. A cache entry is reused only after **all** its bindings are reopened.
+
+`materializeStage()` accepts `repo-evidence-cost-observation@v1` with claim boundary
+`external-hash-bound-observation/unadmitted-collector`. Such evidence is treated as **projected**: its
+aggregate axes are named `asserted_*`, and it is routed to the trusted collector node rather than to
+foreground admission.
+
+This projector never runs a worker or grants admission. Its four-projector race probe belongs to opt-in
+production mode, not the foreground edit loop.
+
+## `evidence-cost-collector.ts` — the measuring one
+
+`evidence-cost-collector-cli.ts --request <collector-request.json>` runs **only** with
+`REPO_EVIDENCE_COLLECTOR_PRODUCTION=1`. Before measuring it reopens the plan, the source inputs, the
+typed passing stage evidence, the canonical request, and ready-stage progress; then binds the committed
+collector bundle (`EVIDENCE_COST_COLLECTOR_BUNDLE_REFS`), the resolved executable hash and version, the
+Git HEAD, and the exact argv.
+
+Execution uses an owned Bun process-group carrier. Every Git, runtime and stage subprocess has a hard
+deadline and a cancellation path, and receipt finalization runs in a **separate bounded phase** so a
+cancellation stays diagnosable rather than losing the reason.
+
+It publishes content-addressed request, execution, axis-scoped observation and completion receipts.
+Any timeout, cancellation, nonzero exit, stream/registry/sentinel leak, nested hash drift, or HEAD drift
+**fails closed**. Precondition and system failures are persisted separately by
+`persistEvidenceCostPreconditionFailure()`, so "it never started" is distinguishable from "it started
+and broke".
+
+## Axis semantics: never a measured zero
+
+The v1 collector physically measures wall time and **direct-child CPU only**.
+
+| Axis | Status |
+|---|---|
+| wall time | measured |
+| CPU | measured, direct child only; unavailable CPU is an explicit failure, not zero |
+| I/O | Bun operation counts are **diagnostic** and must not be relabelled as bytes |
+| LLM tokens | `not-selected` until a trusted provider receipt exists |
+| stage source closure | explicitly `not-selected` — collector HEAD proves its own bundle, not every file the stage may read |
+
+Preserving `not-selected` / `not-applicable` instead of writing `0` is the point: a zero is a
+measurement, and claiming one you did not take is the failure mode the whole module is built against.
+
+While I/O bytes or LLM tokens are missing, `admission_eligible` stays **false** and the same collector
+prompt is retained. Nothing this module produces can admit anything.
+
+## The unclosed v1/v2 handoff
+
+The cache accepts observation **`@v1`** with claim boundary
+`external-hash-bound-observation/unadmitted-collector`. The collector emits observation **`@v2`** with
+claim boundary `trusted-direct-process-collector/axis-scoped`.
+
+**They do not compose.** Collector output cannot currently be fed back into the cache projector; the
+schema and the claim boundary both differ. This is a known open seam, not a configuration mistake, and
+any work that assumes a closed loop between the two will not find one.
+
+The heavy collector profile is suitable for a later sealed background worker, but the dispatcher that
+would run it remains disabled — see [Async lifecycle](async-lifecycle.md).
+
+## Evidence boundary
+
+All of the above is read from vendored source; nothing here has been executed in this checkout. See
+[Terminal operator overview](overview.md).
+---
+type: Architecture
+title: Production Profiles and Handoff
+description: Which production journey can actually admit writer safety, why the local one cannot, and the exact boundary of the Forgejo git handoff.
+tags: [terminal-operator, admission, git-handoff]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [admission-profiles, contained-carrier, forgejo-handoff]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Production Profiles and Handoff
+
+## Three journeys, one of which can admit
+
+| Module / profile | Emits | Can admit writer safety? |
+|---|---|---|
+| `production-journey.ts` | legacy receipt | **No — legacy only, must not be used for admission** |
+| `writer-production-journey.ts` (local) | `small-loop-run-receipt` **v1** | **No** — the gate expects v2 |
+| `os-contained-production-profile.ts` | preflight receipt | **No** — preflight PASS cannot admit writer safety |
+| `writer-contained-production-profile.ts` (upstream, via `production-use.profile.json`) | v2 receipt | **Yes** — it invokes the real repo-local `writer-entrypoint.ts` inside the OS-contained carrier |
+
+`SKILL.md` states the rule directly: *"Direct host execution of either journey is invalid for
+admission."* Admission requires the digest-pinned local OS carrier with network disabled and bounded
+PID, CPU and memory resources — not a process started on the host.
+
+The v1/v2 gap is the practical trap: the locally present journey emits v1, and the profile the gate
+consults expects v2 from a script that lives in the absent `skills/repo-neural-perception/` tree. So
+**no admission-valid production evidence can be produced from this checkout**. See
+[Terminal operator overview](overview.md).
+
+## Production-use rules the profile encodes
+
+From `SKILL.md`, these are the properties the production profile exists to check:
+
+- No shared-state read/await/write sequence. Use process isolation, or one explicit bounded lock/lease
+  owner with a fixed acquisition order.
+- No empty catch and no default-value fallback after a system failure; preserve the original diagnostic
+  and emit a typed nonzero receipt.
+- Own and close every subprocess, stream, timer, listener and network handle. Drain streams before
+  awaiting exit; on timeout kill, await termination, and clear the timer in deterministic cleanup.
+- Do not promote process groups, inherited descriptors or preload PID registries into
+  arbitrary-descendant ownership.
+- Give external calls hard deadlines and cancellation signals.
+- `Promise.allSettled` only for explicit partial success, or to await every owned task for complete
+  cleanup — without partial-success semantics, any rejection still fails the batch.
+- Do not add a mutex unless shared mutable state crosses an async or process boundary.
+
+`bounded-subprocess.ts` (`runBoundedProcess()`, `BoundedProcessOptions`, `BoundedProcessResult`) is the
+shared primitive for the subprocess half of those rules.
+
+## Sealed review is not async admission
+
+Production-use is synchronous by default. Expensive review may move behind an immutable seal only
+through the lifecycle in the upstream `async-production-seed.md`, and the current production command
+must never be detached against a mutable checkout.
+
+A sealed-review coordinator receipt is only one internal stage: `degraded`, missing-final,
+mutable-checkout, unfenced and non-atomic receipts are rejected, and a reviewer PASS is **not** async
+admission. The admission verb lives on the facade — see [Async lifecycle](async-lifecycle.md).
+
+## Forgejo git handoff
+
+`forgejo-git-handoff-cli.ts` accepts an **admitted** request and nothing else. Two request types:
+
+### `forgejo-git-handoff-request@v1`
+
+May add, or idempotently reuse, only the `forgejo` remote. Pushes the exact hash-bound HEAD to
+`refs/heads/main` **without force and without upstream mutation**, preserves `origin`, and reads the
+remote hash back. Every Git process is bounded and fully drained.
+
+Typed nonzero failure on: stale HEAD, conflicting remote, bootstrap hash drift, cleanup failure, or a
+readback mismatch. `forgejoPushArgs()` builds the argv; `GitHandoffFailure` is the typed error.
+
+### `forgejo-pr-branch-handoff-request@v1`
+
+Bounded to a `refs/heads/pr/*` target and **create-only**: it validates the ref, proves the remote ref
+is absent before pushing, forbids force and upstream mutation, and reads the exact hash back. An
+existing target ref **fails closed** rather than being updated.
+
+### The boundary
+
+This seam publishes Git state. It does **not** create repositories, issues, pull requests, or merges,
+and does not touch cloud state. Publishing a review branch is not opening a review.
+
+## Evidence boundary
+
+Read from vendored source. No Bun toolchain, no local tests, and the admission-valid profile's script is
+absent from this checkout.
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,220p' openwiki/architecture/defense-gate-chain.md
+rg -n -i \"v1 packet|v2 packet|entrypoint|expected Git|active files|claim|minimal-diff|phase|stage|test count|cleanup|receipt|drift|production-use|changed path|blocked|failed|passed|busy|bounded.*lock|recovery|artifactCreated|artifact created|descriptor|four.*writer|interruption|interrupt|cancellation\" openwiki/terminal-operator openwiki/architecture openwiki/testing" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-9PRlRR
+ succeeded in 0ms:
+---
+type: Architecture
+title: Defense Gate Chain
+description: How scripts/git_gate.py sequences 23 gates, proves it did not mutate the repository, and writes a tamper-evident receipt.
+tags: [gates, runtime]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [gate-orchestration, input-state-hash, gate-receipt]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Defense Gate Chain
+
+`scripts/git_gate.py` is the single orchestrator. `.githooks/pre-push` and
+`.github/workflows/skill_ci.yml` both invoke it and nothing else.
+
+## The 23 gates, in order
+
+`GATES` is a literal list, executed top to bottom:
+
+```text
+validator.py · validate_skills_baseline.py · skill_description_linter.py
+validate_progressive_disclosure.py · validate_goal_constraints.py · validate_commit_message.py
+github_skill_harvester.py · synthetic_case_generator.py · synthetic_case_quality_report.py
+semantic_arbitration_report.py · interactions_patch_assert_runner.py · local_regex_runner.py
+benchmark_runner.py · ablation_engine.py · llm_judge.py
+check_openwiki.py · check_wiki_graph_sync.py · render_lifecycle_openwiki.py
+check_lifecycle_datasets.py · check_autoresearch_lifecycle.py
+validate_molecular_commit_lineage.py · no_op_pruner.py · no_ops_purger.py
+```
+
+Each runs as `subprocess.run([sys.executable, root/gate], cwd=root)`. **Execution stops at the first
+nonzero exit** — later gates simply do not run, so a failure report is a prefix of the chain, not a
+full survey. Reading a failure as "only one thing is wrong" is a mistake; run again after fixing.
+
+Ordering is deliberate: the cheap static asset checks come first, the documentation and evidence gates
+last, so the common failure surfaces fastest.
+
+## Gates must not mutate the repository
+
+`input_state_sha256(root)` walks every file and symlink under the root — excluding `.git`,
+`__pycache__`, `.pytest_cache`, `.DS_Store` and `*.pyc` — and folds relative path, permission bits,
+and either the symlink target or the file bytes into one SHA-256. It runs **before and after** the
+whole chain.
+
+If the two hashes differ, the run exits **125** and prints
+`FAIL: git gate changed receipt-bound repo inputs`, regardless of whether every gate passed. A gate
+that writes a file is itself a defect. This is why `render_lifecycle_openwiki.py` appears in `GATES` in
+its default (compare) mode rather than `--write`: writing is an author action, verifying is a gate
+action.
+
+## The receipt
+
+```sh
+python3 scripts/git_gate.py --receipt /tmp/git-gate-receipt.json
+```
+
+Schema `git-gate-receipt@0.1.0`, containing per-gate `command`, `exit_code`, `elapsed_ms`, full
+`stdout` / `stderr` and their SHA-256 digests, plus `input_state_sha256`,
+`final_input_state_sha256`, `gate_count`, `expected_gate_count`, `repo_root`, and a `status` that is
+`passed` only when the exit code is zero **and** every gate ran **and** the input state was stable.
+A short chain that stopped early can never report `passed`.
+
+Two implementation details are load-bearing:
+
+- **`--receipt` must live outside `--repo-root`.** The parser rejects a path inside it, because writing
+  the receipt into the tree would change the very input-state hash the receipt attests to.
+- **The write is atomic.** `write_receipt()` creates `.{name}.{pid}.tmp` with mode `x` (fails if it
+  exists), chmods it `0600`, then `os.replace()`s it into place, so a concurrent reader never sees a
+  partial receipt.
+
+`GIT_GATE_FIXED_ELAPSED_MS` overrides all timings, which is what makes receipts byte-reproducible in
+tests.
+
+## What a green chain does and does not prove
+
+Proves: the asset contract holds; the deterministic runners reproduce their expected telemetry; the
+required wiki pages exist with their required literals; the lifecycle display matches its generator; no
+gate mutated the tree.
+
+Does not prove: that an agent behaves better with a skill loaded; that a real commit message was
+validated (`validate_commit_message.py` runs argument-less here and exercises only its selftest); or
+that the gates outside this list ran at all. See [Entrypoint matrix](../operations/entrypoint-matrix.md)
+and [Production bottlenecks](../production-bottlenecks.md).
+
+## Validation
+
+```sh
+python3 scripts/git_gate.py
+python3 scripts/git_gate.py --receipt /tmp/receipt.json   # then inspect status and gate_count
+```
+
+Focused test: `tests/test_skill_asset_governance.py::test_static_defense_scripts_pass` runs each gate
+independently, so it reports *every* failing gate rather than stopping at the first.
+openwiki/terminal-operator/production-profiles-and-handoff.md:21:| `production-journey.ts` | legacy receipt | **No — legacy only, must not be used for admission** |
+openwiki/terminal-operator/production-profiles-and-handoff.md:22:| `writer-production-journey.ts` (local) | `small-loop-run-receipt` **v1** | **No** — the gate expects v2 |
+openwiki/terminal-operator/production-profiles-and-handoff.md:23:| `os-contained-production-profile.ts` | preflight receipt | **No** — preflight PASS cannot admit writer safety |
+openwiki/terminal-operator/production-profiles-and-handoff.md:24:| `writer-contained-production-profile.ts` (upstream, via `production-use.profile.json`) | v2 receipt | **Yes** — it invokes the real repo-local `writer-entrypoint.ts` inside the OS-contained carrier |
+openwiki/terminal-operator/production-profiles-and-handoff.md:35:## Production-use rules the profile encodes
+openwiki/terminal-operator/production-profiles-and-handoff.md:39:- No shared-state read/await/write sequence. Use process isolation, or one explicit bounded lock/lease
+openwiki/terminal-operator/production-profiles-and-handoff.md:42:  and emit a typed nonzero receipt.
+openwiki/terminal-operator/production-profiles-and-handoff.md:44:  awaiting exit; on timeout kill, await termination, and clear the timer in deterministic cleanup.
+openwiki/terminal-operator/production-profiles-and-handoff.md:45:- Do not promote process groups, inherited descriptors or preload PID registries into
+openwiki/terminal-operator/production-profiles-and-handoff.md:47:- Give external calls hard deadlines and cancellation signals.
+openwiki/terminal-operator/production-profiles-and-handoff.md:49:  cleanup — without partial-success semantics, any rejection still fails the batch.
+openwiki/terminal-operator/production-profiles-and-handoff.md:57:Production-use is synchronous by default. Expensive review may move behind an immutable seal only
+openwiki/terminal-operator/production-profiles-and-handoff.md:61:A sealed-review coordinator receipt is only one internal stage: `degraded`, missing-final,
+openwiki/terminal-operator/production-profiles-and-handoff.md:62:mutable-checkout, unfenced and non-atomic receipts are rejected, and a reviewer PASS is **not** async
+openwiki/terminal-operator/production-profiles-and-handoff.md:75:Typed nonzero failure on: stale HEAD, conflicting remote, bootstrap hash drift, cleanup failure, or a
+openwiki/architecture/index.md:3:- [Data Authority](data-authority.md) - Which artifact is authoritative for which fact, who may write it, how it is regenerated, and whether a claim is verifiable in this checkout or only a recorded receipt.
+openwiki/architecture/index.md:4:- [Defense Gate Chain](defense-gate-chain.md) - How scripts/git_gate.py sequences 23 gates, proves it did not mutate the repository, and writes a tamper-evident receipt.
+openwiki/terminal-operator/evidence-cost.md:24:         -> ready-stage progress
+openwiki/terminal-operator/evidence-cost.md:26:         -> axis-scoped observation receipt
+openwiki/terminal-operator/evidence-cost.md:29:         -> completion receipt
+openwiki/terminal-operator/evidence-cost.md:33:what it was handed rather than trusting the value passed in.
+openwiki/terminal-operator/evidence-cost.md:37:`evidence-cost-cache-cli.ts --request <request.json>` runs only after the referenced receipts exist. The
+openwiki/terminal-operator/evidence-cost.md:39:stage evidence, the oracle relation, and a **separate** cost-observation receipt. Cost fields are
+openwiki/terminal-operator/evidence-cost.md:46:`materializeStage()` accepts `repo-evidence-cost-observation@v1` with claim boundary
+openwiki/terminal-operator/evidence-cost.md:58:typed passing stage evidence, the canonical request, and ready-stage progress; then binds the committed
+openwiki/terminal-operator/evidence-cost.md:62:Execution uses an owned Bun process-group carrier. Every Git, runtime and stage subprocess has a hard
+openwiki/terminal-operator/evidence-cost.md:63:deadline and a cancellation path, and receipt finalization runs in a **separate bounded phase** so a
+openwiki/terminal-operator/evidence-cost.md:64:cancellation stays diagnosable rather than losing the reason.
+openwiki/terminal-operator/evidence-cost.md:66:It publishes content-addressed request, execution, axis-scoped observation and completion receipts.
+openwiki/terminal-operator/evidence-cost.md:67:Any timeout, cancellation, nonzero exit, stream/registry/sentinel leak, nested hash drift, or HEAD drift
+openwiki/terminal-operator/evidence-cost.md:81:| LLM tokens | `not-selected` until a trusted provider receipt exists |
+openwiki/terminal-operator/evidence-cost.md:82:| stage source closure | explicitly `not-selected` — collector HEAD proves its own bundle, not every file the stage may read |
+openwiki/terminal-operator/evidence-cost.md:85:measurement, and claiming one you did not take is the failure mode the whole module is built against.
+openwiki/terminal-operator/evidence-cost.md:92:The cache accepts observation **`@v1`** with claim boundary
+openwiki/terminal-operator/evidence-cost.md:94:claim boundary `trusted-direct-process-collector/axis-scoped`.
+openwiki/terminal-operator/evidence-cost.md:97:schema and the claim boundary both differ. This is a known open seam, not a configuration mistake, and
+openwiki/testing/test-map.md:34:| `test_p11_synthetic_and_zero_llm_telemetry` | the canary telemetry is exact, not merely green — `synthetic_cases=117`, `typescript=59`, `python=58`, `total_cases_evaluated=117`, `passed_cases=117`, `zero_llm_api_calls=0`, `case_count=10`, `total_trials=50`, `task_count=100`, `delta_high_quality=0.15`, `delta_low_quality=-0.2`. A drifting number fails the suite. |
+openwiki/terminal-operator/index.md:3:- [Async Lifecycle](async-lifecycle.md) - The seal, projection, worker and admission stages of the async production lifecycle — which component actually launches work, and which outputs are advisory rather than admissible.
+openwiki/terminal-operator/index.md:7:- [Writer Publication](writer-publication.md) - publishWriterArtifact — the atomic persistence core shared by nine modules, its FFI locking and crash-recovery mechanism, and its failure taxonomy.
+openwiki/architecture/data-authority.md:4:description: Which artifact is authoritative for which fact, who may write it, how it is regenerated, and whether a claim is verifiable in this checkout or only a recorded receipt.
+openwiki/architecture/data-authority.md:37:| `data/verification_runs/**` | immutable receipt of a completed run | human, only by adding a new dated file | never edited in place |
+openwiki/architecture/data-authority.md:38:| `data/semantic_arbitration_claims.json` | **mutable candidate-claim registry** | human/agent as claim status changes | validated by `semantic_arbitration_report.py` |
+openwiki/architecture/data-authority.md:44:- A **verification run** is a receipt. It records what a completed run measured, is dated in its
+openwiki/architecture/data-authority.md:46:- The **semantic arbitration claims** file is not a receipt. It is a live registry whose entries carry
+openwiki/architecture/data-authority.md:55:Every claim in this wiki falls into one of three tiers. Pages state which one applies.
+openwiki/architecture/data-authority.md:59:| **verifiable in this checkout** | a command here reproduces it | `python3 scripts/eval_autoresearch_composer.py` → `cases=4 passed=4` |
+openwiki/architecture/data-authority.md:60:| **receipt / data claim only** | recorded by a past run; this checkout does not replay it | `A2_FAIL_DO_NOT_PROMOTE` in the real-driver verification run |
+openwiki/architecture/data-authority.md:72:reproduce those claims without being handed the roots. See
+openwiki/terminal-operator/writer-publication.md:4:description: publishWriterArtifact — the atomic persistence core shared by nine modules, its FFI locking and crash-recovery mechanism, and its failure taxonomy.
+openwiki/terminal-operator/writer-publication.md:9:covers: [atomic-publish, crash-recovery, shared-persistence]
+openwiki/terminal-operator/writer-publication.md:25:| `writer-entrypoint.ts` | the public writer seam, and the admission-relevant one |
+openwiki/terminal-operator/writer-publication.md:28:| `async-admission-facade.ts` | the immutable ownership receipt |
+openwiki/terminal-operator/writer-publication.md:32:| `evidence-cost-collector.ts` | request, execution, observation and completion receipts |
+openwiki/terminal-operator/writer-publication.md:34:The entrypoint and the worker are material boundaries in their own right — the first is the public
+openwiki/terminal-operator/writer-publication.md:54:- **Pre-link and post-link crash recovery** — a crash before the link leaves an orphan pending file that
+openwiki/terminal-operator/writer-publication.md:55:  is reclaimed; a crash after the link leaves a complete artifact plus a stale pending name, which is
+openwiki/terminal-operator/writer-publication.md:61:- **Aggregated cleanup failure** — cleanup errors are collected and surfaced as a terminal failure
+openwiki/terminal-operator/writer-publication.md:62:  rather than being swallowed. `SKILL.md` states the rule for the whole operator: *"Treat cleanup
+openwiki/terminal-operator/writer-publication.md:67:Failures are typed and distinguished, because the recovery differs:
+openwiki/terminal-operator/writer-publication.md:74:| cleanup | the artifact published but cleanup failed — still terminal |
+openwiki/terminal-operator/writer-publication.md:75:| system | a syscall failed; the original diagnostic is preserved |
+openwiki/terminal-operator/writer-publication.md:78:diagnostic and emit a typed nonzero failure receipt."*
+openwiki/terminal-operator/writer-publication.md:87:publication, kill-mid-publish, and cleanup-failure paths.
+openwiki/architecture/overview.md:42:   records, commit lineage, and verification receipts. Ownership per artifact in
+openwiki/architecture/overview.md:79:[Production bottlenecks](../production-bottlenecks.md) before treating a green run as a capability claim.
+openwiki/architecture/defense-gate-chain.md:4:description: How scripts/git_gate.py sequences 23 gates, proves it did not mutate the repository, and writes a tamper-evident receipt.
+openwiki/architecture/defense-gate-chain.md:9:covers: [gate-orchestration, input-state-hash, gate-receipt]
+openwiki/architecture/defense-gate-chain.md:50:`FAIL: git gate changed receipt-bound repo inputs`, regardless of whether every gate passed. A gate
+openwiki/architecture/defense-gate-chain.md:55:## The receipt
+openwiki/architecture/defense-gate-chain.md:58:python3 scripts/git_gate.py --receipt /tmp/git-gate-receipt.json
+openwiki/architecture/defense-gate-chain.md:61:Schema `git-gate-receipt@0.1.0`, containing per-gate `command`, `exit_code`, `elapsed_ms`, full
+openwiki/architecture/defense-gate-chain.md:64:`passed` only when the exit code is zero **and** every gate ran **and** the input state was stable.
+openwiki/architecture/defense-gate-chain.md:65:A short chain that stopped early can never report `passed`.
+openwiki/architecture/defense-gate-chain.md:69:- **`--receipt` must live outside `--repo-root`.** The parser rejects a path inside it, because writing
+openwiki/architecture/defense-gate-chain.md:70:  the receipt into the tree would change the very input-state hash the receipt attests to.
+openwiki/architecture/defense-gate-chain.md:71:- **The write is atomic.** `write_receipt()` creates `.{name}.{pid}.tmp` with mode `x` (fails if it
+openwiki/architecture/defense-gate-chain.md:73:  partial receipt.
+openwiki/architecture/defense-gate-chain.md:75:`GIT_GATE_FIXED_ELAPSED_MS` overrides all timings, which is what makes receipts byte-reproducible in
+openwiki/architecture/defense-gate-chain.md:86:that the gates outside this list ran at all. See [Entrypoint matrix](../operations/entrypoint-matrix.md)
+openwiki/architecture/defense-gate-chain.md:93:python3 scripts/git_gate.py --receipt /tmp/receipt.json   # then inspect status and gate_count
+openwiki/terminal-operator/async-lifecycle.md:4:description: The seal, projection, worker and admission stages of the async production lifecycle — which component actually launches work, and which outputs are advisory rather than admissible.
+openwiki/terminal-operator/async-lifecycle.md:29:    F->>L: start — reopen HEAD, candidate refs, foreground receipt
+openwiki/terminal-operator/async-lifecycle.md:30:    L->>L: atomically seal candidate + receipt + job
+openwiki/terminal-operator/async-lifecycle.md:32:    D->>W: claim a sealed job
+openwiki/terminal-operator/async-lifecycle.md:36:    F->>L: admit — reopen HEAD, bytes, receipt, job, result, cleanup, isolation
+openwiki/terminal-operator/async-lifecycle.md:37:    F-->>F: publish one immutable ownership receipt
+openwiki/terminal-operator/async-lifecycle.md:42:The internal state machine. It atomically seals candidate bytes, the foreground receipt and the
+openwiki/terminal-operator/async-lifecycle.md:46:`claimAsyncProductionRun`, `finishAsyncProductionRun`, `cancelAsyncProductionRun`.
+openwiki/terminal-operator/async-lifecycle.md:64:it persists progress (`AsyncWorkerProgress`, `AsyncWorkerProgressSink`), watches for cancellation,
+openwiki/terminal-operator/async-lifecycle.md:81:| `start` | reopens current Git HEAD, bounded candidate refs, a producer-shared complete `small-loop-run-receipt@v1` assertion, and the complete shared worker-job parser, then atomically seals. **It never launches a worker.** |
+openwiki/terminal-operator/async-lifecycle.md:84:| `admit` | reopens HEAD, candidate bytes, foreground receipt, job, lifecycle result, cleanup, isolation and reviewer bindings, then publishes one immutable ownership receipt |
+openwiki/terminal-operator/async-lifecycle.md:99:- **Integrity**: every stage reopens what it was given rather than trusting a passed-in value.
+openwiki/terminal-operator/async-lifecycle.md:101:- **Cleanup**: a cleanup failure is terminal, not a logged warning.
+openwiki/terminal-operator/async-lifecycle.md:107:[Terminal operator overview](overview.md). Persistence for every stage goes through
+openwiki/terminal-operator/overview.md:19:it, does it, and returns a typed receipt. It is invoked when `repo-neural-perception` delegates a
+openwiki/terminal-operator/overview.md:27:`production-use.profile.json`, `production-use` variants), `generated-core/manifest.json`, and
+openwiki/terminal-operator/overview.md:31:the `production-use.md` SSOT and `writer-contained-production-profile.ts`), adapter configuration,
+openwiki/terminal-operator/overview.md:44:| output | `small-loop-run-receipt@v1` |
+openwiki/terminal-operator/overview.md:46:| preflight | `repo-terminal-preflight-receipt@v1` |
+openwiki/terminal-operator/overview.md:48:A v2 packet must hash-bind its complete `guided-claim-set@v1`. Commands are run as argv arrays; a packet
+openwiki/terminal-operator/overview.md:53:`repo-adapter.ts` is the entrypoint, resolving `outputRepo` two levels above the module directory and
+openwiki/terminal-operator/overview.md:60:bun run repo-adapter.ts --run <packet>        # preflight -> code-quality -> production-use -> receipt
+openwiki/terminal-operator/overview.md:63:`--run` blocks production-use after a code-quality failure, so the two profiles are ordered but not
+openwiki/terminal-operator/overview.md:64:merged. Exit codes: `0` passed, `2` failed, `64` usage.
+openwiki/terminal-operator/overview.md:69:failure modes, bounded active files, red/green receipts, minimal-diff assertions, target repository,
+openwiki/terminal-operator/overview.md:70:expected Git head, live write lease, allowed paths, and the generated-core bundle. Two exported checks
+openwiki/terminal-operator/overview.md:71:are named directly: `claimSetCheck()` (the v2 hash-bound claim set) and `tddReceiptCheck()` (a failing
+openwiki/terminal-operator/overview.md:75:and must recheck both before publishing a candidate. Scope drift is a structured failure, not a
+openwiki/terminal-operator/overview.md:80:`code-quality.profile.json` and `production-use.profile.json` run **independently**; neither substitutes
+openwiki/terminal-operator/overview.md:83:`task-quality-contract.ts` is the registration chain for the task profile: four bounded static stages
+openwiki/terminal-operator/overview.md:84:run in a parallel phase — typed ESLint, Prettier check, strict TypeScript, dependency boundaries — and
+openwiki/terminal-operator/overview.md:85:the bounded focused behavior suites run **only when every static stage passes**. The contract's
+openwiki/terminal-operator/overview.md:86:sharpest rule: *exit code zero without an observed test count is a failure*. A suite that silently
+openwiki/terminal-operator/overview.md:89:The task profile deliberately records coverage as `not-selected` rather than claiming a misleading
+openwiki/terminal-operator/overview.md:91:`production-use/writer-entrypoint` instead. See
+openwiki/terminal-operator/overview.md:98:- Return `small-loop-run-receipt@v1` — but **not** admit, merge, release, or rewrite Git history.
+
+codex
+<results>
+  <result id="Q-03" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/writer-publication.md lacks the anchored root/parent descriptor walk, bounded lock retry and busy failure, explicit published and recovery result states, descriptor-cleanup and artifactCreated diagnostics, and the four-writer/conflict/two-interruption production-journey assertions.</missing>
+  </result>
+  <result id="Q-04" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/overview.md lacks the precise v1/v2 preflight distinction and entrypoint rule, complete same-phase result collection and blocked-stage semantics, Bun test-case parsing and subprocess-cleanup pass conditions, gateReceiptErrors rejection rules, and runSmallLoop changed-path plus final failed/blocked/passed receipt construction.</missing>
+  </result>
+</results>
+hook: Stop
+hook: Stop Completed
+tokens used
+40,836

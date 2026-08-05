@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/async-lifecycle.md 缺少 seal hash 的具體固定方式、完整合法狀態轉移、版本 CAS／lease／deadline／fencing token 的拒絕規則，以及 finish、取消競爭、公開結果發布與 recoverCommittedResult 的精確 transaction 順序。</missing>
+  </result>
+  <result id="Q-02" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/async-lifecycle.md 缺少 classify／terminalDisposition 的完整分類矩陣、dispatch／recovery identity 與 expected-version／lease 計算、progress sequence 與 fence 驗證規則、orphan 的精確判定條件及各 activation flag 的明確值。</missing>
+  </result>
+</results>

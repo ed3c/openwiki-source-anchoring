@@ -1,0 +1,516 @@
+OpenAI Codex v0.146.0
+--------
+workdir: /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-w8hYZm
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fcb67-43a5-7073-a6f7-3654e8a7219b
+--------
+user
+
+You verify whether OpenWiki answers a batch of one to three source-derived engineering questions.
+
+Search only files under /openwiki. Never inspect repository source or files outside /openwiki. Never write or modify files.
+
+On an initial verification, evaluate each supplied question against every supplied acceptance criterion. On a retry where acceptance criteria are intentionally omitted, verify that every prior missing item is now answered by the listed changed pages. Do not weaken, expand, or invent requirements. Keep each result independent even when questions share pages.
+
+Status rules:
+- PASS: every criterion is answered accurately and specifically by /openwiki.
+- PARTIAL: at least one criterion is answered, but material details are missing.
+- FAIL: the wiki cannot provide a useful answer.
+- A documented evidence limit may satisfy a criterion when the wiki explicitly establishes that the source provides no guarantee, behavior, or focused test.
+
+For PARTIAL or FAIL, identify missing facts precisely enough for the parent agent to update the canonical pages and include the relevant wiki page when known. Do not restate answers, criteria, or supporting evidence. For PASS, return only None as the missing value.
+
+Return exactly:
+
+<results>
+  <result id="Q-01" status="PASS | PARTIAL | FAIL">
+    <missing>None | concise missing facts and relevant wiki pages</missing>
+  </result>
+</results>
+
+Example:
+
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/workflows/job-lifecycle.md lacks the retry limit, terminal exhaustion transition, and focused failure test.</missing>
+  </result>
+  <result id="Q-02" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+
+Return only the results block, with one result for every supplied question in the original order.
+
+---
+
+Retry verification (round 3). Each question below still returned PARTIAL. Acceptance criteria are
+intentionally omitted: verify only that every prior missing item is now answered by the listed changed
+pages. Do not weaken, expand, or invent requirements. Return one result per question, in order.
+
+[Q-03]: `.agents/skills/repo-terminal-operator/writer-publication.ts:publishWriterArtifact` 如何藉由 `.agents/skills/repo-terminal-operator/writer-native.ts:openWriterDirectory` 實現 symlink-safe、競爭安全且可復原的不可變發布；若要改動 pending-file 或 hard-link 協定，哪些 crash 與 cleanup 行為不可破壞？
+
+Prior missing items:
+- /openwiki/terminal-operator/writer-publication.md lacks an explicit second interruption production-journey assertion: the cancellation probe does not identify its interruption point or the required published-artifact and pending-file cleanup outcome.
+
+Wiki pages changed to resolve it:
+- openwiki/terminal-operator/writer-publication.md
+
+[Q-04]: 一個 `terminal-slice-packet` 從 `.agents/skills/repo-terminal-operator/repo-preflight.ts:runPreflightChecks` 進入 `.agents/skills/repo-terminal-operator/small-loop-runner.ts:runSmallLoop` 後，如何被轉成可驗證的 code-quality、production-use 與最終 receipt；新增 gate 或測試階段時必須同步哪些 contract？
+
+Prior missing items:
+- /openwiki/terminal-operator/overview.md names the entrypoint preflight check but does not state its exact accepted argv/matching rule or whether that rule differs between v1 and v2 packets.
+
+Wiki pages changed to resolve it:
+- openwiki/terminal-operator/overview.md
+
+warning: clamping SessionEnd hook timeout to 3s in <home>/.codex/plugins/cache/openai-codex/codex/1.0.6/hooks/hooks.json
+hook: SessionStart
+hook: SessionStart
+hook: SessionStart Completed
+hook: SessionStart Completed
+hook: PreToolUse
+2026-08-04T06:13:05.081339Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/zsh -lc "sed -n '1,260p' /openwiki/terminal-operator/writer-publication.md && sed -n '1,260p' /openwiki/terminal-operator/overview.md"`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+hook: PreToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,320p' terminal-operator/writer-publication.md && sed -n '1,320p' terminal-operator/overview.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-w8hYZm/openwiki
+ succeeded in 0ms:
+---
+type: Architecture
+title: Writer Publication
+description: publishWriterArtifact — the anchored, symlink-safe, crash-recoverable persistence core nine modules depend on, its exact outcome states, lock budget, recovery classification and failure taxonomy.
+tags: [terminal-operator, persistence, atomicity]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [atomic-publish, crash-recovery, shared-persistence, anchored-descriptors]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Writer Publication
+
+`writer-publication.ts` owns `publishWriterArtifact()`, the one function every other module uses to put
+a byte on disk durably. A change here affects everything.
+
+## Nine consumers
+
+| Module | Publishes |
+|---|---|
+| `writer-publication.ts` | owner |
+| `writer-entrypoint.ts` | the public writer seam, and the admission-relevant one |
+| `async-worker-carrier.ts` | worker transaction state and results |
+| `async-job-lifecycle.ts` | seals and CAS lifecycle events |
+| `async-admission-facade.ts` | the immutable ownership receipt |
+| `async-control-plane.ts` | projected queue and redrive refs |
+| `async-progress-store.ts` | worker progress |
+| `evidence-cost-cache.ts` | canonical requests and cache entries |
+| `evidence-cost-collector.ts` | request, execution, observation and completion receipts |
+
+The entrypoint and the worker are material boundaries in their own right — the first is the public
+seam, the second publishes results from a subprocess-bearing transaction — and neither is "just another
+async module".
+
+## The anchored walk
+
+`writer-native.ts::openWriterDirectory(root, parent)` never resolves a path twice. It:
+
+1. `lstat`s the root and rejects it unless it is a real directory and not a symlink
+   (`writer root must be a real directory`);
+2. opens the root with `O_RDONLY | O_DIRECTORY | O_NOFOLLOW`;
+3. `assertRootOpened()` — `fstat`s the descriptor and compares `dev`/`ino` against the pre-open `lstat`.
+   A mismatch is `writer root changed before open`;
+4. `walk()`s the relative parts from root to parent one component at a time through directory
+   descriptors, collecting every descriptor for deterministic cleanup;
+5. `parentIdentity()` — re-`lstat`s the parent path and `fstat`s the opened descriptor, requiring a real
+   directory, not a symlink, with matching `dev`/`ino`. Otherwise
+   `writer parent changed before anchored open`.
+
+Because every step is descriptor-relative and `O_NOFOLLOW`, swapping a directory for a symlink midway
+cannot redirect the write; it produces an identity mismatch instead.
+
+`publishWriterArtifact()` accepts an optional `expectedParent` (`dev`/`ino`). When supplied and
+mismatched, it closes the directory and throws an `AggregateError` combining
+`[writer] failure_kind=parent-identity-mismatch` with any cleanup errors.
+
+## The lock is bounded, and busy is a distinct outcome
+
+`acquireWriterLock()` tries `flock(descriptor, LOCK_EX|LOCK_NB)` up to **3 times**, waiting
+`attempt * 200 ms` between tries (200 ms, then 400 ms — a **600 ms total wait budget**). Only
+`EWOULDBLOCK` (35 on darwin, 11 elsewhere) is retried; any other errno throws immediately as
+`[writer] failure_kind=lock errno=<n>`. After three attempts it returns `false` rather than throwing.
+
+A caller that failed to lock does not simply fail. `publishWithOwnership()` first checks whether the
+artifact it wanted is *already there and identical*:
+
+- if so, it returns that outcome with `recoveryOutcome: "none"` — a concurrent writer already did the
+  work;
+- otherwise it throws `[writer] failure_kind=busy retry_budget=3 wait_budget_ms=600`, and the budget is
+  in the message so the diagnostic is self-describing.
+
+## Outcome states
+
+`publishLocked()` returns exactly one `writerOutcome`, paired with a `recoveryOutcome`:
+
+| `writerOutcome` | When |
+|---|---|
+| `published` | the pending file was written, linked, fsynced, and read back equal |
+| `matched-existing` | the output already existed with byte-identical content — idempotent success |
+| *(throws)* `conflict` | the output exists with different content |
+
+The conflict path is worth tracing: `link(pending, output)` returning `EEXIST` means someone published
+between the existence check and the link. The code re-checks `existingWriterOutcome()`; if that now
+matches, it returns the match, and if the output has vanished entirely it throws
+`[writer] output disappeared after conflict` rather than retrying blindly.
+
+`recoverPending()` classifies leftover state from an interrupted run by the pending file's link count:
+
+| `recoveryOutcome` | Meaning |
+|---|---|
+| `none` | no pending file (`ENOENT`) |
+| `pre-link` | pending exists with `nlink == 1` — the crash happened after the write and before the link; the content was never published |
+| `post-link` | pending exists with `nlink == 2` — the crash happened after the link; the artifact **is** published and the pending name is residue |
+
+Any other link count is `[writer] failure_kind=unsafe-recovery-pending`. On the `post-link` path the
+output is reopened to confirm it is the same inode before the residue is cleared; a failure there is
+`[writer] failure_kind=recovery-output errno=<n>`.
+
+## Durability and readback
+
+After a successful `link`, the sequence is fixed: mark `state.artifactCreated = true` → `fsync` the
+**directory** descriptor (so the new name is durable, not just the bytes) → `assertStable()` →
+`verifyPublished()`.
+
+`verifyPublished()` reopens the output with `O_NOFOLLOW` and requires a regular file with
+`nlink == 2` (`[writer] failure_kind=unsafe-published-link`) whose contents equal the candidate
+(`[writer] failure_kind=publication-mismatch`). Publication is not believed until it has been read back.
+
+Failure kinds are a closed set and each names its stage: `lock`, `busy`, `link`, `reopen`,
+`unsafe-published-link`, `publication-mismatch`, `recovery-open`, `recovery-output`,
+`unsafe-recovery-pending`, `parent-identity-mismatch`.
+
+## `artifactCreated` — the "possibly published" diagnostic
+
+Cleanup runs unconditionally in a `finally`: if the lock was held, the pending name is unlinked; then
+every descriptor collected during the anchored walk is closed. Cleanup errors are **collected**, not
+swallowed.
+
+`publicationResult()` then decides the outcome:
+
+- failures = `[primary, ...cleanupFailures]` (or just the cleanup failures when the primary succeeded);
+- one failure is rethrown as-is inside a `WriterPublicationFailure`; several become an
+  `AggregateError("writer publication and cleanup failed")`;
+- **every** failure carries `artifactCreated`, so a caller can distinguish *"nothing was written"* from
+  *"the artifact may exist but cleanup failed"*. That single boolean is the difference between safe
+  retry and a state that must be inspected;
+- a missing result with no failure is itself an error (`publication returned no result`) — the function
+  never returns `undefined`.
+
+Note the consequence: **a cleanup failure alone fails the publication**, matching `SKILL.md`'s rule
+*"Treat cleanup failures as terminal failures, not log-only warnings."*
+
+## Injected interruption points
+
+`pauseWriterAt("pending-written")`, `pauseWriterAt("output-linked")` and `failWriterAt("output-linked")`
+are deliberate seams so the two recovery classes above can be exercised on purpose rather than waited
+for. They are what make `pre-link` and `post-link` testable states instead of theory.
+
+## What the production journey asserts
+
+`writer-production-race-scenario.ts::writerRaceScenario()` passes only when all four probes hold:
+
+| Probe | Assertion |
+|---|---|
+| concurrency | `bounded_concurrency: 4` — four process-isolated writers race the same output; `deterministic_outputs` requires all four output hashes to collapse to **one**; `published_count` + `matched_existing_count` account for every run. `shared_mutation_observed: true` and `deterministic_receipts: false` are recorded honestly — the receipts differ by design, only the artifact must not |
+| conflict | the conflicting writer exits **1** with a clean process and `receipt.failure_kind === "conflict"` |
+| rollback | the **`post-link`** interruption — see below |
+| cancellation | the **`pending-written`** interruption — see below |
+
+### The two interruption points are distinct, and each asserts a different outcome
+
+The scenario injects a kill at two different stages and requires the *matching* recovery class, so a
+recovery that silently produced the wrong class fails even though nothing crashed.
+
+| | rollback probe | cancellation probe |
+|---|---|---|
+| `injected_stage` | `post-link` — killed **after** the hard link | `pending-written` — killed **after** the pending file, **before** the link |
+| kill process | clean stage | clean stage **and** `exitCode !== 0` |
+| recovery process | exits `0` | exits `0` |
+| recovery `writer_outcome` | must be **`matched-existing`** — the artifact was already published, so republishing is idempotent | *(not asserted; nothing was published)* |
+| recovery `recovery_outcome` | must be **`post-link`** | must be **`pre-link`** |
+| published artifact | `final_output_preserved` must be true — recovery must **not** disturb the already-published bytes | `final_output_absent_before_recovery` must be true — nothing may have been published |
+| pending-file cleanup | `residue_count === 0` | `residue_count === 0` |
+
+Both probes additionally record `process_reaped`, `stdout_consumed`, `stderr_consumed` (and
+`timer_cleared` for cancellation), plus the recovered `artifact_id`, `run_id`, and — for rollback —
+`output_sha256`, so the preserved bytes are identified rather than merely asserted to exist.
+
+The asymmetry is the point: after `post-link` the correct behavior is *leave the artifact alone and
+clear the residue*; after `pending-written` it is *publish nothing and clear the residue*. A recovery
+that published on the cancellation path, or that rewrote the output on the rollback path, fails.
+
+`writer-production-scenarios.ts::writerResourceScenario()` covers resource ownership across **12**
+lifecycle runs, requiring every run to exit 0 with a clean process, plus two failure probes:
+
+- timeout → `exitCode 124` with `timedOut` set;
+- cancellation → `exitCode 130` with `cancelled` set;
+- and for both, `processReaped && timerCleared && stdoutConsumed && stderrConsumed &&
+  cleanupErrors.length === 0`.
+
+A killed subprocess that leaves an unread stream or an uncleared timer fails the scenario even though
+the write itself succeeded.
+
+## Evidence boundary
+
+All of the above is read from vendored source. **These scenarios cannot run here** — there is no Bun
+toolchain, no `package.json`, and the admission-valid contained profile lives in an absent upstream
+tree. See [Terminal operator overview](overview.md) and
+[Production profiles and handoff](production-profiles-and-handoff.md).
+
+## If you change this file
+
+Every consumer above inherits the change. The narrowest meaningful check is the writer's own contract
+and probe modules, then the production profile that exercises the real carrier — not a unit test of a
+single caller.
+---
+type: Architecture
+title: Terminal Operator Overview
+description: The vendored Bun/TypeScript terminal-slice operator — packet contract and v1/v2 preflight, the phased task-quality gate and its test-count rule, the typed-receipt rejection rules, and the external dependencies that make this copy unrunnable.
+tags: [terminal-operator, vendored, contracts]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [terminal-slice-packet, preflight-checks, phased-quality-gate, vendored-boundary]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Terminal Operator Overview
+
+`.agents/skills/repo-terminal-operator/` is ~9.7k lines of Bun TypeScript implementing a **leased
+terminal-slice implementer**: an agent handed one bounded slice of work, which verifies it may touch it,
+does it, and returns a typed receipt. It is invoked when `repo-neural-perception` delegates a
+`terminal-slice-packet@v2` to this repository.
+
+## Three tiers of what is actually here
+
+Read this first; it bounds what any other statement on these pages can mean.
+
+**Vendored and present** — 50 `.ts` modules, `code-quality.profile.json`,
+`production-use.profile.json`, `evidence-cost-collector.production.profile.json`,
+`generated-core/manifest.json`, and `SKILL.md`.
+
+**Required but absent** — `runtime/` and `skills/repo-neural-perception/` (which own the
+`production-use.md` SSOT, `writer-contained-production-profile.ts`, and the packet validator), adapter
+configuration, schemas, and the Bun test suites `task-quality-contract.ts` references. There is **no
+`package.json`, no `tsconfig.json`, and no local TypeScript test** in this tree.
+
+**Concrete proof, not inference.** `repo-preflight.ts::inputContract()` does:
+
+```ts
+spawnSync("bun", ["run", resolve(workspaceRoot, "runtime/contracts/validate-packet.ts"),
+                  "--schema", schema, "--input", inputPath], { cwd: workspaceRoot })
+```
+
+`runtime/contracts/validate-packet.ts` does not exist in this checkout, so preflight fails at its very
+first check. This copy cannot be executed or verified standalone, and external test suites must not be
+cited as evidence available here.
+
+## Contracts
+
+| Direction | Contract |
+|---|---|
+| input | `terminal-slice-packet@v2`, with `v1` retained for backward-compatible preflight |
+| output | `small-loop-run-receipt@v1` |
+| description | `repo-terminal-operator-description@v1` |
+| preflight | `repo-terminal-preflight-receipt@v1` |
+| code-quality receipt | `repo-terminal-code-quality-receipt@v1` |
+| production receipt | `repo-terminal-writer-production-journey-receipt@**v2**` |
+
+## v1 versus v2, precisely
+
+`inputContract()` selects the schema by exact equality: `schema_version === "terminal-slice-packet@v2"`
+picks v2, and **anything else — including a malformed or absent value — falls back to v1**. The
+fallback is permissive on purpose (v1 packets must still preflight) but it means a typo in the version
+string silently downgrades validation rather than failing.
+
+The packet type carries `guided_claim_ids` always, and these **optionally**:
+
+| Field | Role |
+|---|---|
+| `claim_set: { ref, sha256 }` | v2 only in practice — `claimSetCheck()` verifies the hash binding |
+| `agentic_execution.tdd` | `red_receipt`, `green_receipt`, `tests_immutable_during_green` — verified by `tddReceiptCheck()` |
+| `agentic_execution.minimal_diff` | `allowed_paths_only`, `unrelated_refactors` |
+| `entrypoint` | the argv the slice is allowed to run |
+| `target_repo`, `allowed_paths`, `write_lease{expires_at, expected_head}` | required |
+
+`runPreflightChecks()` composes the result: always the input-contract check, plus a parse check when
+reading the packet raised, plus `packetChecks(...)` — target repo, entrypoint, lease, HEAD, allowed
+paths, generated-core bundle, claim set and TDD receipts. A preflight passes only when **every** check
+is `passed`.
+
+### `entrypoint-reachable`, exactly
+
+`entrypointCheck()` accepts one argv shape and nothing else. The rule is **identical for v1 and v2
+packets** — the schema difference lives in `claim_set` and `agentic_execution`, not here.
+
+| Step | Rule | Failure detail |
+|---|---|---|
+| shape | `entrypoint[0] === "bun"`, `entrypoint[1] === "run"`, and `entrypoint[2]` present and non-empty | `entrypoint must begin with bun run <script>` |
+| containment | `realpath(resolve(target, entrypoint[2]))` must be contained in `realpath(workspaceRoot)` | `entrypoint escapes workspace` |
+| kind | that real path must be a regular file | `entrypoint is not a regular file` |
+| any throw | `realpathSync`/`statSync` errors — typically a non-existent script | the raw error message |
+
+Two consequences. **Only `bun run` is reachable** — no `node`, no bare script, no extra leading flags;
+an argv of `["bun", "run", "--watch", "x.ts"]` fails, because index 2 must already be the script.
+And containment is checked **after** `realpath`, so a symlink pointing outside the workspace is
+rejected rather than followed.
+
+On success the detail is `relative(target, realScript)`, so the receipt records which script the
+entrypoint actually resolved to rather than what the packet claimed.
+
+`allowedPathsCheck()` uses the same containment helper against `outputRepo` and fails with the escaping
+paths joined by commas — an absolute path in `allowed_paths` is always an escape.
+
+## CLI surface
+
+`repo-adapter.ts` resolves `outputRepo` two levels above the module directory and `workspaceRoot` two
+above that:
+
+```sh
+bun run repo-adapter.ts --describe            # profile summary
+bun run repo-adapter.ts --selftest            # same, but fails if either profile has no real command
+bun run repo-adapter.ts --preflight <packet>  # lease/HEAD/path gate only
+bun run repo-adapter.ts --run <packet>        # preflight -> code-quality -> production-use -> receipt
+```
+
+Exit codes: `0` passed, `2` failed, `64` usage.
+
+## The phased task-quality gate
+
+`task-quality-contract.ts` declares the stages; `task-quality-runner.ts::executeTaskQuality()` runs
+them. The orchestration rule is short and strict:
+
+1. Phases are the sorted distinct `phase` values across all stage definitions.
+2. **Before each phase**, if *any* receipt so far is not `passed`, every stage of this phase is pushed
+   as `blocked` — it never runs.
+3. Otherwise the whole phase runs concurrently via `runPhase()`, which uses `Promise.allSettled` and
+   therefore **collects every stage's result**, including the failures. A phase does not abandon its
+   siblings when one stage fails.
+4. A rejected stage runner (not merely a failing command) becomes a receipt with `status: "failed"`,
+   the rejection message in `cleanup_errors`, and `diagnostic: "stage runner rejected"` — distinct
+   from a command that ran and failed.
+
+So `blocked` means "an earlier phase failed", never "this stage failed"; its receipt carries
+`exit_code: null`, all cleanup flags false, and `diagnostic: "blocked by an earlier phase"`.
+
+The aggregate receipt is `passed` only when **every** receipt — including blocked ones — is `passed`,
+and the resource flags (`process_reaped`, `timer_cleared`, `stdout_consumed`, `stderr_consumed`) are
+computed over non-blocked stages only, so a blocked stage cannot dilute them.
+
+`coverage` is fixed at `{ status: "not-selected", next_mode: "production-use/writer-entrypoint" }` —
+the task profile deliberately declines to claim an aggregate coverage number over subprocess-tested
+modules and routes coverage, race and leak admission to the production profile instead.
+
+## A clean exit is not enough for a test stage
+
+`clean(result)` requires **all seven** of: `exitCode === 0`, `!timedOut`, `processReaped`,
+`timerCleared`, `stdoutConsumed`, `stderrConsumed`, and `cleanupErrors.length === 0`.
+
+For a test stage — identified structurally as `command[0] === "bun" && command[1] === "test"` — that is
+still not sufficient. `testCases()` scans combined stdout+stderr for `/(?:^|\n)\s*(\d+) pass\s*(?:\n|$)/`
+and the stage passes only when a count was actually observed:
+
+```ts
+const passed = clean(result) && (!testStage || observedTestCases !== null);
+```
+
+This is `SKILL.md`'s *"exit code zero without an observed test count is a failure"* made mechanical. A
+suite whose filter matched nothing exits 0 and prints no `N pass` line — and is therefore recorded as
+`failed`, not as a vacuous success. The observed count is persisted in the receipt as `test_cases`.
+
+## `gateReceiptErrors` — what a gate receipt must satisfy
+
+`small-loop-gate-contract.ts::gateReceiptErrors(name, result, workspaceRoot)` first requires the
+receipt to parse, to carry the exact expected `schema_version` for its name, and to be `status:
+"passed"` — otherwise the single error `typed receipt must pass <schema>`. Then it branches:
+
+**`code-quality`** (`codeQualityErrors`): the inner receipt must have `exit_code: 0`,
+`timed_out: false`, `cancelled: false`, `process_reaped: true`, `timer_cleared: true`,
+`stdout_consumed: true`, `stderr_consumed: true`, an empty `cleanup_errors` array, and a `command`
+**deeply equal** to `REPO_TERMINAL_CODE_QUALITY_COMMAND`. That last check is the profile-drift guard:
+a receipt produced by a different command cannot be presented as this gate's evidence. Per-field
+failures are reported as `inner <field>` so the diagnostic names the exact mismatch, and
+`taskQualityReceiptErrors()` adds the stage-level checks.
+
+**`production-use`** (`productionErrors`): `verifiedProductionSafety(value, "writer-entrypoint")` must
+sort to exactly `["race-condition", "resource-leak", "silent-failure"]` — all three or
+`production safety evidence incomplete`. It then builds a `ProfileSummary` with `declared: 1`,
+`executed: 1`, the artifact path and SHA-256, the observed `evidence_scope`, and
+`requiredEvidenceScope: "writer-entrypoint"`, and hands it to `validateProductionArtifact()`. A receipt
+whose evidence scope is anything other than `writer-entrypoint` fails here — which is exactly how a
+preflight-only or legacy journey is prevented from admitting writer safety.
+
+## `runSmallLoop` — HEAD is checked twice
+
+```text
+parsePacket -> head() [initial] -> preflight -> executeGates -> head() [actual] -> buildReceipt
+```
+
+- `initialHead !== expected_head` → a `git-head` / `stale` failure.
+- `actualHead !== expected_head` → a **second** `git-head` / `stale` failure, recorded independently.
+
+Reading HEAD before and after is what catches a repository that moved *during* the run: the lease was
+valid when the work started and is not valid now, and the receipt says so rather than publishing a
+candidate against a tree that changed underneath it.
+
+`executeGates(preflightPassed, …)` is passed the preflight verdict, so code-quality and production-use
+do not run at all when preflight failed. Failures accumulate from three sources — preflight failures,
+gate failures, and the two HEAD comparisons — and `buildReceipt()` also records
+`changedPaths(packet.allowed_paths)`, so the receipt states which leased paths actually changed rather
+than asserting the lease was respected.
+
+The resulting `small-loop-run-receipt@v1` therefore distinguishes three outcomes: `passed`, `failed`
+(something ran and failed), and stages recorded as `blocked` (an earlier phase failed, so they never
+ran).
+
+## What it may never do
+
+From `SKILL.md`, worth stating because several modules look like they could:
+
+- Return `small-loop-run-receipt@v1` — but **not** admit, merge, release, or rewrite Git history.
+- A preflight PASS emits the next writer-production mode; it **cannot** admit writer safety.
+- The control plane may project queue and redrive refs but must not discover implicit work, execute
+  workers, update `計畫.md`, change Forgejo, or admit a result.
+- The evidence-cost projector never runs a worker or grants admission.
+- The Forgejo seam pushes Git state but cannot create repositories, issues, PRs, or merges.
+
+## Pages
+
+- [Async lifecycle](async-lifecycle.md) — seal, CAS, lease, fencing, disposition matrix.
+- [Writer publication](writer-publication.md) — the atomic persistence core nine modules depend on.
+- [Evidence cost](evidence-cost.md) — cost measurement and the unclosed v1/v2 handoff.
+- [Production profiles and handoff](production-profiles-and-handoff.md) — which profile can admit, and
+  the Forgejo boundary.
+
+codex
+<results>
+  <result id="Q-03" status="PASS">
+    <missing>None</missing>
+  </result>
+  <result id="Q-04" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+hook: Stop
+hook: Stop Completed
+tokens used
+29,026

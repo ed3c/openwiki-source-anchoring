@@ -1,0 +1,1867 @@
+OpenAI Codex v0.146.0
+--------
+workdir: /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fcb54-9a58-7f51-8c1d-b5c4f2d36589
+--------
+user
+
+You verify whether OpenWiki answers a batch of one to three source-derived engineering questions.
+
+Search only files under /openwiki. Never inspect repository source or files outside /openwiki. Never write or modify files.
+
+On an initial verification, evaluate each supplied question against every supplied acceptance criterion. On a retry where acceptance criteria are intentionally omitted, verify that every prior missing item is now answered by the listed changed pages. Do not weaken, expand, or invent requirements. Keep each result independent even when questions share pages.
+
+Status rules:
+- PASS: every criterion is answered accurately and specifically by /openwiki.
+- PARTIAL: at least one criterion is answered, but material details are missing.
+- FAIL: the wiki cannot provide a useful answer.
+- A documented evidence limit may satisfy a criterion when the wiki explicitly establishes that the source provides no guarantee, behavior, or focused test.
+
+For PARTIAL or FAIL, identify missing facts precisely enough for the parent agent to update the canonical pages and include the relevant wiki page when known. Do not restate answers, criteria, or supporting evidence. For PASS, return only None as the missing value.
+
+Return exactly:
+
+<results>
+  <result id="Q-01" status="PASS | PARTIAL | FAIL">
+    <missing>None | concise missing facts and relevant wiki pages</missing>
+  </result>
+</results>
+
+Example:
+
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/workflows/job-lifecycle.md lacks the retry limit, terminal exhaustion transition, and focused failure test.</missing>
+  </result>
+  <result id="Q-02" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+
+Return only the results block, with one result for every supplied question in the original order.
+
+---
+
+Verify whether the OpenWiki answers the following source-derived questions.
+
+This is the initial verification wave. Evaluate each question against every supplied acceptance
+criterion using only files under the wiki you can see. Return one result per question, in order.
+
+[Q-06]: 在解除 `skills/gemini_interactions/status.json:status` 的 quarantine 前，應如何解讀 deterministic regex gates 與 `.agents` 無關的真實 agent ablation：`scripts/real_driver_ablation.py:main`、`scripts/ablation_engine.py:evaluate`、`scripts/synthetic_case_quality_report.py:analyze_cases` 分別能證明什麼、不能證明什麼？
+Acceptance criteria:
+- 區分 patched/simulated output 的 117-case、local regex、deterministic ablation 與真正執行外部 agent command 的 real-driver 證據邊界。
+- 說明 real-driver 的 loader probe、with/without-skill arms、threshold、非零退出／timeout 強制失敗及 runtime model metadata 完整性。
+- 解釋每次 invocation 的 ephemeral cwd、artifact path containment，以及 resume 時 argv、arm、case、run、cwd 與 model receipt 的重驗規則。
+- 將 quarantine 中記錄的低 delta、timeout、負案例混淆與共享 cwd 污染，對應到目前測試覆蓋的修正行為；不得把 fixture 通過等同於 production promotion。
+- 指出 synthetic quality report 為何即使腳本退出成功仍可回報 `quality_status=insufficient`。
+Source evidence:
+- `scripts/real_driver_ablation.py:invoke`／`load_resumable_run`／`main` — 實作隔離真實執行、resume binding 與最終 verdict。
+- `tests/test_real_driver_ablation.py:RealDriverAblationTest.test_real_driver_runs_both_arms_and_resolves_model_from_runtime_metadata` — 覆蓋雙臂、metadata、resume 與 stale receipt。
+- `tests/test_real_driver_ablation.py:RealDriverAblationTest.test_timed_out_partial_output_cannot_count_as_case_pass` — 證明 timeout 的部分輸出不能誤判通過。
+- `scripts/ablation_engine.py:evaluate`／`scripts/interactions_patch_assert_runner.py:patched_agent` — 顯示 deterministic/synthetic 評估使用模擬輸出。
+- `scripts/synthetic_case_quality_report.py:analyze_cases`／`skills/gemini_interactions/status.json:reasons` — 明確記錄 corpus 品質限制與 quarantine 原因。
+
+[Q-07]: 若要真正啟用 autoresearch cloud judge 或調整 promotion gate，`.github/workflows/autoresearch_eval.yml:jobs`、`scripts/eval_autoresearch_composer.py:cloud_judge` 與 `scripts/check_lifecycle_datasets.py:main` 目前如何互動，哪些設定會只產生 SKIP 卻看似成功？
+Acceptance criteria:
+- 說明 golden case schema、prompt-to-route 模擬、deterministic guardrails 與 local heuristic judge 的 pass/fail 規則。
+- 比較 workflow 以 `ENABLE_CLOUD_EVALS == 'true'` 啟動 job、傳入的 `ENABLE_LLM_JUDGE` 值，以及 `cloud_judge` 僅接受 `"1"` 且仍回傳 placeholder SKIP 的行為。
+- 說明 main loop 為何只把 deterministic failures 或 judge `FAIL` 計為失敗，並評估 cloud `SKIP` 對退出碼與報表語意的影響。
+- 追蹤 PR/nightly dataset versions、eval summary、trace privacy、drift distribution 與 promotion record 的一致性要求，包含 human-admit 綁定。
+- 指出 pytest 分別驗證 PR、nightly 與 local traces 的哪些可觀察輸出，而沒有證明真實 cloud API judge 已執行。
+Source evidence:
+- `.github/workflows/autoresearch_eval.yml:jobs.cloud-judge-disabled-by-default` — 定義 cloud job 條件與環境變數。
+- `scripts/eval_autoresearch_composer.py:cloud_judge`／`main` — 實作 enable 檢查、placeholder SKIP 與 failure 聚合。
+- `scripts/check_lifecycle_datasets.py:main` — 綁定 dataset versions、eval summary、privacy、drift 與 promotion 狀態。
+- `data/lifecycle/promotion_records.json:records[0].human_admit_binding` — 保存 prepared-unsigned 的人工 admission 條件。
+- `tests/test_autoresearch_eval_suite.py:test_pr_golden_dataset_passes_local_judge`／`test_nightly_golden_dataset_passes_local_judge`／`test_local_trace_samples_are_validated` — 證明現有 local-first gates。
+
+warning: clamping SessionEnd hook timeout to 3s in <home>/.codex/plugins/cache/openai-codex/codex/1.0.6/hooks/hooks.json
+hook: SessionStart
+hook: SessionStart
+hook: SessionStart Completed
+hook: SessionStart Completed
+hook: PreToolUse
+2026-08-04T05:52:37.030672Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/zsh -lc 'rg --files /openwiki'`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+hook: PreToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files /openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ exited 2 in 0ms:
+rg: /openwiki: IO error for operation on /openwiki: No such file or directory (os error 2)
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/static-skill-validators.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/index.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/production-profiles-and-handoff.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/evidence-cost.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/index.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/writer-publication.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/async-lifecycle.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/overview.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/molecular-commit-lineage.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/index.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/plan-package-compatibility.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/index.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/index.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/data-authority.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/defense-gate-chain.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/overview.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/index.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/index.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/README.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/index.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/stateful-workflow.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/openwiki.yaml
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/usage.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/wiki-graph-sync-architecture.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/schema-standards.md
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg -n -i "real.driver|ablation|synthetic|quality_status|quarantine|loader probe|resume|ephemeral|artifact|cloud.judge|ENABLE_CLOUD_EVALS|ENABLE_LLM_JUDGE|human.admit|promotion|drift|golden|local judge|trace privacy|autoresearch" /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:3:title: Synthetic Corpus Quality
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:4:description: Why a 117/117 green canary coexists with quality_status=insufficient, and what the quality report measures that the canary cannot.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:5:tags: [synthetic-cases, corpus-quality]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:9:covers: [synthetic-corpus, canary-limits, non-promotion]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:15:# Synthetic Corpus Quality
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:22:`scripts/synthetic_case_generator.py` deterministically produces 117 Interactions-API regex fixtures —
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:23:`synthetic_cases=117 typescript=59 python=58`. `scripts/interactions_patch_assert_runner.py` evaluates
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:30:`scripts/synthetic_case_quality_report.py` re-loads the generator and analyses the corpus it produced,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:40:| `quality_status` | `insufficient` | the verdict |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:51:`synthetic_case_quality_report.py` exits 0 and prints
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:52:`PASS: synthetic case quality perceived quality_status=insufficient …`. It is a **reporting** gate: its
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:60:synthetic_case_quality_status: insufficient
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:61:real_synthetic_generation_gate_required: true
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:65:zero-LLM regex canary truth; real synthetic case quality remains insufficient until a persisted admitted
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:70:`real_synthetic_generation_gate_required: true` names the missing piece. Concretely:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:75:4. a persisted, human-admitted corpus rather than one regenerated from a template each run;
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:84:python3 scripts/synthetic_case_generator.py
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:85:python3 scripts/synthetic_case_quality_report.py
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:4:description: How semantic claims stay candidate until human admit, why a review that did not run is surfaced as a gate rather than inferred as success, and what the agy execution profile is for.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:19:stay **candidate** until a human admits them, and that a missing review is reported, never assumed
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:27:semantic_arbitration_status=candidate_until_human_admit
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:31:terminal_code_artifacts=10  terminal_data_artifacts=12
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:39:[synthetic corpus quality](synthetic-corpus-quality.md). What it will not do is let a pending review
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:46:> Semantic promotion requires claim-level terminal code/data evidence plus judge-loop, external-verify,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:54:`adversarial_review_policy: codex-executed-agy-required-before-promotion` and
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:55:`semantic_arbitration_status: candidate_until_human_admit`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:60:as evidence arrives. See [Data authority](../architecture/data-authority.md). Promotion of a claim
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:63:- claim-level **terminal** code and data artifacts (currently 10 and 12) — the actual files an assertion
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:67:- a human admit.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/index.md:3:- [Ablation and Benchmark](ablation-and-benchmark.md) - The simulated ablation engine, the real-driver ablation that actually calls an agent, and the benchmark matrix — with the boundary between simulated and real evidence stated explicitly.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/index.md:4:- [Behavioral Eval and Judge](behavioral-eval-and-judge.md) - The golden-dataset eval harness, its deterministic guardrails, the local heuristic judge, the double-lock verdict parser, and the fact that the cloud judge makes no API call.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/index.md:5:- [Semantic Arbitration](semantic-arbitration.md) - How semantic claims stay candidate until human admit, why a review that did not run is surfaced as a gate rather than inferred as success, and what the agy execution profile is for.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/index.md:7:- [Synthetic Corpus Quality](synthetic-corpus-quality.md) - Why a 117/117 green canary coexists with quality_status=insufficient, and what the quality report measures that the canary cannot.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:50:| decide whether a skill may be routed | [gemini_interactions](skill-assets/gemini-interactions.md) | `skills/<slug>/status.json`, `data/verification_runs/` | — | none — **no gate reads status.json** | `python3 scripts/real_driver_ablation.py …` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:52:| change the golden dataset or eval logic | [Behavioral eval and judge](validation/behavioral-eval-and-judge.md) | `scripts/eval_autoresearch_composer.py`, `data/autoresearch_golden/` | `deterministic_guardrails()`, `local_llm_as_judge()`, `cloud_judge()` | `tests/test_autoresearch_eval_suite.py` | `python3 -m pytest -q -m evals` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:54:| measure a real behavioral delta | [Ablation and benchmark](validation/ablation-and-benchmark.md) | `scripts/real_driver_ablation.py` | — | `tests/test_real_driver_ablation.py` | `python3 -m pytest -q tests/test_real_driver_ablation.py` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:57:| change lifecycle data | [Data authority](architecture/data-authority.md) | `data/lifecycle/**`, `scripts/render_lifecycle_openwiki.py` | `render()` | `test_autoresearch_eval_and_trace_gates_pass` | `python3 scripts/render_lifecycle_openwiki.py --write && python3 scripts/check_lifecycle_datasets.py` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:61:| touch the vendored operator | [Terminal operator](terminal-operator/overview.md) | `.agents/skills/repo-terminal-operator/` | `publishWriterArtifact()`, `executeAsyncWorker()` | **none here** | not verifiable in this checkout |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:74:| `python3 scripts/real_driver_ablation.py --agent-cmd '… {task}'` | you are about to claim a real behavioral delta; spends real agent calls, needs a preregistered threshold |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:88:2. **`skills/*/status.json` is not enforced.** No gate binds a quarantine decision to its
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:90:3. **`.github/workflows/autoresearch_eval.yml` passes an unusable value.** It sets `ENABLE_LLM_JUDGE`
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:91:   to the string `true`; `scripts/eval_autoresearch_composer.py::cloud_judge()` accepts only `"1"`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:97:5. **Documentation depth is uneven.** `scripts/real_driver_ablation.py` (426 lines),
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:11:  -> data/lifecycle/golden_dataset_versions.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:12:  -> data/lifecycle/eval_runs/autoresearch_composer_2026-07-23.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:13:  -> data/lifecycle/promotion_records.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:14:  -> data/lifecycle/dataset_drift_history.jsonl
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:25:| `autoresearch_composer` | `production-seed-candidate` | `openwiki/autoresearch-composer-lifecycle.md` | `autoresearch-composer-2026-07-23-local` | `implemented-disabled-by-default` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:27:## Golden Dataset Versions
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:31:| `autoresearch-pr-golden@2026-07-23` | `data/autoresearch_golden/pr_golden_set.json` | 4 | pull-request gate |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:32:| `autoresearch-nightly-golden@2026-07-23` | `data/autoresearch_golden/nightly_golden_set.jsonl` | 3 | nightly local holdout |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:36:| run_id | PR | nightly | trace | failure trace | ablation |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:38:| `autoresearch-composer-2026-07-23-local` | `4/4` | `3/3` | 3 | 2 | `delta=1.0`, `verdict=PASS` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:40:## Trace Privacy
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:44:| `data/autoresearch_traces/local_trace_samples.jsonl` | `synthetic-local` | false |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:45:| `data/autoresearch_traces/failure_trace_samples.jsonl` | `synthetic-local-failure` | false |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:47:## Promotion Record
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:51:| `promotion-autoresearch-composer-2026-07-23` | `0006-regression-ci-seed.md` | `plan-package-materialization` | `EDGE-066` | `candidate_until_human_admit` | `required_before_promotion` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:53:## Drift Metrics
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:57:| `autoresearch-pr-golden@2026-07-23` | 4 | 1.0 | 0.96 | 3 | 2 | `autoresearch_evals=1, autoresearch_plan=2, native_yield=1` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:58:| `autoresearch-nightly-golden@2026-07-23` | 3 | 1.0 | 0.96 | 3 | 2 | `autoresearch_evals=1, native_yield=2` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:62:For every new optimized skill, add exactly one registry row, at least one Golden
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:63:Dataset version, one dated eval run, one promotion record, trace privacy entries,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:64:and one drift-history row. Then expose the same IDs in openwiki and make
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/usage.md:42:| `data/autoresearch_golden/**` or the composer asset | `python3 scripts/check_autoresearch_lifecycle.py` | schema, cross-repo case identity, and the A/B ablation hard gate |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/usage.md:58:| `python3 -m pytest -q -m evals` | golden-dataset or trace assets changed |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/usage.md:60:| `python3 scripts/real_driver_ablation.py --agent-cmd '<cmd with {task}>'` | you are about to claim a real behavioral delta; this spends real agent calls and is the only evidence that can support promotion |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:17:`pyproject.toml` sets `testpaths = ["tests"]` and registers three markers: `evals` (local-first golden
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:23:python3 -m pytest -q -m evals   # golden-dataset and judge only
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:32:| `test_skill_asset_structure` | ~57 required paths exist — the hooks, all four workflows, the twelve `openwiki/` contract paths, the skill assets, the named scripts, and every `data/` artifact. This is the test that turns a deleted file into a red suite. |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:34:| `test_p11_synthetic_and_zero_llm_telemetry` | the canary telemetry is exact, not merely green — `synthetic_cases=117`, `typescript=59`, `python=58`, `total_cases_evaluated=117`, `passed_cases=117`, `zero_llm_api_calls=0`, `case_count=10`, `total_trials=50`, `task_count=100`, `delta_high_quality=0.15`, `delta_low_quality=-0.2`. A drifting number fails the suite. |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:35:| `test_autoresearch_eval_and_trace_gates_pass` | the PR golden eval passes with `cloud_judge_enabled=false`, the trace sampler passes, and the lifecycle dataset display matches its generator |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:36:| `test_wiki_graph_sync_gate_passes` | a projection built into a **temporary directory** reproduces cleanly, then the gate passes — proving reproducibility without mutating the checked-in artifacts |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:42:## `tests/test_autoresearch_eval_suite.py`
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:44:Marked `evals`. Exercises the golden-dataset harness — schema validation, deterministic guardrails, and
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:45:the local heuristic judge. This is the suite `.github/workflows/autoresearch_eval.yml` runs with
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:48:## `tests/test_real_driver_ablation.py`
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:56:| a `codex exec` command without `--skip-git-repo-check` is rejected, because each invocation gets an ephemeral cwd | `test_codex_command_requires_skip_git_repo_check_for_ephemeral_cwd` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:57:| a stale `--resume` is rejected with `cwd_kind` in stderr | resume-binding test |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:58:| a nonzero agent exit can never produce a passing ablation (exit 3, `agent_failures > 0`, `verdict FAIL`) | `test_nonzero_agent_exit_can_never_produce_a_passing_ablation` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:61:`tests/fixtures/real_driver_mock_agent.py` is the stand-in agent, so these run without spending real
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/wiki-graph-sync-architecture.md:60:- `.github/workflows/wiki_graph_sync.yml` runs the projection and **uploads it as a build artifact**;
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/wiki-graph-sync-architecture.md:73:The `retrieval` block declares both retrieval modes over the same local artifacts: **Vector RAG**
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/wiki-graph-sync-architecture.md:100:| `commercial_use` | `allowed-local-artifact` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/wiki-graph-sync-architecture.md:111:| `W3.license_unknown` | the five defaults above are applied | track | acceptable default — these artifacts are local project documentation, and the embedding model has no model weights to license |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/wiki-graph-sync-architecture.md:143:python3 scripts/check_wiki_graph_sync.py         # validates schema contract and artifacts
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/schema-standards.md:17:`data/wiki_graph/schema.json` is the single declaration every projection artifact is validated against.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:3:title: Ablation and Benchmark
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:4:description: The simulated ablation engine, the real-driver ablation that actually calls an agent, and the benchmark matrix — with the boundary between simulated and real evidence stated explicitly.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:5:tags: [ablation, benchmark, evidence]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:9:covers: [ablation-delta, real-driver-evidence, benchmark-matrix]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:15:# Ablation and Benchmark
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:19:## `ablation_engine.py` — simulated, deterministic, in the default chain
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:22:below that the run exits 2 with `FAIL: ablation delta too small`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:36:| `skills/autoresearch_composer/cases.json` | `delta=1.0 case_count=12 with_skill=1.0 without_skill=0.0`, `positive_case_count=6`, `negative_case_count=6`, `negative_with_skill_success_rate=1.0` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:38:`scripts/check_autoresearch_lifecycle.py` re-runs the second row and requires all five of those values;
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:42:script, never the real driver.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:44:## `real_driver_ablation.py` — real agent, deliberately outside every automatic trigger
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:48:promotion decision must cite.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:52:`tests/test_real_driver_ablation.py`:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:55:- A `codex exec` command must carry `--skip-git-repo-check`, because each invocation gets an **ephemeral
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:57:- A stale `--resume` is rejected with `cwd_kind` in stderr.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:58:- A nonzero agent exit can never produce a passing ablation: exit 3, `agent_failures > 0`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:65:python3 scripts/real_driver_ablation.py --agent-cmd 'codex exec --skip-git-repo-check {task}' \
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:66:    --runs 3 --threshold 0.2 --artifacts /tmp/ablation --json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:89:| "the case corpus still behaves as specified" | `ablation_engine.py` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:91:| "this skill improves a real agent" | **only** `real_driver_ablation.py`, with a preregistered threshold |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:96:python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:98:python3 -m pytest -q tests/test_real_driver_ablation.py
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/index.md:9:- [Autoresearch-Composer Lifecycle](autoresearch-composer-lifecycle.md) - What the autoresearch_composer asset optimizes, the executed golden-dataset and ablation evidence behind its production gate, and the hardening it still lacks.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/index.md:12:- [Prompt Trace Assets](prompt-trace-assets.md) - The prompt-trace dataset and golden eval, the three prompt slots they record, the actors required for selection, and exactly which parts of the gate are re-verified only with explicit external roots.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:3:title: Autoresearch-Composer Lifecycle
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:4:description: What the autoresearch_composer asset optimizes, the executed golden-dataset and ablation evidence behind its production gate, and the hardening it still lacks.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:5:tags: [autoresearch, evals, promotion]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:9:covers: [golden-dataset-eval, ablation-gate, promotion-readiness]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:15:# Autoresearch-Composer Lifecycle
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:17:`skills/autoresearch_composer/` is the asset this repository has taken furthest through the lifecycle.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:26:`skills/autoresearch_composer/references/state_graph.md` rather than guessed, which is why
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:37:## Golden Standard Example
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:39:A **Golden Dataset cases** file pins expected behavior per case rather than scoring free text.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:40:`data/autoresearch_golden/pr_golden_set.json` is the pull-request set; each case declares
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:42:and `scripts/eval_autoresearch_composer.py::validate_case_schema()` rejects a case missing any of them.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:50:Promotion is gated on evidence, not on the asset reading well.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:52:**A/B ablation is a hard gate.** `scripts/check_autoresearch_lifecycle.py` re-runs
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:53:`scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json --json` and fails unless the
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:60:`cases.json` files to be identical, so the production copy cannot drift from the authored one.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:62:## Executed Autoresearch-Composer Data
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:68:| `python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json` | `cases=4` `passed=4` `mode=local` `cloud_judge_enabled=false` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:69:| `python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/nightly_golden_set.jsonl` | `cases=3 passed=3 mode=local cloud_judge_enabled=false` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:70:| `python3 scripts/sample_autoresearch_traces.py` | `sample_count=3` `observed_state_count=5` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:71:| `python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json` | `delta=1.0` `case_count=12` `success_rate=1.0` `verdict=PASS` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:73:The ablation figure is dataset-specific. The same script on its default
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:77:## Lifecycle Data Artifacts
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:82:| Artifact | Holds |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:85:| `data/lifecycle/golden_dataset_versions.json` | `autoresearch-pr-golden@2026-07-23` (4 cases), `autoresearch-nightly-golden@2026-07-23` (3 cases) |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:86:| `data/lifecycle/eval_runs/autoresearch_composer_2026-07-23.json` | the recorded run summary |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:87:| `data/lifecycle/promotion_records.json` | promotion decisions |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:88:| `data/lifecycle/dataset_drift_history.jsonl` | dataset drift over time |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:90:| `data/autoresearch_traces/{local_trace_samples,failure_trace_samples}.jsonl` | local-first trace samples |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:101:- **No real-driver evidence for this asset.** Every number above comes from a deterministic simulation
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:102:  (`simulate_autoresearch_plan()`, `simulate_agent()`). `scripts/real_driver_ablation.py` — the runner
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:103:  that invokes an actual agent — has never been recorded against `autoresearch_composer`. The one asset
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:104:  that was measured that way failed and is quarantined; see
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:109:  precisely. The branch exists, `--mode cloud` selects it, and `ENABLE_LLM_JUDGE=1` is the switch. When
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:110:  enabled, `cloud_judge()` returns `judge_mode: cloud-placeholder-disabled-in-seed` with verdict `SKIP`
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:112:  provider call. Additionally `.github/workflows/autoresearch_eval.yml` passes the string `true` while
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:120:python3 scripts/check_autoresearch_lifecycle.py
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:121:python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/index.md:3:- [Data Authority](data-authority.md) - Which artifact is authoritative for which fact, who may write it, how it is regenerated, and whether a claim is verifiable in this checkout or only a recorded receipt.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/production-profiles-and-handoff.md:75:Typed nonzero failure on: stale HEAD, conflicting remote, bootstrap hash drift, cleanup failure, or a
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/stateful-workflow.md:20:`autoresearch_composer` asset exists to prevent (`skills/autoresearch_composer/skills.md`).
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/stateful-workflow.md:55:Pick the routing decision before generating anything. For the `autoresearch_composer` asset this is
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/stateful-workflow.md:56:modelled explicitly by `simulate_autoresearch_plan()` in `scripts/eval_autoresearch_composer.py`, which
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/stateful-workflow.md:58:`native-yield:tdd`, `/autoresearch:evals`, or `/autoresearch:plan`. The native-yield routes are the
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/stateful-workflow.md:87:Deterministic guardrails plus a judge. `scripts/eval_autoresearch_composer.py` checks route equality
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/stateful-workflow.md:89:judge. `scripts/ablation_engine.py` measures the with-skill/without-skill delta against
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/stateful-workflow.md:106:Each node answers a different question and produces a different artifact. Matching answers *should this
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/stateful-workflow.md:109:costs: a green static gate coexisting with a failed real-driver ablation and a quarantined asset.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/molecular-commit-lineage.md:55:their machine traceability is compensated instead by two artifacts:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/molecular-commit-lineage.md:57:| Artifact | Contents |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:4:description: The golden-dataset eval harness, its deterministic guardrails, the local heuristic judge, the double-lock verdict parser, and the fact that the cloud judge makes no API call.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:9:covers: [golden-dataset-eval, deterministic-guardrails, judge-double-lock]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:19:`scripts/eval_autoresearch_composer.py` accepts a dataset as a JSON list, a JSON object with a `cases`
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:37:## The local judge is a heuristic
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:45:## The cloud judge makes no API call
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:47:`cloud_judge()` is the `--mode cloud` branch:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:49:- If `ENABLE_LLM_JUDGE != "1"`, it returns `judge_mode: cloud-disabled`, verdict `SKIP`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:54:There is no HTTP request anywhere in that function. The cloud judge is a wired-but-unimplemented seam.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:56:A second, separate fact: `.github/workflows/autoresearch_eval.yml` sets
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:57:`ENABLE_LLM_JUDGE: ${{ vars.ENABLE_CLOUD_EVALS }}`, i.e. the string `true`, while the code compares
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:80:`scripts/sample_autoresearch_traces.py` validates the local-first trace samples and reports
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:81:`sample_count=3 observed_state_count=5 cloud_judge_enabled=false`. Traces stay on the local filesystem;
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:87:python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:88:python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/nightly_golden_set.jsonl
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:33:| `wiki_graph_sync.yml` | push, pull_request, workflow_dispatch | `openwiki/**/*.md`, `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, `scripts/check_wiki_graph_sync.py` | `sync_wiki_to_graph.py --wiki-root openwiki --schema … --event-log … --graph-out … --commit-sha "$GITHUB_SHA"`, then `check_wiki_graph_sync.py` | **uploads** `wiki-graph-local-projection` as an artifact; does **not** commit the regenerated files |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:34:| `autoresearch_eval.yml` | pull_request, workflow_dispatch | `skills/autoresearch_composer/**`, `data/autoresearch_golden/**`, `data/autoresearch_traces/**`, `scripts/eval_autoresearch_composer.py`, `scripts/sample_autoresearch_traces.py`, `tests/test_autoresearch_eval_suite.py` | `eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`, `sample_autoresearch_traces.py`, `pytest -q -m evals` | none |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:35:| `weekly_audit.yml` | cron `0 3 * * 1`, workflow_dispatch | — | `python scripts/ablation_engine.py` | none |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:37:Note what `weekly_audit.yml` does **not** run: `scripts/real_driver_ablation.py`. The weekly audit is
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:50:| `ENABLE_LLM_JUDGE` | `eval_autoresearch_composer.py::cloud_judge()` | the string `"1"` | `autoresearch_eval.yml` passes `vars.ENABLE_CLOUD_EVALS`, i.e. `"true"` — **mismatch, the branch never activates** |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:51:| `OPENAI_API_KEY` | same | required only when `ENABLE_LLM_JUDGE == "1"` | repository secret |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:56:either alone is a no-op. The cloud judge is unreachable from CI even when enabled, and would return a
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:74:| `real_driver_ablation.py` | you are about to claim a real behavioral delta | [Ablation and benchmark](../validation/ablation-and-benchmark.md) |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:92:| golden-dataset and trace assets | `autoresearch_eval.yml`, `pytest -m evals` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:95:| **a real agent's behavior** | nothing automatic — only a manual `real_driver_ablation.py` run |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:20:human-admitted."*
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:30:`p11_current_scope: local-zero-llm-regex-canary` and `synthetic_case_quality_status: insufficient`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:31:`scripts/synthetic_case_quality_report.py` measures why — 117 cases across 10 unique scenarios, 2 unique
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:36:`data/verification_runs/gemini_interactions_real_driver_2026-07-27.json`, `A2_FAIL_DO_NOT_PROMOTE`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:37:which is why `skills/gemini_interactions/status.json` is `quarantined`. See
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:50:- `scripts/check_autoresearch_lifecycle.py` reaches two levels above the repository for
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:51:  `.claude/skills/autoresearch-composer/`, so the gate's cross-check silently reduces in scope when
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:74:  `scripts/sync_wiki_to_graph.py`, or `scripts/real_driver_ablation.py`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:75:- `.github/workflows/weekly_audit.yml` runs only the deterministic `scripts/ablation_engine.py`, never
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:76:  the real-driver ablation.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:77:- `skills/*/status.json` is not read by any gate. Quarantine is a recorded decision, not an enforced
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:85:`pending_adversarial_reviews=3` with `semantic_arbitration_status=candidate_until_human_admit`. The
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/production-bottlenecks.md:100:2. **Depth is uneven.** `scripts/real_driver_ablation.py` (426 lines),
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/openwiki.yaml:12:autoresearch_lifecycle_page: openwiki/autoresearch-composer-lifecycle.md
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/openwiki.yaml:18:prompt_trace_golden_eval: data/prompt_trace/golden_prompt_trace_eval.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/data-authority.md:4:description: Which artifact is authoritative for which fact, who may write it, how it is regenerated, and whether a claim is verifiable in this checkout or only a recorded receipt.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/data-authority.md:31:| `skills/*/status.json` | the human promotion decision | human | none — and no gate reads it |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/data-authority.md:39:| `data/prompt_trace/**` | trace dataset + golden eval | human/agent | governed by `data/lifecycle/trace_privacy_classification.json` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/data-authority.md:48:  `semantic_arbitration_status=candidate_until_human_admit` precisely because entries can still change.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/data-authority.md:59:| **verifiable in this checkout** | a command here reproduces it | `python3 scripts/eval_autoresearch_composer.py` → `cases=4 passed=4` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/data-authority.md:60:| **receipt / data claim only** | recorded by a past run; this checkout does not replay it | `A2_FAIL_DO_NOT_PROMOTE` in the real-driver verification run |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/overview.md:36:   promotion decision. Two slugs today: `gemini_interactions` (quarantined) and `autoresearch_composer`
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/overview.md:41:3. **Structured evidence** — `data/`, holding lifecycle registries, golden datasets, traces, prompt-trace
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/overview.md:42:   records, commit lineage, and verification receipts. Ownership per artifact in
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/overview.md:77:default chain measures agent behavior. The only component that does — `scripts/real_driver_ablation.py`
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:4:description: The prompt-trace dataset and golden eval, the three prompt slots they record, the actors required for selection, and exactly which parts of the gate are re-verified only with explicit external roots.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:17:This repository records *which prompt produced which artifact*. The record is machine-readable and
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:20:## Artifacts
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:26:- `data/prompt_trace/golden_prompt_trace_eval.json` — the golden evaluation the dataset is scored
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:52:`skills/autoresearch_composer/skills.md` states as *"Actor routing follows judge-loop-chooser:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:75:    E --> F["intent-to-artifact.yaml"]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:84:`next_route_node: human-admit-readiness`, and
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:85:`next_conditional_edge: production-equivalence-improved -> human-admit-surface`. The next loop it asks
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:88:a human admit, not an automatic promotion.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:114:Cloud upload and model training use require a later human-admit record. `model_training_use` is
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:115:`local_or_private_finetune_candidate_after_human_admit`, i.e. eligibility is a decision that has not
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:116:been made, not a default. No trace is shipped to a cloud judge in any case — the cloud path in
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:117:`scripts/eval_autoresearch_composer.py` performs no API call at all, as documented in
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:124:| dataset and golden eval parse, all three slots present, all five actors present | **verifiable in this checkout** — `python3 scripts/check_prompt_trace_assets.py` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md:125:| frozen input files, external terminal artifacts, and commit subjects match | **requires explicit external input** — only re-checked when `--workspace-root` and/or `--commit-repo` are passed, and each must be an absolute existing directory (`--workspace-root` must contain `loop_wiki/evolve-unknown-discovery-plan-truth`; `--commit-repo` must contain `.git`) |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/defense-gate-chain.md:27:github_skill_harvester.py · synthetic_case_generator.py · synthetic_case_quality_report.py
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/defense-gate-chain.md:29:benchmark_runner.py · ablation_engine.py · llm_judge.py
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/defense-gate-chain.md:31:check_lifecycle_datasets.py · check_autoresearch_lifecycle.py
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/async-lifecycle.md:91:Requests are anchored repo-relative artifacts; every CLI failure is a typed nonzero error. The facade
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/plan-package-compatibility.md:58:synthetic_case_quality_status: insufficient
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/plan-package-compatibility.md:59:real_synthetic_generation_gate_required: true
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/plan-package-compatibility.md:60:semantic_arbitration_status: candidate_until_human_admit
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/plan-package-compatibility.md:61:autoresearch_cloud_judge_policy: implemented_disabled_by_default
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/plan-package-compatibility.md:62:adversarial_review_policy: codex-executed-agy-required-before-promotion
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/plan-package-compatibility.md:65:Each of those maps to a page: [synthetic corpus quality](../validation/synthetic-corpus-quality.md),
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/plan-package-compatibility.md:69:`autoresearch_cloud_judge_policy: implemented_disabled_by_default` deserves a caveat: the code path and
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/governance/plan-package-compatibility.md:70:environment contract exist, but `cloud_judge()` makes no API call at all, and the workflow passes a
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/evidence-cost.md:67:Any timeout, cancellation, nonzero exit, stream/registry/sentinel leak, nested hash drift, or HEAD drift
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/README.md:56:- **[gemini_interactions](skill-assets/gemini-interactions.md)** — quarantined asset; read this before
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/README.md:58:- **[autoresearch_composer](skill-assets/autoresearch-composer.md)** — the state-graph asset and its
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/README.md:60:- **[autoresearch-composer-lifecycle.md](autoresearch-composer-lifecycle.md)** — its executed golden
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/README.md:61:  dataset and ablation evidence, and the hardening it still lacks.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/README.md:62:- **[Validation](validation/)** — static validators, behavioral eval and judge, ablation and benchmark,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/README.md:63:  synthetic corpus quality, semantic arbitration.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/README.md:72:- **[Data authority](architecture/data-authority.md)** — who owns which artifact and how each is
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:56:  projection as an artifact. It does not commit the projection.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:57:- `.github/workflows/autoresearch_eval.yml` — runs
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:58:  `scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:59:  `scripts/sample_autoresearch_traces.py`, and `pytest -m evals`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:60:- `.github/workflows/weekly_audit.yml` — Monday cron, runs only `scripts/ablation_engine.py`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:63:`scripts/check_prompt_trace_assets.py`, and `scripts/real_driver_ablation.py`. They are invoked
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:66:## Autoresearch-Composer Eval Call Graph
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:69:data/autoresearch_golden/pr_golden_set.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:70:  -> eval_autoresearch_composer.py::load_cases()
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:72:  -> simulate_autoresearch_plan()      # route + states + text
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:78:`local_llm_as_judge()` is the default judge. `cloud_judge()` is the alternative branch and returns
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:80:activates only when `ENABLE_LLM_JUDGE` equals the string `"1"`, while
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:81:`.github/workflows/autoresearch_eval.yml` passes the string `true` — so the workflow's cloud job would
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:94:| `python3 scripts/eval_autoresearch_composer.py` | `pr_golden_set.json: cases=4 passed=4`, `mode=local`, `cloud_judge_enabled=false` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:95:| `python3 scripts/sample_autoresearch_traces.py` | `sample_count=3 observed_state_count=5` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:96:| `python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json` | `delta=1.0 verdict=PASS`, `case_count=12`, `success_rate=1.0` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:97:| `python3 scripts/ablation_engine.py` (default gemini cases) | `delta=0.50 case_count=10 success_rate=1.0 verdict=PASS` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:98:| `python3 scripts/synthetic_case_generator.py` | `synthetic_cases=117 typescript=59 python=58` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:104:The two ablation rows are the same script on different datasets. Quoting `delta=1.0` without naming
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:105:`skills/autoresearch_composer/cases.json` misreports the default behavior.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/index.md:3:- [autoresearch_composer](autoresearch-composer.md) - The state-graph asset — the five routes it selects between, how domain-term recovery works, and where its evidence lives.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/index.md:5:- [gemini_interactions (quarantined)](gemini-interactions.md) - The quarantined Gemini Interactions asset — why a failing real-driver receipt is authoritative over a green 117/117 canary, what the current driver fixed, and what must be re-verified before promotion.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/index.md:7:- [Writer Publication](writer-publication.md) - publishWriterArtifact — the atomic persistence core shared by nine modules, its FFI locking and crash-recovery mechanism, and its failure taxonomy.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:3:title: autoresearch_composer
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:15:# autoresearch_composer
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:18:is on [Autoresearch-composer lifecycle](../autoresearch-composer-lifecycle.md); this page covers what
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:23:From `skills/autoresearch_composer/skills.md`: plan bounded, metric-driven autoresearch loops *"without
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:33:`scripts/eval_autoresearch_composer.py::simulate_autoresearch_plan()` is the executable model of the
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:42:| `golden dataset`, `llm-as-a-judge`, `trace`, `evals`, `eval suite` | `/autoresearch:evals` | S0 → S1 → S2 → S3 → S4 |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:43:| anything else | `/autoresearch:plan` | S0 → S1 → S2 → S3 → S4 |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:46:not compose an autoresearch loop". They skip S3 (generate) entirely, which is the structural expression
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:55:`skills/autoresearch_composer/references/state_graph.md` rather than inventing it. The reference is
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:56:required by `scripts/check_autoresearch_lifecycle.py` to contain `S1 match`, `S3 generate`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:57:`S4 validate`, `conditional_edge.S4.ablation_not_positive`, `domain_terms`, and the actor-routing
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:80:`scripts/check_autoresearch_lifecycle.py` compares this asset against an upstream source skill two
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:81:directories above the repository (`.claude/skills/autoresearch-composer/`) and fails if the two
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:82:`cases.json` files differ. The production copy cannot drift from the authored one — but the check
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:89:python3 scripts/check_autoresearch_lifecycle.py
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:90:python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:91:python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/writer-publication.md:4:description: publishWriterArtifact — the atomic persistence core shared by nine modules, its FFI locking and crash-recovery mechanism, and its failure taxonomy.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/writer-publication.md:17:`writer-publication.ts` owns `publishWriterArtifact()`, the one function every other module uses to put
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/writer-publication.md:41:artifact that a later reader treats as complete.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/writer-publication.md:52:- **Publish-readback** — after linking, the artifact is reopened and verified. A publish that cannot be
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/writer-publication.md:55:  is reclaimed; a crash after the link leaves a complete artifact plus a stale pending name, which is
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/writer-publication.md:74:| cleanup | the artifact published but cleanup failed — still terminal |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:9:covers: [skill-asset-lifecycle, defense-gates, promotion-policy]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:27:    P --> W["Weekly Ablation Audit and Retirement"]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:40:What this phase proves: nothing about behavior. It only produces the artifact the later phases judge.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:60:`wiki_graph_sync.yml`, `autoresearch_eval.yml`, and `weekly_audit.yml`. Their exact argv, path filters,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:70:a green gate. `gemini_interactions` is currently `status: quarantined`, `production_routable: false`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:71:on the authority of a failing real-driver receipt — see
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:75:Behavioral judgement in this phase is local-first: `scripts/eval_autoresearch_composer.py` applies
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:78:`breach detected` in the reasoning). The cloud judge path exists but performs no API call; see
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:81:## Weekly Ablation Audit & Retirement
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:83:`.github/workflows/weekly_audit.yml` runs `scripts/ablation_engine.py` on a Monday 03:00 UTC cron. The
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:86:yields `delta=0.50`, while `--cases skills/autoresearch_composer/cases.json` yields
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:90:rather than repair. The real-driver counterpart (`scripts/real_driver_ablation.py`) runs an actual
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:92:recorded run is the failure that quarantined `gemini_interactions`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:94:What this phase proves: a deterministic simulated delta. Only `real_driver_ablation.py` produces
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/asset-lifecycle-map.md:95:evidence about a real agent, and that evidence is what promotion decisions must cite.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:21:  status.json        promotion decision (gemini_interactions only, today)
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:38:`skills/autoresearch_composer/skills.md` declines general SDLC planning, TDD fixes, security reviews,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:70:check stops template inflation — the exact failure `scripts/synthetic_case_quality_report.py` measures
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:72:[Synthetic corpus quality](../validation/synthetic-corpus-quality.md).
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:74:`expected_checks` entries are regexes, and `scripts/ablation_engine.py::regex_pass()` gives one prefix
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:81:## `status.json` — the promotion decision
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:83:`skill-promotion-status@0.1.0`, carrying `status`, `production_routable`, `decision_date`, a
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:96:4. Measure a delta: `python3 scripts/ablation_engine.py --cases skills/<slug>/cases.json`. The
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:97:   simulator in `ablation_engine.py::simulate_agent()` branches per `skill_slug`, so a new slug needs a
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:99:5. A real behavioral claim requires `scripts/real_driver_ablation.py`, not the simulator. See
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/contract.md:100:   [Ablation and benchmark](../validation/ablation-and-benchmark.md).
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/overview.md:75:and must recheck both before publishing a candidate. Scope drift is a structured failure, not a
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:3:title: gemini_interactions (quarantined)
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:4:description: The quarantined Gemini Interactions asset — why a failing real-driver receipt is authoritative over a green 117/117 canary, what the current driver fixed, and what must be re-verified before promotion.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:5:tags: [skill-assets, quarantine, promotion]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:9:covers: [quarantine-decision, real-driver-ablation, canary-limits]
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:15:# gemini_interactions — quarantined
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:17:> `skills/gemini_interactions/status.json` — `status: quarantined`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:21:117/117; neither of those is why it is quarantined, and neither overrides the decision.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:30:## Why it is quarantined
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:33:`data/verification_runs/gemini_interactions_real_driver_2026-07-27.json`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:34:`real-driver-ablation-verification-run@0.1.0`, `status: fail`, `decision: A2_FAIL_DO_NOT_PROMOTE`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:66:`next_action` is explicit: repair the case corpus in a new bounded plan, use the driver's ephemeral
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:67:per-invocation cwd with `codex --skip-git-repo-check`, then run a **newly preregistered** ablation —
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:72:`scripts/synthetic_case_generator.py` produces 117 fixtures (typescript=59, python=58);
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:75:`scripts/ablation_engine.py` on the default gemini cases reports `delta=0.50`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:79:`p11_current_scope: local-zero-llm-regex-canary` and `synthetic_case_quality_status: insufficient`. See
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:80:[Synthetic corpus quality](../validation/synthetic-corpus-quality.md).
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:86:`scripts/real_driver_ablation.py` has since been hardened against the exact defects the receipt names.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:87:Each invariant below is proven by a test in `tests/test_real_driver_ablation.py`:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:92:| ephemeral cwd needs the codex flag | a `codex exec` command lacking `--skip-git-repo-check` exits 2 | `test_codex_command_requires_skip_git_repo_check_for_ephemeral_cwd` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:93:| per-invocation ephemeral cwd | each invocation runs in its own directory, so agent side effects cannot leak between samples | the same test's premise |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:94:| stale resume is rejected | `--resume` against a mismatched session exits 2 with `cwd_kind` in stderr | resume-binding test |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:95:| a nonzero agent exit can never pass | exit 3, `telemetry.agent_failures > 0`, `verdict FAIL` | `test_nonzero_agent_exit_can_never_produce_a_passing_ablation` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:102:## The quarantine is documented, not enforced
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:108:## Before promotion, all of this must change and be re-verified
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:113:3. Run `scripts/real_driver_ablation.py` with the ephemeral per-invocation cwd and
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:126:python3 -m pytest -q tests/test_real_driver_ablation.py
+
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,260p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+---
+type: Reference
+title: Behavioral Eval and Judge
+description: The golden-dataset eval harness, its deterministic guardrails, the local heuristic judge, the double-lock verdict parser, and the fact that the cloud judge makes no API call.
+tags: [evals, judge]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [golden-dataset-eval, deterministic-guardrails, judge-double-lock]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Behavioral Eval and Judge
+
+## The harness
+
+`scripts/eval_autoresearch_composer.py` accepts a dataset as a JSON list, a JSON object with a `cases`
+key, or JSONL — `--dataset` selects the file, `--mode local|cloud` the judge.
+
+Every case must carry all of `REQUIRED_CASE_FIELDS`: `id`, `prompt`, `expected_route`, `must_include`,
+`must_not_include`, `judge_rubric`, `trace_tags`, `risk_level`. `must_include`, `must_not_include` and
+`trace_tags` must be `list[str]`. A malformed case is an error, not a skipped case.
+
+## Guardrails run before any judge
+
+`deterministic_guardrails()` returns a failure list built from three checks:
+
+1. the produced route equals `expected_route`;
+2. every `must_include` literal appears in the produced text;
+3. no `must_not_include` literal appears.
+
+Only then does a judge see the result. This ordering is the design: a judge cannot rescue a wrong route
+or a forbidden literal. The judge's job is to grade what survived, not to arbitrate correctness.
+
+## The local judge is a heuristic
+
+`local_llm_as_judge()` assigns `0.96` when the guardrail list is empty, and
+`max(0.0, 0.82 - 0.05 × failures)` otherwise; the verdict is `PASS` when the score is at least `0.85`
+**and** there were zero guardrail failures. In other words it is a deterministic restatement of the
+guardrail result with a number attached — it adds no independent signal. Treat its score as a label,
+not as evidence.
+
+## The cloud judge makes no API call
+
+`cloud_judge()` is the `--mode cloud` branch:
+
+- If `ENABLE_LLM_JUDGE != "1"`, it returns `judge_mode: cloud-disabled`, verdict `SKIP`.
+- If it is `"1"` but `OPENAI_API_KEY` is unset, it raises — the key is required *only* on that path.
+- If both are set, it returns `judge_mode: cloud-placeholder-disabled-in-seed`, verdict `SKIP`,
+  reasoning *"cloud/API call path is intentionally not activated in the local-first seed"*.
+
+There is no HTTP request anywhere in that function. The cloud judge is a wired-but-unimplemented seam.
+
+A second, separate fact: `.github/workflows/autoresearch_eval.yml` sets
+`ENABLE_LLM_JUDGE: ${{ vars.ENABLE_CLOUD_EVALS }}`, i.e. the string `true`, while the code compares
+against `"1"`. Even if a maintainer enabled the repository variable, the branch would take the
+`cloud-disabled` path. Both facts matter: the seam is unimplemented **and** the workflow would not reach
+it.
+
+## The double-lock verdict parser
+
+`scripts/llm_judge.py` is the component that would accept an *external* judge's answer, and it is
+deliberately hostile to malformed input:
+
+1. the response is wrapped in `<judge_output>…</judge_output>` before parsing — an XML shield, so a
+   bare payload cannot smuggle structure;
+2. the first `{…}` block is extracted and parsed with `parse_constant` raising, so `NaN`, `Infinity`
+   and `-Infinity` are rejected rather than silently accepted;
+3. the score must be finite;
+4. the verdict is accepted only when `verdict == PASS` **and** `score >= 0.85` **and** the reasoning
+   contains no `breach detected`.
+
+Point 4 is the double lock: a high score cannot override a stated breach, and a clean reasoning string
+cannot override a low score. Anything else exits 2 with `FAIL: double-lock judge rejection`.
+
+## Trace sampling
+
+`scripts/sample_autoresearch_traces.py` validates the local-first trace samples and reports
+`sample_count=3 observed_state_count=5 cloud_judge_enabled=false`. Traces stay on the local filesystem;
+their privacy classification is on [Prompt trace assets](../prompt-trace-assets.md).
+
+## Validation
+
+```sh
+python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json
+python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/nightly_golden_set.jsonl
+python3 scripts/llm_judge.py --response '{"verdict":"PASS","score":0.91,"reasoning":"clean"}'
+python3 -m pytest -q -m evals
+```
+
+exec
+/bin/zsh -lc "sed -n '1,260p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+---
+type: Reference
+title: Ablation and Benchmark
+description: The simulated ablation engine, the real-driver ablation that actually calls an agent, and the benchmark matrix — with the boundary between simulated and real evidence stated explicitly.
+tags: [ablation, benchmark, evidence]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [ablation-delta, real-driver-evidence, benchmark-matrix]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Ablation and Benchmark
+
+Three measurement tools with very different evidential weight. Confusing them is the main hazard.
+
+## `ablation_engine.py` — simulated, deterministic, in the default chain
+
+Runs the same cases with and without skill context and compares success rates. `TARGET_DELTA = 0.05`;
+below that the run exits 2 with `FAIL: ablation delta too small`.
+
+Its "agent" is `simulate_agent()`, a hand-written branch table keyed on `skill_slug` and prompt
+substrings. **No model is called.** A new skill slug without a branch there will not be simulated
+meaningfully.
+
+`regex_pass()` evaluates `expected_checks` as regexes with one special prefix: a check beginning
+`FORBID:` inverts, failing the case when the pattern *is* present.
+
+The delta is dataset-dependent, and quoting it without the dataset is a misreport:
+
+| Dataset | Telemetry |
+|---|---|
+| `skills/gemini_interactions/cases.json` (default) | `delta=0.50 case_count=10 success_rate=1.0 verdict=PASS` |
+| `skills/autoresearch_composer/cases.json` | `delta=1.0 case_count=12 with_skill=1.0 without_skill=0.0`, `positive_case_count=6`, `negative_case_count=6`, `negative_with_skill_success_rate=1.0` |
+
+`scripts/check_autoresearch_lifecycle.py` re-runs the second row and requires all five of those values;
+the negative-arm requirement is what stops an always-firing asset from scoring well on positives alone.
+
+Trigger: `.github/workflows/weekly_audit.yml`, Monday 03:00 UTC cron — and it runs **only** this
+script, never the real driver.
+
+## `real_driver_ablation.py` — real agent, deliberately outside every automatic trigger
+
+This is the only tool in the repository that produces evidence about an actual agent, and it is in no
+`GATES` list and no workflow. It is invoked by hand, spends real agent calls, and its output is what a
+promotion decision must cite.
+
+Its hardening is a direct response to a failed run (see
+[gemini_interactions](../skill-assets/gemini-interactions.md)), and each invariant has a test in
+`tests/test_real_driver_ablation.py`:
+
+- `--agent-cmd` must contain the `{task}` placeholder, else exit 2.
+- A `codex exec` command must carry `--skip-git-repo-check`, because each invocation gets an **ephemeral
+  per-invocation cwd** — the fix for cross-sample contamination.
+- A stale `--resume` is rejected with `cwd_kind` in stderr.
+- A nonzero agent exit can never produce a passing ablation: exit 3, `agent_failures > 0`,
+  `verdict FAIL`.
+- A timeout is recorded as a case failure rather than crashing the batch.
+- Partial output is rejected, not given partial credit.
+- A loader nonce and a runtime session model receipt bind the run to the model that actually served it.
+
+```sh
+python3 scripts/real_driver_ablation.py --agent-cmd 'codex exec --skip-git-repo-check {task}' \
+    --runs 3 --threshold 0.2 --artifacts /tmp/ablation --json
+```
+
+Preregister the threshold before running. The recorded failure exists because a 0.20 threshold was
+preregistered and a 0.10 delta was measured — that only means something because the order was fixed in
+advance.
+
+## `benchmark_runner.py` — a fixed matrix, not a measurement
+
+Reports `task_count=100 delta_high_quality=0.15 delta_low_quality=-0.2`. It is a deterministic matrix
+describing the expected shape of a quality delta (a good asset helps, a bad asset hurts), not an
+observation of this repository's assets. Useful as a regression tripwire on the scoring code; useless as
+evidence about a skill.
+
+## `github_skill_harvester.py`
+
+Reports `skill_count` and `suspected_ai` from local files with no network access. Inventory, not
+evaluation.
+
+## Which one to cite
+
+| Claim you want to make | Tool that can support it |
+|---|---|
+| "the case corpus still behaves as specified" | `ablation_engine.py` |
+| "the scoring code did not regress" | `benchmark_runner.py` |
+| "this skill improves a real agent" | **only** `real_driver_ablation.py`, with a preregistered threshold |
+
+## Validation
+
+```sh
+python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json
+python3 scripts/benchmark_runner.py
+python3 -m pytest -q tests/test_real_driver_ablation.py
+```
+
+exec
+/bin/zsh -lc "sed -n '1,260p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+---
+type: Reference
+title: Synthetic Corpus Quality
+description: Why a 117/117 green canary coexists with quality_status=insufficient, and what the quality report measures that the canary cannot.
+tags: [synthetic-cases, corpus-quality]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [synthetic-corpus, canary-limits, non-promotion]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Synthetic Corpus Quality
+
+This repository holds a 117-case corpus that passes 117/117 and simultaneously declares itself
+insufficient. Both statements are true and neither is a bug.
+
+## The corpus
+
+`scripts/synthetic_case_generator.py` deterministically produces 117 Interactions-API regex fixtures —
+`synthetic_cases=117 typescript=59 python=58`. `scripts/interactions_patch_assert_runner.py` evaluates
+them: `total_cases_evaluated=117 passed_cases=117 success_rate=1.0 zero_llm_api_calls=0`.
+
+`zero_llm_api_calls=0` is the honest label, not a boast: the canary is a pure regex exercise.
+
+## What the quality report measures
+
+`scripts/synthetic_case_quality_report.py` re-loads the generator and analyses the corpus it produced,
+reporting:
+
+| Metric | Value | What it says |
+|---|---|---|
+| `case_count` | 117 | size |
+| `unique_scenarios` | 10 | the corpus expresses 10 distinct situations |
+| `unique_expected_check_sets` | 2 | only two distinct assertions across all 117 cases |
+| `negative_cases` | 0 | **nothing tests non-activation** |
+| `max_template_similarity_ratio` | 0.9969 | two prompts are 99.7% identical after normalization |
+| `quality_status` | `insufficient` | the verdict |
+
+`max_template_similarity_ratio` is computed with the same `SequenceMatcher` the case validator uses to
+reject near-duplicates above 0.85 — see [Skill asset contract](../skill-assets/contract.md). At 0.9969
+this corpus is far past that line. It is not 117 cases; it is roughly 10 cases with 117 spellings.
+
+`negative_cases: 0` is the more consequential number. A corpus with no negatives cannot distinguish an
+asset that fires correctly from an asset that fires always.
+
+## Why the gate passes anyway
+
+`synthetic_case_quality_report.py` exits 0 and prints
+`PASS: synthetic case quality perceived quality_status=insufficient …`. It is a **reporting** gate: its
+job is to make the corpus's weakness visible on every run, not to block on it. Blocking would create
+pressure to inflate the number; reporting keeps the honest label attached to it.
+
+The same label is carried in the machine-readable contract, twice:
+
+```yaml
+p11_current_scope: local-zero-llm-regex-canary
+synthetic_case_quality_status: insufficient
+real_synthetic_generation_gate_required: true
+```
+
+`PROJECT-SSOT.md` states the consequence in prose: *"The current P11 117/117 result is scoped to local
+zero-LLM regex canary truth; real synthetic case quality remains insufficient until a persisted admitted
+corpus and quality gates exist."*
+
+## What would make it sufficient
+
+`real_synthetic_generation_gate_required: true` names the missing piece. Concretely:
+
+1. negative cases, so non-activation is measurable at all;
+2. more than two distinct `expected_checks` sets, so the corpus tests more than one assertion;
+3. template similarity brought under the 0.85 line the hand-written corpora already respect;
+4. a persisted, human-admitted corpus rather than one regenerated from a template each run;
+5. a quality gate that blocks rather than reports, once 1–4 hold.
+
+Until then, `interactions_patch_assert_runner.py` proves the generator and the matcher agree with each
+other, and nothing about the skill. See [Production bottlenecks](../production-bottlenecks.md).
+
+## Validation
+
+```sh
+python3 scripts/synthetic_case_generator.py
+python3 scripts/synthetic_case_quality_report.py
+python3 scripts/interactions_patch_assert_runner.py
+```
+
+exec
+/bin/zsh -lc "sed -n '1,260p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+---
+type: Reference
+title: gemini_interactions (quarantined)
+description: The quarantined Gemini Interactions asset — why a failing real-driver receipt is authoritative over a green 117/117 canary, what the current driver fixed, and what must be re-verified before promotion.
+tags: [skill-assets, quarantine, promotion]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [quarantine-decision, real-driver-ablation, canary-limits]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# gemini_interactions — quarantined
+
+> `skills/gemini_interactions/status.json` — `status: quarantined`,
+> `production_routable: false`, decided `2026-07-27`.
+
+Read this before routing the asset anywhere. Its static gates are green and its regex canary is
+117/117; neither of those is why it is quarantined, and neither overrides the decision.
+
+## The asset
+
+`skills/gemini_interactions/skills.md` routes Gemini Interactions API work: generate or audit code when
+the task asks for that API, prefer current Interactions method names, and load
+`references/deploy_guide.md` only for deployment detail. It declines Angular components, Vue components,
+static data extraction, and unrelated cloud deployment.
+
+## Why it is quarantined
+
+The authority is a **failing receipt**:
+`data/verification_runs/gemini_interactions_real_driver_2026-07-27.json`,
+`real-driver-ablation-verification-run@0.1.0`, `status: fail`, `decision: A2_FAIL_DO_NOT_PROMOTE`,
+model `gpt-5.6-sol`.
+
+| Measurement | Value |
+|---|---|
+| cases × runs per arm | 10 × 3 → 60 total case runs |
+| preregistered threshold | `0.2` |
+| raw summary delta | `0.1333` |
+| **normalized delta** | **`0.10`** |
+| normalized with-skill success rate | `0.5` |
+| normalized without-skill success rate | `0.4` |
+| agent failures | `4` (exit code 124, timeouts) |
+| metadata complete | `false` |
+| arm totals | with_skill 15/30 (2 timeouts), without_skill 12/30 (2 timeouts) |
+
+The normalization rule is stated in the receipt: *a case pass requires regex checks to pass and agent
+exit_code to equal zero; four timed-out partial outputs are failures.* That is why the normalized delta
+(0.10) is lower than the raw one (0.1333) — partial output is not scored as partial credit.
+
+`status.json` records four reasons, and only the first is about the number:
+
+1. normalized delta 0.10 below the preregistered 0.20 threshold;
+2. four of sixty case runs timed out, so runtime metadata was incomplete;
+3. negative cases forbid their own requested domain words, which confounds correct non-activation with
+   refusal to perform the user's task — a **case-corpus defect**, not an asset defect;
+4. the completed run shared a repository cwd across samples, so agent-created files were visible to
+   later cases and sample independence was contaminated.
+
+Reason 3 is the diagnostic worth carrying forward: the measurement could not distinguish "the skill
+correctly did not fire" from "the agent refused the task". Reason 4 says the samples were not
+independent, so even the number that was produced is not trustworthy.
+
+`next_action` is explicit: repair the case corpus in a new bounded plan, use the driver's ephemeral
+per-invocation cwd with `codex --skip-git-repo-check`, then run a **newly preregistered** ablation —
+and *do not rerun this plan a fourth time*.
+
+## Why the green canary does not override it
+
+`scripts/synthetic_case_generator.py` produces 117 fixtures (typescript=59, python=58);
+`scripts/interactions_patch_assert_runner.py` reports `total_cases_evaluated=117 passed_cases=117
+zero_llm_api_calls=0`; `scripts/local_regex_runner.py` reports `case_count=10 total_trials=50`;
+`scripts/ablation_engine.py` on the default gemini cases reports `delta=0.50`.
+
+Every one of those is a **simulation or a regex match**, with zero model calls by construction. The
+repository's own compatibility manifest labels the scope honestly:
+`p11_current_scope: local-zero-llm-regex-canary` and `synthetic_case_quality_status: insufficient`. See
+[Synthetic corpus quality](../validation/synthetic-corpus-quality.md).
+
+One real-agent measurement exists, and it failed.
+
+## What the current driver fixed
+
+`scripts/real_driver_ablation.py` has since been hardened against the exact defects the receipt names.
+Each invariant below is proven by a test in `tests/test_real_driver_ablation.py`:
+
+| Invariant | Behavior | Proven by |
+|---|---|---|
+| the agent command must be templated | `--agent-cmd` without `{task}` exits 2 | `test_agent_command_must_contain_task_placeholder` |
+| ephemeral cwd needs the codex flag | a `codex exec` command lacking `--skip-git-repo-check` exits 2 | `test_codex_command_requires_skip_git_repo_check_for_ephemeral_cwd` |
+| per-invocation ephemeral cwd | each invocation runs in its own directory, so agent side effects cannot leak between samples | the same test's premise |
+| stale resume is rejected | `--resume` against a mismatched session exits 2 with `cwd_kind` in stderr | resume-binding test |
+| a nonzero agent exit can never pass | exit 3, `telemetry.agent_failures > 0`, `verdict FAIL` | `test_nonzero_agent_exit_can_never_produce_a_passing_ablation` |
+| a timeout is a case failure, not a crash | the batch completes and records the failure | `test_agent_timeout_is_recorded_as_failure_instead_of_crashing_batch` |
+| partial output is rejected | not scored as partial credit | normalization rule above |
+
+It also binds a loader nonce and a runtime session model receipt, so a run cannot silently be attributed
+to the wrong model.
+
+## The quarantine is documented, not enforced
+
+**No gate reads `status.json`.** `scripts/git_gate.py::GATES` does not include a check that binds the
+status file to its `verification_receipt`, and no workflow does either. Nothing prevents this asset from
+being loaded; the file records a decision a human made.
+
+## Before promotion, all of this must change and be re-verified
+
+1. Repair the negative cases so they no longer forbid their own requested domain words — the corpus
+   defect from reason 3. Then `python3 scripts/validator.py`.
+2. Preregister a new threshold in a new bounded plan; do not reuse the 2026-07-27 preregistration.
+3. Run `scripts/real_driver_ablation.py` with the ephemeral per-invocation cwd and
+   `codex --skip-git-repo-check`, with complete runtime metadata and zero timeouts.
+4. Write a **new dated** verification run under `data/verification_runs/`; receipts are never edited in
+   place.
+5. Update `status.json` to reference the new receipt.
+6. Optionally, close the enforcement gap by making a gate assert that
+   `status.production_routable` is consistent with the referenced receipt's `decision`.
+
+## Validation
+
+```sh
+python3 scripts/validator.py
+python3 scripts/interactions_patch_assert_runner.py     # canary only — not behavioral evidence
+python3 -m pytest -q tests/test_real_driver_ablation.py
+```
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg -n -i "loader|probe|artifact.*contain|containment|argv|model receipt|runtime.*metadata|with.skill|without.skill|resume|cwd_kind|case.*run|arm" /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:32:| Arm | Success rate |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:34:| with skill | `1.0` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:35:| without skill | `0.0` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:55:`negative_case_count == 6`, and `negative_with_skill_success_rate == 1.0`. The negative half is not
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:114:- **A 12-case corpus is small** for a claim of `delta=1.0`, and the without-skill arm scoring exactly
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:57:| a stale `--resume` is rejected with `cwd_kind` in stderr | resume-binding test |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:23:`synthetic_cases=117 typescript=59 python=58`. `scripts/interactions_patch_assert_runner.py` evaluates
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:39:| cases × runs per arm | 10 × 3 → 60 total case runs |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:43:| normalized with-skill success rate | `0.5` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:44:| normalized without-skill success rate | `0.4` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:47:| arm totals | with_skill 15/30 (2 timeouts), without_skill 12/30 (2 timeouts) |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:56:2. four of sixty case runs timed out, so runtime metadata was incomplete;
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:94:| stale resume is rejected | `--resume` against a mismatched session exits 2 with `cwd_kind` in stderr | resume-binding test |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:99:It also binds a loader nonce and a runtime session model receipt, so a run cannot silently be attributed
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:114:   `codex --skip-git-repo-check`, with complete runtime metadata and zero timeouts.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:21:Runs the same cases with and without skill context and compares success rates. `TARGET_DELTA = 0.05`;
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:36:| `skills/autoresearch_composer/cases.json` | `delta=1.0 case_count=12 with_skill=1.0 without_skill=0.0`, `positive_case_count=6`, `negative_case_count=6`, `negative_with_skill_success_rate=1.0` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:39:the negative-arm requirement is what stops an always-firing asset from scoring well on positives alone.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:57:- A stale `--resume` is rejected with `cwd_kind` in stderr.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:62:- A loader nonce and a runtime session model receipt bind the run to the model that actually served it.
+
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,260p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/prompt-trace-assets.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+---
+type: Reference
+title: Prompt Trace Assets
+description: The prompt-trace dataset and golden eval, the three prompt slots they record, the actors required for selection, and exactly which parts of the gate are re-verified only with explicit external roots.
+tags: [provenance, prompt-trace]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [prompt-provenance, trace-privacy, actor-routing]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Prompt Trace Assets
+
+This repository records *which prompt produced which artifact*. The record is machine-readable and
+gated; the page you are reading is its display layer, not its source of truth.
+
+## Artifacts
+
+- `data/prompt_trace/prompt_trace_dataset.json` — `schema_version` and `dataset_version`
+  (`prompt-trace-assets@2026-07-27`), the `input_to_terminal_trace` (dataflow nodes, directory roots,
+  auto-prompt snapshot, next route node and conditional edge), `records`, `selection_actors`,
+  `selection_question`, and a `privacy_policy`.
+- `data/prompt_trace/golden_prompt_trace_eval.json` — the golden evaluation the dataset is scored
+  against.
+- `scripts/check_prompt_trace_assets.py` — the gate.
+
+## The three prompt slots
+
+`check_prompt_trace_assets.py` requires every record to fill `REQUIRED_SLOTS`:
+
+| Slot | What it holds |
+|---|---|
+| `fixed_prompt` | the stable instruction text that did not vary across the loop |
+| `iteration_auto_prompt` | the machine-generated per-iteration prompt derived from loop state |
+| `emergent_prompt` | what actually emerged in the run and had to be captured after the fact |
+
+Keeping the three separate is the whole point: a single merged "the prompt" makes it impossible to tell
+a designed instruction from an emergent one, which is the same conflation
+[Stateful workflow](stateful-workflow.md) refuses at the node level. The molecular commit message
+contract mirrors these slots — `Fixed-Prompt-Context:`, `Iteration-Auto-Context:` and
+`Emergent-Prompt-Context:` are three of the eleven required fields in
+`scripts/validate_commit_message.py`, so the same three-way split is enforced at commit time. See
+[Molecular commit lineage](governance/molecular-commit-lineage.md).
+
+## Required actors
+
+`REQUIRED_ACTORS` is `{codex, agy, external-verify, judge-loop-chooser, openwiki}`. Each actor carries
+exactly one evidence role rather than being left as an unresolved choice — the policy
+`skills/autoresearch_composer/skills.md` states as *"Actor routing follows judge-loop-chooser:
+Opus/Codex/agy are assigned one evidence role each, never left as an unresolved choice."* An actor
+that did not run is surfaced as a gate, never inferred as success; see
+[Semantic arbitration](validation/semantic-arbitration.md).
+
+## Directory Structure and Dataflow
+
+The trace spans three directory roots, recorded in `input_to_terminal_trace.directory_roots`:
+`loop_wiki/evolve-unknown-discovery-plan-truth/`,
+`prototype/unknown-discovery-gcr-order/agent-skills-repo/small-loop/`, and `repo/agent-skills-repo/`.
+Only the third is this repository; the first two are upstream and absent from this checkout.
+
+### Input Content Through the Small Loop
+
+`input_to_terminal_trace.dataflow_nodes` records the path an input takes from a frozen conversation to
+this repository:
+
+```mermaid
+flowchart LR
+    A["plan-package-inputs.yaml"] --> B["frozen conversation"]
+    B --> C["ROUTES.md materialization"]
+    C --> D["write_loop_auto_prompt.py"]
+    D --> E["loop-auto-prompt.md"]
+    E --> F["intent-to-artifact.yaml"]
+    F --> G["gcr_molecular_commits.json"]
+    G --> H["repo/agent-skills-repo"]
+```
+
+*Node names are shortened; the full paths are the `dataflow_nodes` list above.*
+
+The `auto_prompt_snapshot` records where that loop currently stands:
+`packet_state: measured`, `missing_production_file_count: 0`,
+`next_route_node: human-admit-readiness`, and
+`next_conditional_edge: production-equivalence-improved -> human-admit-surface`. The next loop it asks
+for is to present the exact production-equivalence evidence bundle, preserve candidate/provider-truth
+boundaries, and rerun the small-loop, materialization, final-repo and SSOT gates. The terminal state is
+a human admit, not an automatic promotion.
+
+### Intent → Git Commit → Terminal Implementation
+
+Each record in `records[]` carries `trace_id`, `prompt_slot`, `context_role`, `route`, `state_node`,
+`source_path`, `lineage_edge`, `evidence_gate`, `must_preserve`, `training_eligibility` and
+`typescript_target` — enough to walk from an intent slice, through the commit that carried it, to the
+file that implements it. The commit half of that chain is recoverable with:
+
+```sh
+git log --all --format='%H%x09%s%x09%b' --grep='Intent-Slice: GCR-SLICE-'
+```
+
+which is the same `GCR-SLICE-\d{2}` marker `scripts/validate_commit_message.py` requires on every
+commit. Note that this repository directory has no `.git` of its own, so the command must be run
+against the enclosing repository or one supplied via `--commit-repo`.
+
+## Privacy stance: metadata-local prompt traces
+
+The dataset carries a `privacy_policy`, and `data/lifecycle/trace_privacy_classification.json` classifies
+each dataset. These are **metadata-local prompt traces**: `classification:
+local-structured-prompt-metadata`, `cloud_upload_allowed: false`,
+`raw_external_model_outputs_stored: false`. The `terms_guard` states the boundary exactly — store
+prompt/context metadata, route decisions and verdicts; do not store proprietary Opus/Codex/agy full
+answers without a separate admit.
+
+Cloud upload and model training use require a later human-admit record. `model_training_use` is
+`local_or_private_finetune_candidate_after_human_admit`, i.e. eligibility is a decision that has not
+been made, not a default. No trace is shipped to a cloud judge in any case — the cloud path in
+`scripts/eval_autoresearch_composer.py` performs no API call at all, as documented in
+[Behavioral eval and judge](validation/behavioral-eval-and-judge.md).
+
+## What the gate proves here, and what it does not
+
+| Claim | Origin |
+|---|---|
+| dataset and golden eval parse, all three slots present, all five actors present | **verifiable in this checkout** — `python3 scripts/check_prompt_trace_assets.py` |
+| frozen input files, external terminal artifacts, and commit subjects match | **requires explicit external input** — only re-checked when `--workspace-root` and/or `--commit-repo` are passed, and each must be an absolute existing directory (`--workspace-root` must contain `loop_wiki/evolve-unknown-discovery-plan-truth`; `--commit-repo` must contain `.git`) |
+| the recorded run happened as described | **receipt claim only** — the dataset is an imported record, not something this checkout replays |
+
+`scripts/check_prompt_trace_assets.py` is **not** in `scripts/git_gate.py::GATES`, so a routine push does
+not run it. Invoke it deliberately; see [Entrypoint matrix](operations/entrypoint-matrix.md).
+
+The dataset's `dataflow_nodes` and `directory_roots` contain absolute paths outside this repository
+(for example `loop_wiki/evolve-unknown-discovery-plan-truth/...`), so the record is not portable to a
+different workspace without supplying those roots explicitly.
+
+## Validation
+
+```sh
+python3 scripts/check_prompt_trace_assets.py
+python3 scripts/check_prompt_trace_assets.py --workspace-root /abs/workspace --commit-repo /abs/repo
+```
+
+exec
+/bin/zsh -lc "sed -n '1,260p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+exec
+/bin/zsh -lc "sed -n '1,260p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+exec
+/bin/zsh -lc "sed -n '1,260p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+# Structured Lifecycle Data
+
+This page is the Markdown display layer for machine-readable lifecycle data.
+The structured SSOT lives under `data/lifecycle/`; this page must not invent
+numbers that are absent from those files.
+
+## Dataflow
+
+```text
+data/lifecycle/skill_optimization_registry.json
+  -> data/lifecycle/golden_dataset_versions.json
+  -> data/lifecycle/eval_runs/autoresearch_composer_2026-07-23.json
+  -> data/lifecycle/promotion_records.json
+  -> data/lifecycle/dataset_drift_history.jsonl
+  -> data/lifecycle/trace_privacy_classification.json
+  -> scripts/render_lifecycle_openwiki.py
+  -> openwiki/structured-lifecycle-data.md
+  -> scripts/check_lifecycle_datasets.py
+```
+
+## Multi-Skill Registry
+
+| skill_id | status | openwiki | eval run | cloud policy |
+|---|---|---|---|---|
+| `autoresearch_composer` | `production-seed-candidate` | `openwiki/autoresearch-composer-lifecycle.md` | `autoresearch-composer-2026-07-23-local` | `implemented-disabled-by-default` |
+
+## Golden Dataset Versions
+
+| dataset_version | path | cases | use |
+|---|---|---:|---|
+| `autoresearch-pr-golden@2026-07-23` | `data/autoresearch_golden/pr_golden_set.json` | 4 | pull-request gate |
+| `autoresearch-nightly-golden@2026-07-23` | `data/autoresearch_golden/nightly_golden_set.jsonl` | 3 | nightly local holdout |
+
+## Dated Eval Run
+
+| run_id | PR | nightly | trace | failure trace | ablation |
+|---|---:|---:|---:|---:|---|
+| `autoresearch-composer-2026-07-23-local` | `4/4` | `3/3` | 3 | 2 | `delta=1.0`, `verdict=PASS` |
+
+## Trace Privacy
+
+| dataset | classification | cloud allowed |
+|---|---|---|
+| `data/autoresearch_traces/local_trace_samples.jsonl` | `synthetic-local` | false |
+| `data/autoresearch_traces/failure_trace_samples.jsonl` | `synthetic-local-failure` | false |
+
+## Promotion Record
+
+| record_id | molecular commit | route edge | lineage edge | status | human gate |
+|---|---|---|---|---|---|
+| `promotion-autoresearch-composer-2026-07-23` | `0006-regression-ci-seed.md` | `plan-package-materialization` | `EDGE-066` | `candidate_until_human_admit` | `required_before_promotion` |
+
+## Drift Metrics
+
+| dataset_version | case_count | pass_rate | judge_score_avg | trace_sample_count | failure_trace_sample_count | route_distribution |
+|---|---:|---:|---:|---:|---:|---|
+| `autoresearch-pr-golden@2026-07-23` | 4 | 1.0 | 0.96 | 3 | 2 | `autoresearch_evals=1, autoresearch_plan=2, native_yield=1` |
+| `autoresearch-nightly-golden@2026-07-23` | 3 | 1.0 | 0.96 | 3 | 2 | `autoresearch_evals=1, native_yield=2` |
+
+## Extension Rule For More Skills
+
+For every new optimized skill, add exactly one registry row, at least one Golden
+Dataset version, one dated eval run, one promotion record, trace privacy entries,
+and one drift-history row. Then expose the same IDs in openwiki and make
+`scripts/render_lifecycle_openwiki.py --write` and
+`scripts/check_lifecycle_datasets.py` pass.
+
+ succeeded in 0ms:
+---
+type: Reference
+title: Test Map
+description: What each pytest module proves, described by behavior and invariant so the right suite can be retrieved without reading it from the top.
+tags: [testing]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [test-coverage-map, eval-markers]
+libraries: [pytest]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Test Map
+
+`pyproject.toml` sets `testpaths = ["tests"]` and registers three markers: `evals` (local-first golden
+dataset and deterministic judge), `llm_judge` (cloud path, disabled by default), `trace` (local trace
+sampling and guardrails).
+
+```sh
+python3 -m pytest -q            # everything
+python3 -m pytest -q -m evals   # golden-dataset and judge only
+```
+
+## `tests/test_skill_asset_governance.py`
+
+The structural and gate-level suite. Five tests, each proving a different class of invariant:
+
+| Test | Invariant |
+|---|---|
+| `test_skill_asset_structure` | ~57 required paths exist — the hooks, all four workflows, the twelve `openwiki/` contract paths, the skill assets, the named scripts, and every `data/` artifact. This is the test that turns a deleted file into a red suite. |
+| `test_static_defense_scripts_pass` | each of 25 static gates exits 0 **independently**. Unlike `git_gate.py`, it does not stop at the first failure, so it reports every broken gate in one run. It also covers `check_prompt_trace_assets.py`, which `git_gate.py` does not. |
+| `test_p11_synthetic_and_zero_llm_telemetry` | the canary telemetry is exact, not merely green — `synthetic_cases=117`, `typescript=59`, `python=58`, `total_cases_evaluated=117`, `passed_cases=117`, `zero_llm_api_calls=0`, `case_count=10`, `total_trials=50`, `task_count=100`, `delta_high_quality=0.15`, `delta_low_quality=-0.2`. A drifting number fails the suite. |
+| `test_autoresearch_eval_and_trace_gates_pass` | the PR golden eval passes with `cloud_judge_enabled=false`, the trace sampler passes, and the lifecycle dataset display matches its generator |
+| `test_wiki_graph_sync_gate_passes` | a projection built into a **temporary directory** reproduces cleanly, then the gate passes — proving reproducibility without mutating the checked-in artifacts |
+| `test_molecular_commit_lineage_gate_passes` | the lineage validator's default structural mode passes |
+
+Note what the last one does not do: it runs the default mode, so it proves ledger structure, not Git
+history. See [Molecular commit lineage](../governance/molecular-commit-lineage.md).
+
+## `tests/test_autoresearch_eval_suite.py`
+
+Marked `evals`. Exercises the golden-dataset harness — schema validation, deterministic guardrails, and
+the local heuristic judge. This is the suite `.github/workflows/autoresearch_eval.yml` runs with
+`-m evals`. See [Behavioral eval and judge](../validation/behavioral-eval-and-judge.md).
+
+## `tests/test_real_driver_ablation.py`
+
+The largest and most behavioral suite (282 lines), covering the driver that actually calls an agent.
+Retrieve it by the failure it proves rather than by symbol:
+
+| Behavior proven | Test |
+|---|---|
+| an agent command without `{task}` is rejected | `test_agent_command_must_contain_task_placeholder` |
+| a `codex exec` command without `--skip-git-repo-check` is rejected, because each invocation gets an ephemeral cwd | `test_codex_command_requires_skip_git_repo_check_for_ephemeral_cwd` |
+| a stale `--resume` is rejected with `cwd_kind` in stderr | resume-binding test |
+| a nonzero agent exit can never produce a passing ablation (exit 3, `agent_failures > 0`, `verdict FAIL`) | `test_nonzero_agent_exit_can_never_produce_a_passing_ablation` |
+| a timeout is recorded as a case failure instead of crashing the batch | `test_agent_timeout_is_recorded_as_failure_instead_of_crashing_batch` |
+
+`tests/fixtures/real_driver_mock_agent.py` is the stand-in agent, so these run without spending real
+agent calls. See [gemini_interactions](../skill-assets/gemini-interactions.md) for why each invariant
+exists.
+
+## No TypeScript tests
+
+There is no test for `.agents/skills/repo-terminal-operator/` in this repository — no `package.json`, no
+Bun toolchain, and the suites its contract references live in an absent upstream tree. See
+[Terminal operator overview](../terminal-operator/overview.md).
+
+ succeeded in 0ms:
+---
+type: Playbook
+title: Autoresearch-Composer Lifecycle
+description: What the autoresearch_composer asset optimizes, the executed golden-dataset and ablation evidence behind its production gate, and the hardening it still lacks.
+tags: [autoresearch, evals, promotion]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [golden-dataset-eval, ablation-gate, promotion-readiness]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Autoresearch-Composer Lifecycle
+
+`skills/autoresearch_composer/` is the asset this repository has taken furthest through the lifecycle.
+Its registry status is `production-seed-candidate` — a candidate, not an admitted asset.
+
+## Concrete Optimization
+
+The asset's stated purpose is to stop a compressed context from silently becoming a route decision. It
+forces a plan into a state graph — match, then route, then generate, then validate — and each of those
+is a separate node with its own failure edge, rather than one fused prompt that returns one confident
+answer. Recovery for a thin prompt is explicit: **missing Domain terms** are recovered through
+`skills/autoresearch_composer/references/state_graph.md` rather than guessed, which is why
+`conditional_edge.S3.missing_domain_term` exists as a real edge instead of a retry.
+
+The measured consequence is unusually clean. With the asset in context, all 12 behavior cases pass;
+without it, none do:
+
+| Arm | Success rate |
+|---|---|
+| with skill | `1.0` |
+| without skill | `0.0` |
+
+## Golden Standard Example
+
+A **Golden Dataset cases** file pins expected behavior per case rather than scoring free text.
+`data/autoresearch_golden/pr_golden_set.json` is the pull-request set; each case declares
+`expected_route`, `must_include`, `must_not_include`, `judge_rubric`, `trace_tags` and `risk_level`,
+and `scripts/eval_autoresearch_composer.py::validate_case_schema()` rejects a case missing any of them.
+
+The evaluation order matters: `deterministic_guardrails()` runs first and checks route equality plus
+the literal include/exclude lists; only then does a judge see the result. A route mismatch is a hard
+failure that no judge score can rescue.
+
+## Production Gate
+
+Promotion is gated on evidence, not on the asset reading well.
+
+**A/B ablation is a hard gate.** `scripts/check_autoresearch_lifecycle.py` re-runs
+`scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json --json` and fails unless the
+telemetry satisfies all of: `case_count == 12`, `delta > 0.05`, `verdict == PASS`,
+`negative_case_count == 6`, and `negative_with_skill_success_rate == 1.0`. The negative half is not
+decoration — an asset that fires on everything would score well on positives alone, so the gate
+requires that the six negative cases are correctly *not* triggered.
+
+The same gate cross-checks the repo asset against its upstream source skill and requires the two
+`cases.json` files to be identical, so the production copy cannot drift from the authored one.
+
+## Executed Autoresearch-Composer Data
+
+Reproduced by running each command in the repository root:
+
+| Command | Reported |
+|---|---|
+| `python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json` | `cases=4` `passed=4` `mode=local` `cloud_judge_enabled=false` |
+| `python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/nightly_golden_set.jsonl` | `cases=3 passed=3 mode=local cloud_judge_enabled=false` |
+| `python3 scripts/sample_autoresearch_traces.py` | `sample_count=3` `observed_state_count=5` |
+| `python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json` | `delta=1.0` `case_count=12` `success_rate=1.0` `verdict=PASS` |
+
+The ablation figure is dataset-specific. The same script on its default
+`skills/gemini_interactions/cases.json` reports `delta=0.50 case_count=10`. A delta quoted without its
+dataset is not a fact about this asset.
+
+## Lifecycle Data Artifacts
+
+The machine-readable side lives under `data/lifecycle/` and is the SSOT; the Markdown view of it is
+generated, never hand-edited — see [Structured Lifecycle Data](structured-lifecycle-data.md).
+
+| Artifact | Holds |
+|---|---|
+| `data/lifecycle/skill_optimization_registry.json` | the managed skill and its `current_status` |
+| `data/lifecycle/golden_dataset_versions.json` | `autoresearch-pr-golden@2026-07-23` (4 cases), `autoresearch-nightly-golden@2026-07-23` (3 cases) |
+| `data/lifecycle/eval_runs/autoresearch_composer_2026-07-23.json` | the recorded run summary |
+| `data/lifecycle/promotion_records.json` | promotion decisions |
+| `data/lifecycle/dataset_drift_history.jsonl` | dataset drift over time |
+| `data/lifecycle/trace_privacy_classification.json` | per-dataset privacy classification |
+| `data/autoresearch_traces/{local_trace_samples,failure_trace_samples}.jsonl` | local-first trace samples |
+
+`scripts/check_lifecycle_datasets.py` enforces that the display page is byte-equal to
+`scripts/render_lifecycle_openwiki.py --stdout`, and cross-checks the dataset versions and case counts
+above against the registry.
+
+## Missing Future Hardening
+
+Stated plainly, because a candidate that reads as finished is the failure mode this repository is built
+against:
+
+- **No real-driver evidence for this asset.** Every number above comes from a deterministic simulation
+  (`simulate_autoresearch_plan()`, `simulate_agent()`). `scripts/real_driver_ablation.py` — the runner
+  that invokes an actual agent — has never been recorded against `autoresearch_composer`. The one asset
+  that was measured that way failed and is quarantined; see
+  [gemini_interactions](skill-assets/gemini-interactions.md).
+- **The judge is a heuristic.** `local_llm_as_judge()` assigns `0.96` when no guardrail failed and a
+  degrading score otherwise. It adds no independent signal beyond the deterministic guardrails.
+- **cloud/API judge execution is physically wired but disabled unless explicitly enabled** — read that
+  precisely. The branch exists, `--mode cloud` selects it, and `ENABLE_LLM_JUDGE=1` is the switch. When
+  enabled, `cloud_judge()` returns `judge_mode: cloud-placeholder-disabled-in-seed` with verdict `SKIP`
+  and makes **no HTTP request**. The wiring is the code path and the environment contract, not a
+  provider call. Additionally `.github/workflows/autoresearch_eval.yml` passes the string `true` while
+  the code requires `"1"`, so the workflow's opt-in job would not activate even that placeholder.
+- **A 12-case corpus is small** for a claim of `delta=1.0`, and the without-skill arm scoring exactly
+  `0.0` reflects a simulator built to contrast, not a measurement of a real agent's baseline.
+
+## Validation
+
+```sh
+python3 scripts/check_autoresearch_lifecycle.py
+python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json
+python3 -m pytest -q -m evals
+```
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg -n -i "SKIP|deterministic failures|judge.*FAIL|exit code|exit.*0|human_admit_binding|prepared.unsigned|eval summary|summary|dataset version|drift|route_distribution|cloud-judge-disabled-by-default|ENABLE_CLOUD_EVALS|ENABLE_LLM_JUDGE|test_pr_golden|test_nightly|test_local_trace" /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/synthetic-corpus-quality.md:51:`synthetic_case_quality_report.py` exits 0 and prints
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:55:- A `codex exec` command must carry `--skip-git-repo-check`, because each invocation gets an **ephemeral
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:58:- A nonzero agent exit can never produce a passing ablation: exit 3, `agent_failures > 0`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/ablation-and-benchmark.md:65:python3 scripts/real_driver_ablation.py --agent-cmd 'codex exec --skip-git-repo-check {task}' \
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:24:`trace_tags` must be `list[str]`. A malformed case is an error, not a skipped case.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:49:- If `ENABLE_LLM_JUDGE != "1"`, it returns `judge_mode: cloud-disabled`, verdict `SKIP`.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:51:- If both are set, it returns `judge_mode: cloud-placeholder-disabled-in-seed`, verdict `SKIP`,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/behavioral-eval-and-judge.md:57:`ENABLE_LLM_JUDGE: ${{ vars.ENABLE_CLOUD_EVALS }}`, i.e. the string `true`, while the code compares
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:37:Three claims, three executed reviews, **three still pending**. The gate exits 0 and prints those numbers
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/validation/semantic-arbitration.md:64:  rests on, not a summary of them;
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:60:`cases.json` files to be identical, so the production copy cannot drift from the authored one.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:86:| `data/lifecycle/eval_runs/autoresearch_composer_2026-07-23.json` | the recorded run summary |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:88:| `data/lifecycle/dataset_drift_history.jsonl` | dataset drift over time |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:93:`scripts/render_lifecycle_openwiki.py --stdout`, and cross-checks the dataset versions and case counts
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:106:- **The judge is a heuristic.** `local_llm_as_judge()` assigns `0.96` when no guardrail failed and a
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:109:  precisely. The branch exists, `--mode cloud` selects it, and `ENABLE_LLM_JUDGE=1` is the switch. When
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/autoresearch-composer-lifecycle.md:110:  enabled, `cloud_judge()` returns `judge_mode: cloud-placeholder-disabled-in-seed` with verdict `SKIP`
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/production-profiles-and-handoff.md:75:Typed nonzero failure on: stale HEAD, conflicting remote, bootstrap hash drift, cleanup failure, or a
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:14:  -> data/lifecycle/dataset_drift_history.jsonl
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:27:## Golden Dataset Versions
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:53:## Drift Metrics
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:55:| dataset_version | case_count | pass_rate | judge_score_avg | trace_sample_count | failure_trace_sample_count | route_distribution |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:63:Dataset version, one dated eval run, one promotion record, trace privacy entries,
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/structured-lifecycle-data.md:64:and one drift-history row. Then expose the same IDs in openwiki and make
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/evidence-cost.md:67:Any timeout, cancellation, nonzero exit, stream/registry/sentinel leak, nested hash drift, or HEAD drift
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:33:| `test_static_defense_scripts_pass` | each of 25 static gates exits 0 **independently**. Unlike `git_gate.py`, it does not stop at the first failure, so it reports every broken gate in one run. It also covers `check_prompt_trace_assets.py`, which `git_gate.py` does not. |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:34:| `test_p11_synthetic_and_zero_llm_telemetry` | the canary telemetry is exact, not merely green — `synthetic_cases=117`, `typescript=59`, `python=58`, `total_cases_evaluated=117`, `passed_cases=117`, `zero_llm_api_calls=0`, `case_count=10`, `total_trials=50`, `task_count=100`, `delta_high_quality=0.15`, `delta_low_quality=-0.2`. A drifting number fails the suite. |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:56:| a `codex exec` command without `--skip-git-repo-check` is rejected, because each invocation gets an ephemeral cwd | `test_codex_command_requires_skip_git_repo_check_for_ephemeral_cwd` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/testing/test-map.md:58:| a nonzero agent exit can never produce a passing ablation (exit 3, `agent_failures > 0`, `verdict FAIL`) | `test_nonzero_agent_exit_can_never_produce_a_passing_ablation` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:41:| raw summary delta | `0.1333` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:45:| agent failures | `4` (exit code 124, timeouts) |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:67:per-invocation cwd with `codex --skip-git-repo-check`, then run a **newly preregistered** ablation —
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:92:| ephemeral cwd needs the codex flag | a `codex exec` command lacking `--skip-git-repo-check` exits 2 | `test_codex_command_requires_skip_git_repo_check_for_ephemeral_cwd` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:95:| a nonzero agent exit can never pass | exit 3, `telemetry.agent_failures > 0`, `verdict FAIL` | `test_nonzero_agent_exit_can_never_produce_a_passing_ablation` |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/gemini-interactions.md:114:   `codex --skip-git-repo-check`, with complete runtime metadata and zero timeouts.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:46:not compose an autoresearch loop". They skip S3 (generate) entirely, which is the structural expression
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md:82:`cases.json` files differ. The production copy cannot drift from the authored one — but the check
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:34:        G-->>Gate: exit code + stdout/stderr
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:37:    Gate-->>Hook: exit 0 / first failing exit / 125 if inputs changed
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:74:  -> local_llm_as_judge()              # heuristic; PASS at score >= 0.85 and zero guardrail failures
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:79:`verdict: SKIP` with `judge_mode: cloud-placeholder-disabled-in-seed`; it issues no API call. It
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md:80:activates only when `ENABLE_LLM_JUDGE` equals the string `"1"`, while
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/quickstart.md:90:3. **`.github/workflows/autoresearch_eval.yml` passes an unusable value.** It sets `ENABLE_LLM_JUDGE`
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:50:| `ENABLE_LLM_JUDGE` | `eval_autoresearch_composer.py::cloud_judge()` | the string `"1"` | `autoresearch_eval.yml` passes `vars.ENABLE_CLOUD_EVALS`, i.e. `"true"` — **mismatch, the branch never activates** |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:51:| `OPENAI_API_KEY` | same | required only when `ENABLE_LLM_JUDGE == "1"` | repository secret |
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:57:placeholder `SKIP` if it were reached — see
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md:86:## Coverage summary
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/defense-gate-chain.md:64:`passed` only when the exit code is zero **and** every gate ran **and** the input state was stable.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/usage.md:71:The receipt is `git-gate-receipt@0.1.0` and records per-gate exit codes, elapsed time, and SHA-256 of
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/overview.md:57:bun run repo-adapter.ts --describe            # profile summary
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/overview.md:64:merged. Exit codes: `0` passed, `2` failed, `64` usage.
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/overview.md:75:and must recheck both before publishing a candidate. Scope drift is a structured failure, not a
+/var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/terminal-operator/overview.md:86:sharpest rule: *exit code zero without an observed test count is a failure*. A suite that silently
+
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,180p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/code-call-lifecycle.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+exec
+/bin/zsh -lc "sed -n '1,180p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/operations/entrypoint-matrix.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+---
+type: Reference
+title: Code Call Lifecycle
+description: The call graph from git hooks and CI workflows through git_gate into each defense script, with the measured values each gate currently reports and the one stale validator expectation.
+tags: [call-graph, gates, ci]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [call-graph, defense-gates, measured-telemetry]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Code Call Lifecycle
+
+Who calls what, in order, and what each call currently reports. Every number on this page was
+reproduced by running the script named beside it; where a number depends on which dataset is passed,
+the dataset is named.
+
+## Local hook path
+
+```mermaid
+sequenceDiagram
+    participant Dev as git push
+    participant Hook as .githooks/pre-push
+    participant Gate as scripts/git_gate.py
+    participant G as 23 registered gates
+    Dev->>Hook: pre-push
+    Hook->>Gate: python3 scripts/git_gate.py
+    Gate->>Gate: input_state_sha256() before
+    loop each gate in GATES
+        Gate->>G: subprocess python3 <gate>
+        G-->>Gate: exit code + stdout/stderr
+    end
+    Gate->>Gate: input_state_sha256() after
+    Gate-->>Hook: exit 0 / first failing exit / 125 if inputs changed
+```
+
+`.githooks/pre-push` → `scripts/git_gate.py` → the 23 entries of `GATES`, sequentially, stopping at the
+first nonzero exit. `.githooks/commit-msg` → `scripts/validate_commit_message.py` with the message
+file as its argument.
+
+`scripts/check_openwiki.py` is one of those 23 gates, which is why a documentation change can fail a
+push. `scripts/check_wiki_graph_sync.py` and `scripts/render_lifecycle_openwiki.py` are also in the
+list.
+
+## CI path
+
+- `.github/workflows/skill_ci.yml` — on pull requests touching `skills/**` or `scripts/**`, runs
+  `python scripts/git_gate.py`. Same chain as the hook, clean checkout.
+- `.github/workflows/wiki_graph_sync.yml` — on push/PR touching `openwiki/**/*.md`,
+  `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, or `scripts/check_wiki_graph_sync.py`.
+  Runs `scripts/sync_wiki_to_graph.py` with explicit `--wiki-root openwiki`, `--schema`, `--event-log`,
+  `--graph-out`, `--commit-sha "$GITHUB_SHA"`, then `scripts/check_wiki_graph_sync.py`, then uploads the
+  projection as an artifact. It does not commit the projection.
+- `.github/workflows/autoresearch_eval.yml` — runs
+  `scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`,
+  `scripts/sample_autoresearch_traces.py`, and `pytest -m evals`.
+- `.github/workflows/weekly_audit.yml` — Monday cron, runs only `scripts/ablation_engine.py`.
+
+Not reached by any of the above: `scripts/check_plan_package_compat.py`,
+`scripts/check_prompt_trace_assets.py`, and `scripts/real_driver_ablation.py`. They are invoked
+deliberately. See [Entrypoint matrix](operations/entrypoint-matrix.md).
+
+## Autoresearch-Composer Eval Call Graph
+
+```text
+data/autoresearch_golden/pr_golden_set.json
+  -> eval_autoresearch_composer.py::load_cases()
+  -> validate_case_schema()            # REQUIRED_CASE_FIELDS
+  -> simulate_autoresearch_plan()      # route + states + text
+  -> deterministic_guardrails()        # route equality, must_include, must_not_include
+  -> local_llm_as_judge()              # heuristic; PASS at score >= 0.85 and zero guardrail failures
+  -> stdout telemetry
+```
+
+`local_llm_as_judge()` is the default judge. `cloud_judge()` is the alternative branch and returns
+`verdict: SKIP` with `judge_mode: cloud-placeholder-disabled-in-seed`; it issues no API call. It
+activates only when `ENABLE_LLM_JUDGE` equals the string `"1"`, while
+`.github/workflows/autoresearch_eval.yml` passes the string `true` — so the workflow's cloud job would
+not activate it even if enabled.
+
+`scripts/llm_judge.py` is the separate double-lock parser used when an external judge response must be
+accepted: it extracts JSON from an XML-shielded payload, rejects non-finite scores, and rejects unless
+`verdict == PASS`, `score >= 0.85`, and the reasoning contains no `breach detected`.
+
+## Measured values
+
+Reproduced by running each command in the repository root:
+
+| Command | Reported |
+|---|---|
+| `python3 scripts/eval_autoresearch_composer.py` | `pr_golden_set.json: cases=4 passed=4`, `mode=local`, `cloud_judge_enabled=false` |
+| `python3 scripts/sample_autoresearch_traces.py` | `sample_count=3 observed_state_count=5` |
+| `python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json` | `delta=1.0 verdict=PASS`, `case_count=12`, `success_rate=1.0` |
+| `python3 scripts/ablation_engine.py` (default gemini cases) | `delta=0.50 case_count=10 success_rate=1.0 verdict=PASS` |
+| `python3 scripts/synthetic_case_generator.py` | `synthetic_cases=117 typescript=59 python=58` |
+| `python3 scripts/interactions_patch_assert_runner.py` | `total_cases_evaluated=117 passed_cases=117 zero_llm_api_calls=0` |
+| `python3 scripts/local_regex_runner.py` | `case_count=10 total_trials=50 zero_llm_api_calls=0` |
+| `python3 scripts/benchmark_runner.py` | `task_count=100 delta_high_quality=0.15 delta_low_quality=-0.2` |
+| `python3 scripts/validate_molecular_commit_lineage.py` | `PASS: molecular commit lineage` (ledger/receipt structure only) |
+
+The two ablation rows are the same script on different datasets. Quoting `delta=1.0` without naming
+`skills/autoresearch_composer/cases.json` misreports the default behavior.
+
+## Commit lineage: authoritative counts, and a stale validator expectation
+
+`scripts/check_openwiki.py:73` still expects this page to contain the literal string
+`gcr_molecular_commits.json: protected_history=157 compensated=157 failed=0 schema=v0.2`.
+That expectation is **stale**. The authoritative evidence in this repository is:
+
+- `data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json` —
+  `commit_count=235`, `compensated_commit_count=235`, `failed_commit_count=0`,
+  `schema_version=molecular-commit-verification-run@0.2.0`, `status=pass`, `strict_message_count=20`.
+- `data/commit_lineage/gcr_molecular_commits.json` — `schema_version=molecular-commit-lineage@0.2.0`,
+  235 entries in `compensated_commits`, 7 in `legacy_detailed_commits`, 13 `protected_paths`.
+
+The string `157` appears in those two files only as an incidental substring of SHA-256 digests. The
+correct current statement is **protected_history=235 compensated=235 failed=0 schema=v0.2**. The quoted
+sentence above is reproduced solely because `check_openwiki.py` matches by substring containment and
+still expects it; nothing on this page asserts 157 as a measurement. Correcting
+`scripts/check_openwiki.py:73` to 235 is a one-value change and is tracked in the Backlog of
+[Quickstart](quickstart.md).
+
+## Validation
+
+- Whole chain: `python3 scripts/git_gate.py`
+- This page's own gate: `python3 scripts/check_openwiki.py`
+- Graph projection: `python3 scripts/sync_wiki_to_graph.py` then `python3 scripts/check_wiki_graph_sync.py`
+
+ succeeded in 0ms:
+---
+type: Reference
+title: Entrypoint Matrix
+description: Every hook and workflow with its exact argv, path filter, environment-variable format and side effects — plus the scripts nothing triggers automatically.
+tags: [operations, ci, triggers]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [trigger-matrix, ci-coverage, opt-in-variables]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Entrypoint Matrix
+
+What actually runs, when, with which arguments. Read this before assuming a script is covered.
+
+## Local hooks
+
+Both require `git config core.hooksPath .githooks`. They are per-clone and not enforced server-side.
+
+| Hook | Runs | Argv | Side effects |
+|---|---|---|---|
+| `.githooks/commit-msg` | `scripts/validate_commit_message.py` | `<message-file>` | none |
+| `.githooks/pre-push` | `scripts/git_gate.py` | none | none; exits 125 if any gate mutated the tree |
+
+## Workflows
+
+| Workflow | Trigger | Path filter | Commands | Side effects |
+|---|---|---|---|---|
+| `skill_ci.yml` | pull_request | `skills/**`, `scripts/**` | `python scripts/git_gate.py` | none |
+| `wiki_graph_sync.yml` | push, pull_request, workflow_dispatch | `openwiki/**/*.md`, `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, `scripts/check_wiki_graph_sync.py` | `sync_wiki_to_graph.py --wiki-root openwiki --schema … --event-log … --graph-out … --commit-sha "$GITHUB_SHA"`, then `check_wiki_graph_sync.py` | **uploads** `wiki-graph-local-projection` as an artifact; does **not** commit the regenerated files |
+| `autoresearch_eval.yml` | pull_request, workflow_dispatch | `skills/autoresearch_composer/**`, `data/autoresearch_golden/**`, `data/autoresearch_traces/**`, `scripts/eval_autoresearch_composer.py`, `scripts/sample_autoresearch_traces.py`, `tests/test_autoresearch_eval_suite.py` | `eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`, `sample_autoresearch_traces.py`, `pytest -q -m evals` | none |
+| `weekly_audit.yml` | cron `0 3 * * 1`, workflow_dispatch | — | `python scripts/ablation_engine.py` | none |
+
+Note what `weekly_audit.yml` does **not** run: `scripts/real_driver_ablation.py`. The weekly audit is
+deterministic and simulated; nothing schedules a real-agent measurement.
+
+## Opt-in variables and their exact formats
+
+This is where two mismatches live. Formats are not interchangeable.
+
+| Variable | Read by | Accepted value | Set by |
+|---|---|---|---|
+| `ENABLE_GRAPH_DB_WRITE` | `sync_wiki_to_graph.py::write_external_graph_if_enabled()` | the string `"true"` | `vars.ENABLE_GRAPH_DB_WRITE` in `wiki_graph_sync.yml` — **matches** |
+| `--write-external-graph` | CLI flag on the same script | present/absent | passed only by the opt-in job |
+| `GRAPH_DB_KIND` | same | `generic-http-json` or `neo4j-http`; anything else raises | `vars.GRAPH_DB_KIND`, defaulting to `generic-http-json` |
+| `GRAPH_DB_URI` / `GRAPH_DB_USER` / `GRAPH_DB_PASSWORD` | same | required together; a missing one raises naming which | repository secrets |
+| `ENABLE_LLM_JUDGE` | `eval_autoresearch_composer.py::cloud_judge()` | the string `"1"` | `autoresearch_eval.yml` passes `vars.ENABLE_CLOUD_EVALS`, i.e. `"true"` — **mismatch, the branch never activates** |
+| `OPENAI_API_KEY` | same | required only when `ENABLE_LLM_JUDGE == "1"` | repository secret |
+| `GIT_GATE_FIXED_ELAPSED_MS` | `git_gate.py::elapsed_ms()` | integer string; overrides all timings | tests, for reproducible receipts |
+| `REPO_EVIDENCE_COLLECTOR_PRODUCTION` | the TypeScript evidence-cost collector | `1` | manual only |
+
+The external graph write needs **both** `--write-external-graph` and `ENABLE_GRAPH_DB_WRITE=true`;
+either alone is a no-op. The cloud judge is unreachable from CI even when enabled, and would return a
+placeholder `SKIP` if it were reached — see
+[Behavioral eval and judge](../validation/behavioral-eval-and-judge.md).
+
+## The 23 gates `git_gate.py` covers
+
+Listed in order on [Defense gate chain](../architecture/defense-gate-chain.md).
+
+## Scripts nothing triggers automatically
+
+These are **not** in `GATES` and not in any workflow. Someone must run them.
+
+| Script | Run it when | Documented on |
+|---|---|---|
+| `check_plan_package_compat.py` | `PROJECT-SSOT.md` / `plan-package.compat.yaml` / `.plan-package.lock.yaml` changed | [Plan package compatibility](../governance/plan-package-compatibility.md) |
+| `test_plan_package_compat.sh` | same | same |
+| `check_prompt_trace_assets.py` | `data/prompt_trace/**` changed | [Prompt trace assets](../prompt-trace-assets.md) |
+| `sync_wiki_to_graph.py` | a wiki page changed and you want the local projection refreshed | [Wiki graph sync](../wiki-graph-sync-architecture.md) |
+| `real_driver_ablation.py` | you are about to claim a real behavioral delta | [Ablation and benchmark](../validation/ablation-and-benchmark.md) |
+| `render_lifecycle_openwiki.py --write` | `data/lifecycle/**` changed (the gate runs the compare mode, not the write mode) | [Data authority](../architecture/data-authority.md) |
+
+`check_prompt_trace_assets.py` is covered indirectly by
+`tests/test_skill_asset_governance.py::test_static_defense_scripts_pass`, which runs every static gate
+independently — so `pytest` catches things a `git push` does not.
+
+## Gates that run argument-less and prove only a selftest
+
+`validate_commit_message.py` and `validate_goal_constraints.py`. See
+[Static skill validators](../validation/static-skill-validators.md).
+
+## Coverage summary
+
+| Surface | Covered by |
+|---|---|
+| every static gate, independently, reporting all failures | `pytest tests/test_skill_asset_governance.py` |
+| the 23-gate chain, stopping at the first failure | `git_gate.py`, hook and `skill_ci.yml` |
+| golden-dataset and trace assets | `autoresearch_eval.yml`, `pytest -m evals` |
+| the wiki→graph projection | `wiki_graph_sync.yml` |
+| a simulated weekly delta | `weekly_audit.yml` |
+| **a real agent's behavior** | nothing automatic — only a manual `real_driver_ablation.py` run |
+
+exec
+/bin/zsh -lc "sed -n '1,180p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/skill-assets/autoresearch-composer.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+---
+type: Reference
+title: autoresearch_composer
+description: The state-graph asset — the five routes it selects between, how domain-term recovery works, and where its evidence lives.
+tags: [skill-assets, routing, state-graph]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [route-selection, native-yield, domain-term-recovery]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# autoresearch_composer
+
+The repository's most developed asset, registered as `production-seed-candidate`. Its executed evidence
+is on [Autoresearch-composer lifecycle](../autoresearch-composer-lifecycle.md); this page covers what
+the asset itself does.
+
+## What it prevents
+
+From `skills/autoresearch_composer/skills.md`: plan bounded, metric-driven autoresearch loops *"without
+collapsing match, generate, and validate into one prompt. The asset prevents compressed context from
+becoming an ambiguous route decision."*
+
+The failure mode is specific. Given a thin prompt, a single-shot planner produces a confident route
+anyway. Splitting the work into graph nodes makes the thinness visible as a missing input rather than
+absorbing it into a guess.
+
+## Route selection
+
+`scripts/eval_autoresearch_composer.py::simulate_autoresearch_plan()` is the executable model of the
+routing rule. It inspects the lowercased prompt and returns one of five routes with the state path it
+implies:
+
+| Trigger in the prompt | Route | States |
+|---|---|---|
+| `debug`, `reproduction` | `native-yield:diagnose` | S0 → S1 → S2 → S4 |
+| `security`, `owasp` | `native-yield:security-review` | S0 → S1 → S2 → S4 |
+| `unit test`, `failing`, `bug fix` | `native-yield:tdd` | S0 → S1 → S2 → S4 |
+| `golden dataset`, `llm-as-a-judge`, `trace`, `evals`, `eval suite` | `/autoresearch:evals` | S0 → S1 → S2 → S3 → S4 |
+| anything else | `/autoresearch:plan` | S0 → S1 → S2 → S3 → S4 |
+
+The three `native-yield:*` routes are the *decline* answers — "an existing native skill owns this, do
+not compose an autoresearch loop". They skip S3 (generate) entirely, which is the structural expression
+of yielding. The two slash routes generate an Iteration-Loop Contract.
+
+Route equality is checked by `deterministic_guardrails()` before any judge runs, so a wrong route is a
+hard failure that no score can rescue.
+
+## Domain-term recovery
+
+When the prompt lacks the domain vocabulary the plan needs, the asset recovers it from
+`skills/autoresearch_composer/references/state_graph.md` rather than inventing it. The reference is
+required by `scripts/check_autoresearch_lifecycle.py` to contain `S1 match`, `S3 generate`,
+`S4 validate`, `conditional_edge.S4.ablation_not_positive`, `domain_terms`, and the actor-routing
+vocabulary. The corresponding edge in the authoring graph is
+`conditional_edge.S3.missing_domain_term`; see [Stateful workflow](../stateful-workflow.md).
+
+## Actor routing
+
+`skills.md` states it directly: *"Actor routing follows judge-loop-chooser: Opus/Codex/agy are assigned
+one evidence role each, never left as an unresolved choice."* The same five actors are required in the
+prompt-trace record — `codex`, `agy`, `external-verify`, `judge-loop-chooser`, `openwiki` — see
+[Prompt trace assets](../prompt-trace-assets.md). Leaving an actor unassigned is the ambiguity the asset
+exists to remove; leaving one *unrun* is surfaced as a gate, see
+[Semantic arbitration](../validation/semantic-arbitration.md).
+
+## Boundaries
+
+`WHEN`: a task asks for Goal / Scope / Metric / Direction / Verify / Guard / Iterations and keep-discard
+optimization.
+
+`WHEN NOT`: general SDLC planning, TDD fixes, security reviews, bug diagnosis, design grilling, family
+eval-case authoring. The first four are exactly what the `native-yield:*` routes hand back.
+
+## Cross-repo identity
+
+`scripts/check_autoresearch_lifecycle.py` compares this asset against an upstream source skill two
+directories above the repository (`.claude/skills/autoresearch-composer/`) and fails if the two
+`cases.json` files differ. The production copy cannot drift from the authored one — but the check
+silently reduces in scope when that upstream tree is absent, which is a
+[root-local-runtime](../production-bottlenecks.md) dependency.
+
+## Validation
+
+```sh
+python3 scripts/check_autoresearch_lifecycle.py
+python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json
+python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json
+```
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,260p' /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6/openwiki/architecture/data-authority.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-O9oDB6
+ succeeded in 0ms:
+---
+type: Reference
+title: Data Authority
+description: Which artifact is authoritative for which fact, who may write it, how it is regenerated, and whether a claim is verifiable in this checkout or only a recorded receipt.
+tags: [provenance, ownership]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [state-ownership, evidence-provenance, regeneration]
+libraries: []
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Data Authority
+
+There is no single "the data is SSOT" rule here, and assuming one leads to real mistakes. Authority is
+per-domain. `PROJECT-SSOT.md` states the wiki case explicitly:
+
+> Wiki-to-Graph sync is local-first Event Sourcing: Markdown is human SSOT, event log is audit trail,
+> graph JSON is default projection, external Graph DB write is opt-in.
+
+So for the wiki plane, Markdown is upstream of the JSON — the opposite of the lifecycle plane, where
+JSON is upstream of the Markdown.
+
+## Ownership table
+
+| Domain | Authority | Who may write | Regeneration |
+|---|---|---|---|
+| `skills/*/skills.md`, `skills/*/cases.json` | human SSOT | author | none; validated only |
+| `skills/*/status.json` | the human promotion decision | human | none — and no gate reads it |
+| `data/lifecycle/**` | machine SSOT for lifecycle facts | author edits the JSON | drives its Markdown view |
+| `openwiki/structured-lifecycle-data.md` | **generated projection** | `render_lifecycle_openwiki.py --write` only | must stay byte-equal to `--stdout` |
+| every other `openwiki/**/*.md` | human SSOT | author | none |
+| `data/wiki_graph/event_log.jsonl` | audit trail | `sync_wiki_to_graph.py` | **fully overwritten** each run |
+| `data/wiki_graph/sample_graph.json` | projection | `sync_wiki_to_graph.py` | **fully overwritten** each run |
+| `data/verification_runs/**` | immutable receipt of a completed run | human, only by adding a new dated file | never edited in place |
+| `data/semantic_arbitration_claims.json` | **mutable candidate-claim registry** | human/agent as claim status changes | validated by `semantic_arbitration_report.py` |
+| `data/prompt_trace/**` | trace dataset + golden eval | human/agent | governed by `data/lifecycle/trace_privacy_classification.json` |
+| `data/commit_lineage/gcr_molecular_commits.json` | compensating lineage ledger | human | validated, not regenerated |
+
+Three of those rows are routinely conflated and are worth separating explicitly:
+
+- A **verification run** is a receipt. It records what a completed run measured, is dated in its
+  filename, and is never edited — a new finding means a new file.
+- The **semantic arbitration claims** file is not a receipt. It is a live registry whose entries carry
+  status, and `semantic_arbitration_report.py` reports
+  `semantic_arbitration_status=candidate_until_human_admit` precisely because entries can still change.
+- **Prompt traces** are neither. They are a dataset with their own privacy classification and their own
+  external-revalidation rules, re-checked against frozen inputs only when
+  `check_prompt_trace_assets.py` is given `--workspace-root` / `--commit-repo`.
+
+## Evidence origin: three tiers
+
+Every claim in this wiki falls into one of three tiers. Pages state which one applies.
+
+| Tier | Meaning | Example |
+|---|---|---|
+| **verifiable in this checkout** | a command here reproduces it | `python3 scripts/eval_autoresearch_composer.py` → `cases=4 passed=4` |
+| **receipt / data claim only** | recorded by a past run; this checkout does not replay it | `A2_FAIL_DO_NOT_PROMOTE` in the real-driver verification run |
+| **requires explicit external input** | needs a workspace or Git root that is not here | `validate_molecular_commit_lineage.py --require-current-history` |
+
+The third tier matters more than it looks. This directory **is not its own Git repository**. Running a
+history audit here walks up to whatever enclosing repository contains it and audits *that* repository's
+commits; in a detached copy it fails with
+`--audit-protected-history requires --repo-root or a discoverable Git root`. Any history result must
+name which repository was actually audited. Even the default lineage validation is not fully
+self-contained: it dereferences the ledger's absolute external `verification_run_abs`.
+
+Several datasets likewise carry absolute paths outside this tree
+(`loop_wiki/evolve-unknown-discovery-plan-truth/...`, `<home>/...`), so a clean-room clone cannot
+reproduce those claims without being handed the roots. See
+[Production bottlenecks](../production-bottlenecks.md).
+
+## Regeneration commands
+
+```sh
+python3 scripts/render_lifecycle_openwiki.py --write    # lifecycle display page
+python3 scripts/sync_wiki_to_graph.py                   # event log + graph projection
+```
+
+Both are *author* actions. Their gate counterparts (`check_lifecycle_datasets.py`,
+`check_wiki_graph_sync.py`) verify without writing, which is why they are safe inside
+[the gate chain](defense-gate-chain.md) and the write commands are not.
+
+codex
+<results>
+  <result id="Q-06" status="PARTIAL">
+    <missing>/openwiki/validation/ablation-and-benchmark.md 與 /openwiki/skill-assets/gemini-interactions.md 缺少 loader probe 的判定條件、artifact path containment，以及 resume 對 argv、arm、case、run、cwd、model receipt 的逐項重驗規則。</missing>
+  </result>
+  <result id="Q-07" status="PARTIAL">
+    <missing>/openwiki/validation/behavioral-eval-and-judge.md 未說明主迴圈僅聚合 deterministic failure 與 judge FAIL，亦未交代 cloud SKIP 對退出碼及 passed/report 語意的影響；/openwiki/operations/entrypoint-matrix.md 未明載 cloud job 的 ENABLE_CLOUD_EVALS == 'true' 條件；/openwiki/structured-lifecycle-data.md 未完整說明 check_lifecycle_datasets.py 對 eval summary、trace privacy、drift distribution、promotion record 與 human_admit_binding 的交叉一致性檢查。</missing>
+  </result>
+</results>
+hook: Stop
+hook: Stop Completed
+tokens used
+69,221

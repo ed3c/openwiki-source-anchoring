@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-03" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/writer-publication.md lacks the anchored root/parent descriptor walk, bounded lock retry and busy failure, explicit published and recovery result states, descriptor-cleanup and artifactCreated diagnostics, and the four-writer/conflict/two-interruption production-journey assertions.</missing>
+  </result>
+  <result id="Q-04" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/overview.md lacks the precise v1/v2 preflight distinction and entrypoint rule, complete same-phase result collection and blocked-stage semantics, Bun test-case parsing and subprocess-cleanup pass conditions, gateReceiptErrors rejection rules, and runSmallLoop changed-path plus final failed/blocked/passed receipt construction.</missing>
+  </result>
+</results>

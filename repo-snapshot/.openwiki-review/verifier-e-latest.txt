@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-08" status="PARTIAL">
+    <missing>/openwiki/wiki-graph-sync-architecture.md lacks the heading-stack/link/code-fence extraction rules, generic HTTP transport/non-2xx failure path, and successful external-write integration-test limitation. /openwiki/schema-standards.md lacks the checker’s exact schema, provenance, retrieval, and missing-secret assertions. /openwiki/operations/entrypoint-matrix.md lacks the external job’s permissions.</missing>
+  </result>
+  <result id="Q-09" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>

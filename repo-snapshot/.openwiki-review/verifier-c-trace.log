@@ -1,0 +1,368 @@
+OpenAI Codex v0.146.0
+--------
+workdir: /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-mZs2G0
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fcb52-dcde-7090-a0ad-736869bcacdb
+--------
+user
+
+You verify whether OpenWiki answers a batch of one to three source-derived engineering questions.
+
+Search only files under /openwiki. Never inspect repository source or files outside /openwiki. Never write or modify files.
+
+On an initial verification, evaluate each supplied question against every supplied acceptance criterion. On a retry where acceptance criteria are intentionally omitted, verify that every prior missing item is now answered by the listed changed pages. Do not weaken, expand, or invent requirements. Keep each result independent even when questions share pages.
+
+Status rules:
+- PASS: every criterion is answered accurately and specifically by /openwiki.
+- PARTIAL: at least one criterion is answered, but material details are missing.
+- FAIL: the wiki cannot provide a useful answer.
+- A documented evidence limit may satisfy a criterion when the wiki explicitly establishes that the source provides no guarantee, behavior, or focused test.
+
+For PARTIAL or FAIL, identify missing facts precisely enough for the parent agent to update the canonical pages and include the relevant wiki page when known. Do not restate answers, criteria, or supporting evidence. For PASS, return only None as the missing value.
+
+Return exactly:
+
+<results>
+  <result id="Q-01" status="PASS | PARTIAL | FAIL">
+    <missing>None | concise missing facts and relevant wiki pages</missing>
+  </result>
+</results>
+
+Example:
+
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/workflows/job-lifecycle.md lacks the retry limit, terminal exhaustion transition, and focused failure test.</missing>
+  </result>
+  <result id="Q-02" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+
+Return only the results block, with one result for every supplied question in the original order.
+
+---
+
+Verify whether the OpenWiki answers the following source-derived questions.
+
+This is the initial verification wave. Evaluate each question against every supplied acceptance
+criterion using only files under the wiki you can see. Return one result per question, in order.
+
+[Q-05]: 若要擴充 evidence-cost 軸或 cache identity，`.agents/skills/repo-terminal-operator/evidence-cost-cache.ts:projectEvidenceCostCache` 與 `.agents/skills/repo-terminal-operator/evidence-cost-collector.ts:collectEvidenceCost` 之間的 canonical request、hash binding、測量可信度及 failure receipt 協定為何？
+Acceptance criteria:
+- 說明 request 如何正規化並綁定 plan、所有 source inputs、stage evidence、cost observation 與 toolchain，且 cost 值為何不能直接取自 request。
+- 解釋 cache key 包含哪些 stage／trace 資訊，以及 miss、persistent-hit、cross-combination-hit 如何分類並重新開啟驗證。
+- 區分 projector 的 `external-hash-bound-observation/unadmitted-collector` 與 collector 的 `trusted-direct-process-collector/axis-scoped` claim boundary。
+- 說明 collector 的 opt-in 開關、HEAD 與 bundle source identity、executable hash/version、exact argv、timeout/cancellation 及 cleanup 成功條件。
+- 指出目前真正 measured 的軸、必須保持 `not-selected` 的 I/O bytes／LLM tokens，以及 precondition/system failure 如何獨立持久化且始終 `admission_eligible=false`。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/evidence-cost-cache.ts:parseEvidenceCostCacheRequest`／`projectEvidenceCostCache` — 驗證 canonical inputs、建立 cache 與 asserted totals。
+- `.agents/skills/repo-terminal-operator/evidence-cost-cache.ts:cacheIdentity`／`validateCacheEntry` — 定義 cache identity 與重開綁定。
+- `.agents/skills/repo-terminal-operator/evidence-cost-collector-cli.ts:main` — 強制 production opt-in 並處理 cancellation/failure receipt。
+- `.agents/skills/repo-terminal-operator/evidence-cost-collector.ts:collectEvidenceCost` — 綁定 HEAD、collector bundle、runtime，並只發布可信的 wall/direct-child CPU observation。
+- `.agents/skills/repo-terminal-operator/evidence-cost-collector.ts:persistEvidenceCostPreconditionFailure` — 保存前置條件與系統失敗證據。
+
+warning: clamping SessionEnd hook timeout to 3s in <home>/.codex/plugins/cache/openai-codex/codex/1.0.6/hooks/hooks.json
+hook: SessionStart
+hook: SessionStart
+hook: SessionStart Completed
+hook: SessionStart Completed
+hook: PreToolUse
+2026-08-04T05:50:42.727772Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/zsh -lc 'rg --files /openwiki'`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+hook: PreToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files /openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-mZs2G0
+ exited 2 in 0ms:
+rg: /openwiki: IO error for operation on /openwiki: No such file or directory (os error 2)
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files ./openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-mZs2G0
+ exited 2 in 0ms:
+rg: ./openwiki: IO error for operation on ./openwiki: No such file or directory (os error 2)
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files .' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-mZs2G0
+ succeeded in 0ms:
+./validation/static-skill-validators.md
+./validation/synthetic-corpus-quality.md
+./validation/ablation-and-benchmark.md
+./validation/index.md
+./validation/behavioral-eval-and-judge.md
+./validation/semantic-arbitration.md
+./autoresearch-composer-lifecycle.md
+./terminal-operator/production-profiles-and-handoff.md
+./terminal-operator/evidence-cost.md
+./terminal-operator/index.md
+./terminal-operator/writer-publication.md
+./terminal-operator/async-lifecycle.md
+./terminal-operator/overview.md
+./structured-lifecycle-data.md
+./governance/molecular-commit-lineage.md
+./governance/index.md
+./governance/plan-package-compatibility.md
+./code-call-lifecycle.md
+./index.md
+./asset-lifecycle-map.md
+./README.md
+./production-bottlenecks.md
+./usage.md
+./wiki-graph-sync-architecture.md
+./schema-standards.md
+./quickstart.md
+./openwiki.yaml
+./stateful-workflow.md
+./prompt-trace-assets.md
+./architecture/index.md
+./skill-assets/index.md
+./architecture/data-authority.md
+./skill-assets/contract.md
+./architecture/defense-gate-chain.md
+./skill-assets/gemini-interactions.md
+./architecture/overview.md
+./skill-assets/autoresearch-composer.md
+./testing/test-map.md
+./testing/index.md
+./operations/entrypoint-matrix.md
+./operations/index.md
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,260p' terminal-operator/evidence-cost.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-mZs2G0
+ succeeded in 0ms:
+---
+type: Architecture
+title: Evidence Cost
+description: The cost cache and collector, their hash-bound request flow, the axis semantics that refuse to report a measured zero, and the unclosed v1/v2 handoff between them.
+tags: [terminal-operator, measurement, cost]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [cost-measurement, content-addressed-cache, axis-semantics]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Evidence Cost
+
+Two modules measure what producing a piece of evidence costs. Neither can grant admission, and — as
+shipped — the collector's output cannot be fed back into the cache.
+
+## End-to-end flow
+
+```text
+request  -> canonical content-addressed request (publish, then reopen)
+         -> ready-stage progress
+         -> execution (collector only, under an owned process-group carrier)
+         -> axis-scoped observation receipt
+         -> cache entry
+         -> ledger
+         -> completion receipt
+```
+
+Every arrow publishes through [writer publication](writer-publication.md), and every consumer *reopens*
+what it was handed rather than trusting the value passed in.
+
+## `evidence-cost-cache.ts` — a projector, not a runner
+
+`evidence-cost-cache-cli.ts --request <request.json>` runs only after the referenced receipts exist. The
+request must hash-bind every source input, the cross-cutting plan, the toolchain argv and version, the
+stage evidence, the oracle relation, and a **separate** cost-observation receipt. Cost fields are
+derived from the reopened observation and are never accepted directly from the request — the request
+says which observation, not what it cost.
+
+It publishes a canonical content-addressed request atomically, reopens it, and only then classifies a
+cache hit. A cache entry is reused only after **all** its bindings are reopened.
+
+`materializeStage()` accepts `repo-evidence-cost-observation@v1` with claim boundary
+`external-hash-bound-observation/unadmitted-collector`. Such evidence is treated as **projected**: its
+aggregate axes are named `asserted_*`, and it is routed to the trusted collector node rather than to
+foreground admission.
+
+This projector never runs a worker or grants admission. Its four-projector race probe belongs to opt-in
+production mode, not the foreground edit loop.
+
+## `evidence-cost-collector.ts` — the measuring one
+
+`evidence-cost-collector-cli.ts --request <collector-request.json>` runs **only** with
+`REPO_EVIDENCE_COLLECTOR_PRODUCTION=1`. Before measuring it reopens the plan, the source inputs, the
+typed passing stage evidence, the canonical request, and ready-stage progress; then binds the committed
+collector bundle (`EVIDENCE_COST_COLLECTOR_BUNDLE_REFS`), the resolved executable hash and version, the
+Git HEAD, and the exact argv.
+
+Execution uses an owned Bun process-group carrier. Every Git, runtime and stage subprocess has a hard
+deadline and a cancellation path, and receipt finalization runs in a **separate bounded phase** so a
+cancellation stays diagnosable rather than losing the reason.
+
+It publishes content-addressed request, execution, axis-scoped observation and completion receipts.
+Any timeout, cancellation, nonzero exit, stream/registry/sentinel leak, nested hash drift, or HEAD drift
+**fails closed**. Precondition and system failures are persisted separately by
+`persistEvidenceCostPreconditionFailure()`, so "it never started" is distinguishable from "it started
+and broke".
+
+## Axis semantics: never a measured zero
+
+The v1 collector physically measures wall time and **direct-child CPU only**.
+
+| Axis | Status |
+|---|---|
+| wall time | measured |
+| CPU | measured, direct child only; unavailable CPU is an explicit failure, not zero |
+| I/O | Bun operation counts are **diagnostic** and must not be relabelled as bytes |
+| LLM tokens | `not-selected` until a trusted provider receipt exists |
+| stage source closure | explicitly `not-selected` — collector HEAD proves its own bundle, not every file the stage may read |
+
+Preserving `not-selected` / `not-applicable` instead of writing `0` is the point: a zero is a
+measurement, and claiming one you did not take is the failure mode the whole module is built against.
+
+While I/O bytes or LLM tokens are missing, `admission_eligible` stays **false** and the same collector
+prompt is retained. Nothing this module produces can admit anything.
+
+## The unclosed v1/v2 handoff
+
+The cache accepts observation **`@v1`** with claim boundary
+`external-hash-bound-observation/unadmitted-collector`. The collector emits observation **`@v2`** with
+claim boundary `trusted-direct-process-collector/axis-scoped`.
+
+**They do not compose.** Collector output cannot currently be fed back into the cache projector; the
+schema and the claim boundary both differ. This is a known open seam, not a configuration mistake, and
+any work that assumes a closed loop between the two will not find one.
+
+The heavy collector profile is suitable for a later sealed background worker, but the dispatcher that
+would run it remains disabled — see [Async lifecycle](async-lifecycle.md).
+
+## Evidence boundary
+
+All of the above is read from vendored source; nothing here has been executed in this checkout. See
+[Terminal operator overview](overview.md).
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg -n "persistent-hit|cross-combination|cache key|cache identity|trace|cleanup|exact argv|admission_eligible|not-selected|collector bundle|source identity|failure receipt|precondition" .' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-mZs2G0
+ succeeded in 0ms:
+./validation/static-skill-validators.md:26:| `validate_commit_message.py` | a commit message missing any of 11 traceability fields — see [Molecular commit lineage](../governance/molecular-commit-lineage.md) |
+./asset-lifecycle-map.md:60:`wiki_graph_sync.yml`, `autoresearch_eval.yml`, and `weekly_audit.yml`. Their exact argv, path filters,
+./autoresearch-composer-lifecycle.md:41:`expected_route`, `must_include`, `must_not_include`, `judge_rubric`, `trace_tags` and `risk_level`,
+./autoresearch-composer-lifecycle.md:70:| `python3 scripts/sample_autoresearch_traces.py` | `sample_count=3` `observed_state_count=5` |
+./autoresearch-composer-lifecycle.md:89:| `data/lifecycle/trace_privacy_classification.json` | per-dataset privacy classification |
+./autoresearch-composer-lifecycle.md:90:| `data/autoresearch_traces/{local_trace_samples,failure_trace_samples}.jsonl` | local-first trace samples |
+./validation/behavioral-eval-and-judge.md:23:`must_not_include`, `judge_rubric`, `trace_tags`, `risk_level`. `must_include`, `must_not_include` and
+./validation/behavioral-eval-and-judge.md:24:`trace_tags` must be `list[str]`. A malformed case is an error, not a skipped case.
+./validation/behavioral-eval-and-judge.md:80:`scripts/sample_autoresearch_traces.py` validates the local-first trace samples and reports
+./validation/behavioral-eval-and-judge.md:82:their privacy classification is on [Prompt trace assets](../prompt-trace-assets.md).
+./prompt-trace-assets.md:4:description: The prompt-trace dataset and golden eval, the three prompt slots they record, the actors required for selection, and exactly which parts of the gate are re-verified only with explicit external roots.
+./prompt-trace-assets.md:5:tags: [provenance, prompt-trace]
+./prompt-trace-assets.md:9:covers: [prompt-provenance, trace-privacy, actor-routing]
+./prompt-trace-assets.md:22:- `data/prompt_trace/prompt_trace_dataset.json` — `schema_version` and `dataset_version`
+./prompt-trace-assets.md:23:  (`prompt-trace-assets@2026-07-27`), the `input_to_terminal_trace` (dataflow nodes, directory roots,
+./prompt-trace-assets.md:26:- `data/prompt_trace/golden_prompt_trace_eval.json` — the golden evaluation the dataset is scored
+./prompt-trace-assets.md:28:- `scripts/check_prompt_trace_assets.py` — the gate.
+./prompt-trace-assets.md:32:`check_prompt_trace_assets.py` requires every record to fill `REQUIRED_SLOTS`:
+./prompt-trace-assets.md:59:The trace spans three directory roots, recorded in `input_to_terminal_trace.directory_roots`:
+./prompt-trace-assets.md:66:`input_to_terminal_trace.dataflow_nodes` records the path an input takes from a frozen conversation to
+./prompt-trace-assets.md:92:Each record in `records[]` carries `trace_id`, `prompt_slot`, `context_role`, `route`, `state_node`,
+./prompt-trace-assets.md:105:## Privacy stance: metadata-local prompt traces
+./prompt-trace-assets.md:107:The dataset carries a `privacy_policy`, and `data/lifecycle/trace_privacy_classification.json` classifies
+./prompt-trace-assets.md:108:each dataset. These are **metadata-local prompt traces**: `classification:
+./prompt-trace-assets.md:116:been made, not a default. No trace is shipped to a cloud judge in any case — the cloud path in
+./prompt-trace-assets.md:124:| dataset and golden eval parse, all three slots present, all five actors present | **verifiable in this checkout** — `python3 scripts/check_prompt_trace_assets.py` |
+./prompt-trace-assets.md:128:`scripts/check_prompt_trace_assets.py` is **not** in `scripts/git_gate.py::GATES`, so a routine push does
+./prompt-trace-assets.md:138:python3 scripts/check_prompt_trace_assets.py
+./prompt-trace-assets.md:139:python3 scripts/check_prompt_trace_assets.py --workspace-root /abs/workspace --commit-repo /abs/repo
+./testing/test-map.md:18:dataset and deterministic judge), `llm_judge` (cloud path, disabled by default), `trace` (local trace
+./testing/test-map.md:33:| `test_static_defense_scripts_pass` | each of 25 static gates exits 0 **independently**. Unlike `git_gate.py`, it does not stop at the first failure, so it reports every broken gate in one run. It also covers `check_prompt_trace_assets.py`, which `git_gate.py` does not. |
+./testing/test-map.md:35:| `test_autoresearch_eval_and_trace_gates_pass` | the PR golden eval passes with `cloud_judge_enabled=false`, the trace sampler passes, and the lifecycle dataset display matches its generator |
+./governance/molecular-commit-lineage.md:5:tags: [governance, traceability, git]
+./governance/molecular-commit-lineage.md:9:covers: [commit-traceability, lineage-ledger, history-audit-modes]
+./governance/molecular-commit-lineage.md:17:Every commit that touches a protected path must be traceable back to the intent slice that motivated
+./governance/molecular-commit-lineage.md:34:[Prompt trace assets](../prompt-trace-assets.md) — the same three-way split, enforced at commit time as
+./governance/molecular-commit-lineage.md:55:their machine traceability is compensated instead by two artifacts:
+./governance/molecular-commit-lineage.md:60:| `data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json` | `schema_version: molecular-commit-verification-run@0.2.0`; `status: pass`; `commit_count=235`; `compensated_commit_count=235`; `failed_commit_count=0`; `strict_message_count=20`; 235 `commit_shas`; 2 `proof_commands` |
+./quickstart.md:57:| change lifecycle data | [Data authority](architecture/data-authority.md) | `data/lifecycle/**`, `scripts/render_lifecycle_openwiki.py` | `render()` | `test_autoresearch_eval_and_trace_gates_pass` | `python3 scripts/render_lifecycle_openwiki.py --write && python3 scripts/check_lifecycle_datasets.py` |
+./quickstart.md:58:| change prompt-trace assets | [Prompt trace assets](prompt-trace-assets.md) | `data/prompt_trace/**` | `REQUIRED_SLOTS`, `REQUIRED_ACTORS` | `test_static_defense_scripts_pass` | `python3 scripts/check_prompt_trace_assets.py` |
+./quickstart.md:76:| `python3 scripts/check_prompt_trace_assets.py --workspace-root … --commit-repo …` | re-verifying frozen inputs against an external workspace |
+./quickstart.md:84:   `data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json` reports
+./openwiki.yaml:16:prompt_trace_page: openwiki/prompt-trace-assets.md
+./openwiki.yaml:17:prompt_trace_dataset: data/prompt_trace/prompt_trace_dataset.json
+./openwiki.yaml:18:prompt_trace_golden_eval: data/prompt_trace/golden_prompt_trace_eval.json
+./openwiki.yaml:19:prompt_trace_gate: scripts/check_prompt_trace_assets.py
+./openwiki.yaml:29:commit_lineage_verification_run: data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json
+./terminal-operator/production-profiles-and-handoff.md:44:  awaiting exit; on timeout kill, await termination, and clear the timer in deterministic cleanup.
+./terminal-operator/production-profiles-and-handoff.md:49:  cleanup — without partial-success semantics, any rejection still fails the batch.
+./terminal-operator/production-profiles-and-handoff.md:75:Typed nonzero failure on: stale HEAD, conflicting remote, bootstrap hash drift, cleanup failure, or a
+./README.md:70:- **[prompt-trace-assets.md](prompt-trace-assets.md)** — the three prompt slots, the five required
+./README.md:87:- **[Entrypoint matrix](operations/entrypoint-matrix.md)** — every hook and workflow, its exact argv and
+./terminal-operator/evidence-cost.md:59:collector bundle (`EVIDENCE_COST_COLLECTOR_BUNDLE_REFS`), the resolved executable hash and version, the
+./terminal-operator/evidence-cost.md:60:Git HEAD, and the exact argv.
+./terminal-operator/evidence-cost.md:81:| LLM tokens | `not-selected` until a trusted provider receipt exists |
+./terminal-operator/evidence-cost.md:82:| stage source closure | explicitly `not-selected` — collector HEAD proves its own bundle, not every file the stage may read |
+./terminal-operator/evidence-cost.md:84:Preserving `not-selected` / `not-applicable` instead of writing `0` is the point: a zero is a
+./terminal-operator/evidence-cost.md:87:While I/O bytes or LLM tokens are missing, `admission_eligible` stays **false** and the same collector
+./architecture/data-authority.md:39:| `data/prompt_trace/**` | trace dataset + golden eval | human/agent | governed by `data/lifecycle/trace_privacy_classification.json` |
+./architecture/data-authority.md:49:- **Prompt traces** are neither. They are a dataset with their own privacy classification and their own
+./architecture/data-authority.md:51:  `check_prompt_trace_assets.py` is given `--workspace-root` / `--commit-repo`.
+./architecture/overview.md:41:3. **Structured evidence** — `data/`, holding lifecycle registries, golden datasets, traces, prompt-trace
+./production-bottlenecks.md:48:- `data/prompt_trace/prompt_trace_dataset.json` and `data/commit_lineage/gcr_molecular_commits.json`
+./production-bottlenecks.md:57:Consequence: a clean-room clone cannot reproduce the commit-governance and prompt-trace claims without
+./production-bottlenecks.md:73:  `scripts/check_plan_package_compat.py`, `scripts/check_prompt_trace_assets.py`,
+./operations/entrypoint-matrix.md:4:description: Every hook and workflow with its exact argv, path filter, environment-variable format and side effects — plus the scripts nothing triggers automatically.
+./operations/entrypoint-matrix.md:34:| `autoresearch_eval.yml` | pull_request, workflow_dispatch | `skills/autoresearch_composer/**`, `data/autoresearch_golden/**`, `data/autoresearch_traces/**`, `scripts/eval_autoresearch_composer.py`, `scripts/sample_autoresearch_traces.py`, `tests/test_autoresearch_eval_suite.py` | `eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json`, `sample_autoresearch_traces.py`, `pytest -q -m evals` | none |
+./operations/entrypoint-matrix.md:72:| `check_prompt_trace_assets.py` | `data/prompt_trace/**` changed | [Prompt trace assets](../prompt-trace-assets.md) |
+./operations/entrypoint-matrix.md:77:`check_prompt_trace_assets.py` is covered indirectly by
+./operations/entrypoint-matrix.md:92:| golden-dataset and trace assets | `autoresearch_eval.yml`, `pytest -m evals` |
+./terminal-operator/async-lifecycle.md:36:    F->>L: admit — reopen HEAD, bytes, receipt, job, result, cleanup, isolation
+./terminal-operator/async-lifecycle.md:84:| `admit` | reopens HEAD, candidate bytes, foreground receipt, job, lifecycle result, cleanup, isolation and reviewer bindings, then publishes one immutable ownership receipt |
+./terminal-operator/async-lifecycle.md:101:- **Cleanup**: a cleanup failure is terminal, not a logged warning.
+./usage.md:43:| `data/prompt_trace/**` | `python3 scripts/check_prompt_trace_assets.py` | the three prompt slots and five required actors |
+./usage.md:45:| a commit message | `python3 scripts/validate_commit_message.py <file>` | the 11 required traceability fields |
+./usage.md:58:| `python3 -m pytest -q -m evals` | golden-dataset or trace assets changed |
+./governance/plan-package-compatibility.md:43:It also states the traceability requirement that
+./governance/plan-package-compatibility.md:44:[Molecular commit lineage](molecular-commit-lineage.md) implements: *"Every production file must trace
+./operations/index.md:3:- [Entrypoint Matrix](entrypoint-matrix.md) - Every hook and workflow with its exact argv, path filter, environment-variable format and side effects — plus the scripts nothing triggers automatically.
+./index.md:12:- [Prompt Trace Assets](prompt-trace-assets.md) - The prompt-trace dataset and golden eval, the three prompt slots they record, the actors required for selection, and exactly which parts of the gate are re-verified only with explicit external roots.
+./structured-lifecycle-data.md:15:  -> data/lifecycle/trace_privacy_classification.json
+./structured-lifecycle-data.md:36:| run_id | PR | nightly | trace | failure trace | ablation |
+./structured-lifecycle-data.md:44:| `data/autoresearch_traces/local_trace_samples.jsonl` | `synthetic-local` | false |
+./structured-lifecycle-data.md:45:| `data/autoresearch_traces/failure_trace_samples.jsonl` | `synthetic-local-failure` | false |
+./structured-lifecycle-data.md:55:| dataset_version | case_count | pass_rate | judge_score_avg | trace_sample_count | failure_trace_sample_count | route_distribution |
+./structured-lifecycle-data.md:63:Dataset version, one dated eval run, one promotion record, trace privacy entries,
+./terminal-operator/writer-publication.md:61:- **Aggregated cleanup failure** — cleanup errors are collected and surfaced as a terminal failure
+./terminal-operator/writer-publication.md:62:  rather than being swallowed. `SKILL.md` states the rule for the whole operator: *"Treat cleanup
+./terminal-operator/writer-publication.md:71:| precondition | the root, parent or lease was not what the request bound |
+./terminal-operator/writer-publication.md:74:| cleanup | the artifact published but cleanup failed — still terminal |
+./terminal-operator/writer-publication.md:78:diagnostic and emit a typed nonzero failure receipt."*
+./terminal-operator/writer-publication.md:87:publication, kill-mid-publish, and cleanup-failure paths.
+./terminal-operator/overview.md:89:The task profile deliberately records coverage as `not-selected` rather than claiming a misleading
+./code-call-lifecycle.md:59:  `scripts/sample_autoresearch_traces.py`, and `pytest -m evals`.
+./code-call-lifecycle.md:63:`scripts/check_prompt_trace_assets.py`, and `scripts/real_driver_ablation.py`. They are invoked
+./code-call-lifecycle.md:95:| `python3 scripts/sample_autoresearch_traces.py` | `sample_count=3 observed_state_count=5` |
+./code-call-lifecycle.md:113:- `data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json` —
+./wiki-graph-sync-architecture.md:76:`source_path`, `heading_path`, `commit_sha`, `schema_version` so a fused result can always be traced
+./schema-standards.md:53:`commit_sha`, so any edge can be traced back to the event that produced it.
+./skill-assets/autoresearch-composer.md:42:| `golden dataset`, `llm-as-a-judge`, `trace`, `evals`, `eval suite` | `/autoresearch:evals` | S0 → S1 → S2 → S3 → S4 |
+./skill-assets/autoresearch-composer.md:65:prompt-trace record — `codex`, `agy`, `external-verify`, `judge-loop-chooser`, `openwiki` — see
+./skill-assets/autoresearch-composer.md:66:[Prompt trace assets](../prompt-trace-assets.md). Leaving an actor unassigned is the ambiguity the asset
+
+codex
+<results>
+  <result id="Q-05" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/evidence-cost.md lacks the exact stage/trace fields in the cache identity; the miss, persistent-hit, and cross-combination-hit classification and reopening rules; the collector cleanup success predicate; and an explicit guarantee that persisted precondition/system failures always set admission_eligible=false.</missing>
+  </result>
+</results>
+hook: Stop
+hook: Stop Completed
+tokens used
+42,207

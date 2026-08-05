@@ -1,0 +1,5 @@
+<results>
+  <result id="Q-05" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/evidence-cost.md lacks the exact stage/trace fields included in cache identity and the classification plus reopen-validation rules for miss, persistent-hit, and cross-combination-hit.</missing>
+  </result>
+</results>

@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-08" status="PARTIAL">
+    <missing>/openwiki/wiki-graph-sync-architecture.md 缺少 heading stack 的更新規則、無 title 且無 heading 時的最終 fallback、code-block count 的計算方式及 generic HTTP 非成功回應的失敗路徑；/openwiki/schema-standards.md 未逐項說明 checker 實際檢查的 schema/provenance/retrieval 欄位、missing-secret probe，亦未指出 checker 不提供成功 external write 的整合保證；/openwiki/operations/entrypoint-matrix.md 未記錄 external job 的明確 permissions。</missing>
+  </result>
+  <result id="Q-09" status="PARTIAL">
+    <missing>/openwiki/validation/static-skill-validators.md 未明確說明無 .git 時 modified_case_files 因 Git 狀態不可用而掃描全部 case assets；/openwiki/operations/entrypoint-matrix.md 雖列出 filters，但未明確指出 .agents/**、.githooks/**、workflow 檔自身，以及 data/wiki_graph 的 projection artifacts、data/prompt_trace/**、data/lifecycle/**、data/commit_lineage/** 等變更不會觸發相應 PR CI。</missing>
+  </result>
+</results>

@@ -1,0 +1,5 @@
+<results>
+  <result id="Q-05" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/evidence-cost.md lacks the exact stage/trace fields in the cache identity; the miss, persistent-hit, and cross-combination-hit classification and reopening rules; the collector cleanup success predicate; and an explicit guarantee that persisted precondition/system failures always set admission_eligible=false.</missing>
+  </result>
+</results>

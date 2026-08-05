@@ -1,11 +1,26 @@
 # Reproduction Guide
 
-This repository has two different reproduction targets. Do not treat them as equivalent.
+This repository has three different reproduction targets. Do not treat them as equivalent.
 
 1. **Harness reproduction:** verify the public auditor, resource boundaries, retry loop, claim-preservation guard, and deterministic receipts.
-2. **Experiment reproduction:** regenerate every stochastic arm, answer, and adjudication from the original target and host pipeline.
+2. **Arm reproduction:** recompute every published per-arm number from the vendored target. Deterministic, no model access, run in CI on every push.
+3. **Experiment reproduction:** regenerate every stochastic arm, answer, and adjudication from the original target and host pipeline.
 
-The harness target is public and automated. Full experiment regeneration remains unavailable because some original upstream artifacts and exact model execution details are not public.
+The first two are public and automated. Full experiment regeneration remains unavailable because some original upstream artifacts and exact model execution details are not public.
+
+## Arm reproduction
+
+```sh
+bun run harness/src/audit_arms.ts
+```
+
+Exit 0 means every arm reproduces the numbers in [`FINDINGS.md`](FINDINGS.md); exit 2 names the field that moved.
+
+The five arms are audited against [`repo-snapshot/`](repo-snapshot/), a desensitized copy of the immutable snapshot they were measured against. Until 2026-08-05 that tree was absent and the numbers could not be checked at all — worse, checking them against the real target produced eleven invalid anchors that were artifacts of publication itself: the quoted text had been desensitized while the file it quotes had not. A quote that names a placeholder cannot occur in a file that holds the real string, so publication manufactured defects that read exactly like wiki defects.
+
+`repo-snapshot/SNAPSHOT-MANIFEST.json` therefore carries both hashes per file: `sha256` of the published bytes and `source_sha256` of the studied bytes. The transformation is auditable rather than asserted.
+
+**This tree is evidence, not a runnable repository.** Its own acceptance was measured on both sides: four of its five gates behave identically after desensitization, and `check_plan_package_compat.py` does not, because it compares an absolute path as an identity string rather than opening it. That delta is recorded under `acceptance_delta` in the manifest instead of being smoothed over.
 
 ## Requirements
 

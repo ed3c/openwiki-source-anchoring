@@ -40,10 +40,25 @@ jobs:
       - name: the gate must accept a good anchor
         run: bun run harness/src/audit_wiki.ts harness/tests/fixtures/wiki-good harness/tests/fixtures/target
 
-      - name: published arms must still audit
+      # Checking that the five directories exist was the previous version of this step.
+      # It passed for every commit in which arms B and D were, in fact, failing the gate
+      # on eleven anchors that publication itself had invalidated. Presence is not a
+      # measurement; the arms are audited against the vendored target and compared to the
+      # numbers this repository publishes.
+      - name: published arms must reproduce their published numbers
+        run: bun run harness/src/audit_arms.ts
+
+      - name: the arm pinning must be able to fail
         run: |
           set -e
-          for arm in arm-a-baseline arm-b-retrofit arm-b-stripped arm-c-generated arm-d-gate-driven; do
-            test -d "wiki/$arm" || { echo "missing wiki/$arm" >&2; exit 1; }
-          done
-          echo "ok: five arms present"
+          page=$(ls wiki/arm-d-gate-driven/*/*.md | head -1)
+          cp "$page" /tmp/arm-page.bak
+          printf '\nA claim naming nothing (src: scripts/absent.py `not present`).\n' >> "$page"
+          if bun run harness/src/audit_arms.ts >/dev/null 2>&1; then
+            cp /tmp/arm-page.bak "$page"
+            echo "FAIL: an injected invalid anchor did not move the pinned numbers" >&2
+            exit 1
+          fi
+          cp /tmp/arm-page.bak "$page"
+          bun run harness/src/audit_arms.ts >/dev/null
+          echo "ok: pinning detects drift and the tree was restored"

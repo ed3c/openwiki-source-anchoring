@@ -1,0 +1,34 @@
+<review status="CHANGES_REQUESTED">
+  <prior_requests>
+    <item id="RQ-01" status="UNRESOLVED">
+      <evidence>Canonical paths and generated-page ownership are now mapped, but `openwiki/_skeleton.md:48-59` incorrectly calls the stale `157` literal unsatisfiable and predicts a red gate. `check_openwiki.py` performs only substring matching, so `code-call-lifecycle.md` can quote that exact literal as the stale validator expectation while separately reporting the authoritative value `235`; this avoids fabrication and satisfies the gate.</evidence>
+    </item>
+    <item id="RQ-02" status="UNRESOLVED">
+      <evidence>The Wiki and lifecycle ownership corrections are present, including overwrite semantics and the two-part external-write guard. However, `openwiki/_skeleton.md:85` still combines prompt traces, semantic claims, and verification runs under “imported receipts.” `data/semantic_arbitration_claims.json` is a mutable candidate-claim registry validated by `semantic_arbitration_report.py`, while verification runs are receipts and prompt traces have separate privacy and external-revalidation rules. The requested per-domain authority distinctions remain conflated.</evidence>
+    </item>
+    <item id="RQ-03" status="VERIFIED">
+      <evidence>`openwiki/_skeleton.md:98-118` requires the trigger matrix, all 23 registered gates, uncovered entrypoints, workflow argv/environment formats, selftest-only validators, and the nonfunctional cloud placeholder. These agree with `git_gate.py::GATES`, the four workflows, and `eval_autoresearch_composer.py::cloud_judge()`.</evidence>
+    </item>
+    <item id="RQ-04" status="UNRESOLVED">
+      <evidence>The quarantine state, authoritative failed receipt, unenforced status binding, and main driver improvements are covered. The prior request also required the CLI contract and each tested failure case. The brief does not explicitly assign the `{task}` requirement, Codex `--skip-git-repo-check`, stale-resume rejection, nonzero exit, timeout, partial-output rejection, and ephemeral-CWD invariants proven by `tests/test_real_driver_ablation.py:104-279`; the remaining ablation-page description merely names the driver.</evidence>
+    </item>
+    <item id="RQ-05" status="VERIFIED">
+      <evidence>`openwiki/_skeleton.md:140-152` separates present vendored files from absent runtime, repo-neural-perception, schema, configuration, and Bun-test dependencies; states that standalone execution is impossible; and assigns the task-quality registration chain and preflight invariants a canonical home.</evidence>
+    </item>
+    <item id="RQ-06" status="VERIFIED">
+      <evidence>`openwiki/_skeleton.md:158-166` corrects the worker claim and requires the complete seal, projection, dispatch, claim, review, finish, cancellation, recovery, and admission sequence. `async-worker-carrier.ts:480-515,875-1206` confirms snapshot materialization, candidate overlay, reviewer execution, lease/fencing, cleanup, and transaction recovery.</evidence>
+    </item>
+    <item id="RQ-07" status="UNRESOLVED">
+      <evidence>The dedicated writer page and publication mechanism are now specified, but its consumer inventory is incomplete. Besides the listed lifecycle, facade, control-plane, progress, and evidence-cost modules, `publishWriterArtifact()` is directly consumed by `writer-entrypoint.ts` and `async-worker-carrier.ts`. Both are material boundaries—the public writer seam and worker transaction/result publication—and the prior request required all upstream/downstream consumers.</evidence>
+    </item>
+    <item id="RQ-08" status="VERIFIED">
+      <evidence>`openwiki/_skeleton.md:190-198` explicitly records the end-to-end evidence flow and the unclosed v1/v2 handoff. This matches `evidence-cost-cache.ts:533-562` and `evidence-cost-collector.ts:661-691`, including incompatible schemas, claim boundaries, missing axes, and `admission_eligible=false`.</evidence>
+    </item>
+    <item id="RQ-09" status="UNRESOLVED">
+      <evidence>`openwiki/_skeleton.md:208-218` promises evidence-origin tags but then labels the four-commit history result “Measured here.” This checkout has no `.git`; running `validate_molecular_commit_lineage.py --require-current-history` here fails with “requires --repo-root or a discoverable Git root,” not four missing-lineage commits. Even default validation dereferences the ledger’s absolute external `verification_run_abs`, so its pass is not wholly self-contained. The four-commit result must be classified as requiring explicit external Git input, not locally verifiable evidence.</evidence>
+    </item>
+  </prior_requests>
+
+  <new_requests>
+  </new_requests>
+</review>

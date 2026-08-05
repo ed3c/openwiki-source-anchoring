@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-03" status="FAIL">
+    <missing>/openwiki is unavailable, so none of the required publication, recovery, failure-diagnostic, concurrency, interruption, timeout, cancellation, or cleanup facts can be verified.</missing>
+  </result>
+  <result id="Q-04" status="FAIL">
+    <missing>/openwiki is unavailable, so none of the required packet preflight, phased quality-gate, Bun test-count, typed-receipt, HEAD revalidation, changed-path, or final receipt facts can be verified.</missing>
+  </result>
+</results>

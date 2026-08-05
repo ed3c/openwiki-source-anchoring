@@ -1,0 +1,122 @@
+[Q-01]: 若要修改公開非同步生產流程，請追蹤 `.agents/skills/repo-terminal-operator/async-admission-facade.ts:executeAsyncProductionFacade` 的 `start`／`admit`，如何經過 `.agents/skills/repo-terminal-operator/async-job-lifecycle.ts:sealAsyncProductionRun`、`claimAsyncProductionRun`、`finishAsyncProductionRun`、`cancelAsyncProductionRun`，再由 `.agents/skills/repo-terminal-operator/async-worker-carrier.ts:executeAsyncWorker` 產生可供前景 admission 驗證的結果？
+Acceptance criteria:
+- 說明候選檔案、HEAD、foreground receipt、worker job 與 seal hash 在 start 階段如何被重新開啟、驗證及固定。
+- 列出 awaiting、running、verified／failed／stale、cancelled 的合法轉移，以及版本 CAS、lease、deadline、fencing token 如何拒絕過期或競爭中的 worker。
+- 解釋結果 transaction 在 finish 前後的發布順序、取消競爭，以及 `recoverCommittedResult` 如何處理 lifecycle 已提交但公開結果尚未完成的中斷。
+- 說明 admit 為何仍須重新驗證 HEAD、候選內容、receipt、job、結果、cleanup 與 isolation，且 degraded worker 即使執行完成也不能 admission。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/async-admission-facade.ts:start`／`admit` — 定義公開 start 與前景 admission 邊界。
+- `.agents/skills/repo-terminal-operator/async-job-lifecycle.ts:claimAsyncProductionRun`／`finishAsyncProductionRun`／`cancelAsyncProductionRun` — 實作 CAS、lease、fencing 與終態事件。
+- `.agents/skills/repo-terminal-operator/async-worker-carrier.ts:executeAsyncWorker`／`commitResultTransaction`／`recoverCommittedResult` — 執行隔離 review、提交結果並復原部分完成的 transaction。
+- `.agents/skills/repo-terminal-operator/async-admission-verifier.ts:assertWorkerResult` — 對 admission 所需的 worker result、cleanup、reviewer 與 isolation 綁定做 fail-closed 驗證。
+
+[Q-02]: `.agents/skills/repo-terminal-operator/async-control-plane.ts:projectAsyncControl` 如何把 lifecycle、result transaction 與 progress records 投影成 dispatch、await、recover、foreground-admission、repair-or-close 或 closed，且在新增 redrive 或 orphan 處理時必須保留哪些「只投影、不執行」界線？
+Acceptance criteria:
+- 說明 `classify` 與 `terminalDisposition` 對每個 lifecycle 狀態、deadline、公開結果及 pending transaction 的分類規則。
+- 解釋 `projectDispatch` 與 `projectRecovery` 如何計算 deterministic worker/fencing identity、選擇 expected version，並限制 lease 不得低於 worker 預算或超過 run deadline。
+- 描述 `progressProjection` 接受的 sequence transition、expected-version 與 fencing-token 綁定，以及錯序或跨 fence record 的失敗方式。
+- 說明 `classifyOrphans` 只回報哪些 transaction 為 orphan、為何不刪除它們，以及 projection 中哪些 activation flags 證明 worker、admission、Forgejo 與 cloud 未被啟用。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/async-control-plane.ts:classify`／`terminalDisposition` — 將 durable lifecycle 與結果存在性轉成 disposition。
+- `.agents/skills/repo-terminal-operator/async-control-plane.ts:projectDispatch`／`projectRecovery` — 建立 hash-bound queue request 與 recovery request。
+- `.agents/skills/repo-terminal-operator/async-control-plane.ts:progressProjection` — 驗證 progress sequence、版本與 fence。
+- `.agents/skills/repo-terminal-operator/async-control-plane.ts:classifyOrphans`／`projectAsyncControl` — 投影 orphan 與明確停用的執行能力。
+
+[Q-03]: `.agents/skills/repo-terminal-operator/writer-publication.ts:publishWriterArtifact` 如何藉由 `.agents/skills/repo-terminal-operator/writer-native.ts:openWriterDirectory` 實現 symlink-safe、競爭安全且可復原的不可變發布；若要改動 pending-file 或 hard-link 協定，哪些 crash 與 cleanup 行為不可破壞？
+Acceptance criteria:
+- 追蹤 root／parent descriptor 的 anchored walk、`O_NOFOLLOW`、inode identity 檢查及 bounded lock acquisition。
+- 區分首次 `published`、相同內容的 `matched-existing`、不同內容的 conflict，以及無法取得 lock 時的 bounded busy failure。
+- 解釋 pending file 在 link 前與 link 後中斷時，`recoverPending` 如何分別產生 `pre-link` 與 `post-link` recovery，並清除 residue。
+- 說明 fsync、readback、descriptor cleanup 與 `WriterPublicationFailure.artifactCreated` 如何保存「可能已發布」的診斷。
+- 指出 production journey 對四個 concurrent writers、衝突、兩個注入中斷點、timeout／cancellation 與資源回收的判定。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/writer-native.ts:openWriterDirectory`／`acquireWriterLock` — 建立 anchored directory 與有限重試鎖。
+- `.agents/skills/repo-terminal-operator/writer-publication.ts:recoverPending`／`publishLocked`／`publishWriterArtifact` — 實作 immutable hard-link publication 與 crash recovery。
+- `.agents/skills/repo-terminal-operator/writer-publication-lifecycle.ts:publicationResult` — 聚合主要錯誤與 cleanup 錯誤並保留 artifact-created 狀態。
+- `.agents/skills/repo-terminal-operator/writer-production-race-scenario.ts:writerRaceScenario` — 驗證 concurrent、conflict、pre-link 與 post-link recovery。
+- `.agents/skills/repo-terminal-operator/writer-production-scenarios.ts:writerResourceScenario` — 驗證 subprocess、timer、streams、timeout 與 cancellation cleanup。
+
+[Q-04]: 一個 `terminal-slice-packet` 從 `.agents/skills/repo-terminal-operator/repo-preflight.ts:runPreflightChecks` 進入 `.agents/skills/repo-terminal-operator/small-loop-runner.ts:runSmallLoop` 後，如何被轉成可驗證的 code-quality、production-use 與最終 receipt；新增 gate 或測試階段時必須同步哪些 contract？
+Acceptance criteria:
+- 區分 v1 與 v2 packet 的驗證，並說明 target repo、entrypoint、HEAD、lease、allowed paths、claim set 與 TDD receipt 的 preflight 規則。
+- 說明 task-quality stages 如何依 phase 執行、同 phase 如何收集所有結果、前一 phase 失敗後哪些 stage 會標為 blocked。
+- 解釋為何測試命令 exit code 為零仍須解析出至少一個 Bun test case，以及 subprocess cleanup 欄位如何影響 pass。
+- 說明 `gateReceiptErrors` 如何拒絕 profile command drift、非 typed receipt、不完整 production safety 或錯誤 evidence scope。
+- 描述 `runSmallLoop` 在開始與結束時如何重新檢查 HEAD、收集 changed paths，並形成 failed／blocked／passed 的最終 receipt。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/repo-preflight.ts:runPreflightChecks` — 聚合 packet contract、lease、HEAD、路徑與 evidence preflight。
+- `.agents/skills/repo-terminal-operator/repo-preflight-evidence.ts:claimSetCheck`／`tddReceiptCheck` — 驗證 v2 claim-set hash 與 red/green/minimal-diff receipts。
+- `.agents/skills/repo-terminal-operator/task-quality-runner.ts:executeTaskQuality`／`runPhase`／`runStage` — 實作 phased gates、test-count 與 cleanup 判定。
+- `.agents/skills/repo-terminal-operator/small-loop-gate-contract.ts:gateReceiptErrors` — 驗證 code-quality 與 production-use typed receipts。
+- `.agents/skills/repo-terminal-operator/small-loop-runner.ts:runSmallLoop` — 組合 preflight、gates、HEAD 重驗與最終 receipt。
+
+[Q-05]: 若要擴充 evidence-cost 軸或 cache identity，`.agents/skills/repo-terminal-operator/evidence-cost-cache.ts:projectEvidenceCostCache` 與 `.agents/skills/repo-terminal-operator/evidence-cost-collector.ts:collectEvidenceCost` 之間的 canonical request、hash binding、測量可信度及 failure receipt 協定為何？
+Acceptance criteria:
+- 說明 request 如何正規化並綁定 plan、所有 source inputs、stage evidence、cost observation 與 toolchain，且 cost 值為何不能直接取自 request。
+- 解釋 cache key 包含哪些 stage／trace 資訊，以及 miss、persistent-hit、cross-combination-hit 如何分類並重新開啟驗證。
+- 區分 projector 的 `external-hash-bound-observation/unadmitted-collector` 與 collector 的 `trusted-direct-process-collector/axis-scoped` claim boundary。
+- 說明 collector 的 opt-in 開關、HEAD 與 bundle source identity、executable hash/version、exact argv、timeout/cancellation 及 cleanup 成功條件。
+- 指出目前真正 measured 的軸、必須保持 `not-selected` 的 I/O bytes／LLM tokens，以及 precondition/system failure 如何獨立持久化且始終 `admission_eligible=false`。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/evidence-cost-cache.ts:parseEvidenceCostCacheRequest`／`projectEvidenceCostCache` — 驗證 canonical inputs、建立 cache 與 asserted totals。
+- `.agents/skills/repo-terminal-operator/evidence-cost-cache.ts:cacheIdentity`／`validateCacheEntry` — 定義 cache identity 與重開綁定。
+- `.agents/skills/repo-terminal-operator/evidence-cost-collector-cli.ts:main` — 強制 production opt-in 並處理 cancellation/failure receipt。
+- `.agents/skills/repo-terminal-operator/evidence-cost-collector.ts:collectEvidenceCost` — 綁定 HEAD、collector bundle、runtime，並只發布可信的 wall/direct-child CPU observation。
+- `.agents/skills/repo-terminal-operator/evidence-cost-collector.ts:persistEvidenceCostPreconditionFailure` — 保存前置條件與系統失敗證據。
+
+[Q-06]: 在解除 `skills/gemini_interactions/status.json:status` 的 quarantine 前，應如何解讀 deterministic regex gates 與 `.agents` 無關的真實 agent ablation：`scripts/real_driver_ablation.py:main`、`scripts/ablation_engine.py:evaluate`、`scripts/synthetic_case_quality_report.py:analyze_cases` 分別能證明什麼、不能證明什麼？
+Acceptance criteria:
+- 區分 patched/simulated output 的 117-case、local regex、deterministic ablation 與真正執行外部 agent command 的 real-driver 證據邊界。
+- 說明 real-driver 的 loader probe、with/without-skill arms、threshold、非零退出／timeout 強制失敗及 runtime model metadata 完整性。
+- 解釋每次 invocation 的 ephemeral cwd、artifact path containment，以及 resume 時 argv、arm、case、run、cwd 與 model receipt 的重驗規則。
+- 將 quarantine 中記錄的低 delta、timeout、負案例混淆與共享 cwd 污染，對應到目前測試覆蓋的修正行為；不得把 fixture 通過等同於 production promotion。
+- 指出 synthetic quality report 為何即使腳本退出成功仍可回報 `quality_status=insufficient`。
+Source evidence:
+- `scripts/real_driver_ablation.py:invoke`／`load_resumable_run`／`main` — 實作隔離真實執行、resume binding 與最終 verdict。
+- `tests/test_real_driver_ablation.py:RealDriverAblationTest.test_real_driver_runs_both_arms_and_resolves_model_from_runtime_metadata` — 覆蓋雙臂、metadata、resume 與 stale receipt。
+- `tests/test_real_driver_ablation.py:RealDriverAblationTest.test_timed_out_partial_output_cannot_count_as_case_pass` — 證明 timeout 的部分輸出不能誤判通過。
+- `scripts/ablation_engine.py:evaluate`／`scripts/interactions_patch_assert_runner.py:patched_agent` — 顯示 deterministic/synthetic 評估使用模擬輸出。
+- `scripts/synthetic_case_quality_report.py:analyze_cases`／`skills/gemini_interactions/status.json:reasons` — 明確記錄 corpus 品質限制與 quarantine 原因。
+
+[Q-07]: 若要真正啟用 autoresearch cloud judge 或調整 promotion gate，`.github/workflows/autoresearch_eval.yml:jobs`、`scripts/eval_autoresearch_composer.py:cloud_judge` 與 `scripts/check_lifecycle_datasets.py:main` 目前如何互動，哪些設定會只產生 SKIP 卻看似成功？
+Acceptance criteria:
+- 說明 golden case schema、prompt-to-route 模擬、deterministic guardrails 與 local heuristic judge 的 pass/fail 規則。
+- 比較 workflow 以 `ENABLE_CLOUD_EVALS == 'true'` 啟動 job、傳入的 `ENABLE_LLM_JUDGE` 值，以及 `cloud_judge` 僅接受 `"1"` 且仍回傳 placeholder SKIP 的行為。
+- 說明 main loop 為何只把 deterministic failures 或 judge `FAIL` 計為失敗，並評估 cloud `SKIP` 對退出碼與報表語意的影響。
+- 追蹤 PR/nightly dataset versions、eval summary、trace privacy、drift distribution 與 promotion record 的一致性要求，包含 human-admit 綁定。
+- 指出 pytest 分別驗證 PR、nightly 與 local traces 的哪些可觀察輸出，而沒有證明真實 cloud API judge 已執行。
+Source evidence:
+- `.github/workflows/autoresearch_eval.yml:jobs.cloud-judge-disabled-by-default` — 定義 cloud job 條件與環境變數。
+- `scripts/eval_autoresearch_composer.py:cloud_judge`／`main` — 實作 enable 檢查、placeholder SKIP 與 failure 聚合。
+- `scripts/check_lifecycle_datasets.py:main` — 綁定 dataset versions、eval summary、privacy、drift 與 promotion 狀態。
+- `data/lifecycle/promotion_records.json:records[0].human_admit_binding` — 保存 prepared-unsigned 的人工 admission 條件。
+- `tests/test_autoresearch_eval_suite.py:test_pr_golden_dataset_passes_local_judge`／`test_nightly_golden_dataset_passes_local_judge`／`test_local_trace_samples_are_validated` — 證明現有 local-first gates。
+
+[Q-08]: 若要變更 Wiki graph schema 或新增 external graph backend，`scripts/sync_wiki_to_graph.py:event_for_file`、`project_graph`、`write_external_graph_if_enabled` 與 `scripts/check_wiki_graph_sync.py:main` 之間有哪些 event、provenance、retrieval 及 fail-closed 契約？
+Acceptance criteria:
+- 說明 frontmatter/title fallback、heading stack、links、code-block count、license defaults，以及 event ID 對 source path、commit SHA、content hash 的綁定。
+- 描述 WikiDocument、WikiSection、HAS_SECTION、LINKS_TO、USES_SCHEMA 與 vector chunks 的建立方式及 required retrieval fields。
+- 解釋 external write 的雙重 opt-in、secret 檢查、generic HTTP 與 Neo4j transaction payload，以及 HTTP／Neo4j errors 的失敗路徑。
+- 說明現有 checker 實際驗證哪些 schema/provenance/retrieval 欄位、missing-secret failure 與本地重建；並指出它沒有建立成功 external write 的整合保證。
+- 說明 workflow 的 path filters、local projection artifact 與 external job permissions/activation 如何限制觸發範圍。
+Source evidence:
+- `scripts/sync_wiki_to_graph.py:event_for_file`／`project_graph` — 將 Markdown 投影成 events、nodes、edges 與 chunks。
+- `scripts/sync_wiki_to_graph.py:write_external_graph_if_enabled`／`post_neo4j_graph_payload` — 實作 external backend 選擇、secret 與回應錯誤處理。
+- `data/wiki_graph/schema.json:required_event_fields`／`required_provenance_fields`／`required_graph_fields` — 定義結構化 graph contract。
+- `scripts/check_wiki_graph_sync.py:main` — 執行本地重建、missing-secret probe 與 artifact contract 檢查。
+- `.github/workflows/wiki_graph_sync.yml:jobs.local-first-wiki-graph-sync`／`jobs.external-graph-write-disabled-by-default` — 定義 CI 投影與 opt-in external write。
+
+[Q-09]: 在沒有 `.git` 的 checkout 中，兩個 hooks、四個 workflows 與 `scripts/git_gate.py:main` 實際涵蓋哪些防線；新增 `.agents`、data、hook 或 workflow 檔案時，哪些變更可能不會觸發預期 CI 或只執行 validator selftest？
+Acceptance criteria:
+- 追蹤 `.githooks/pre-push` 到完整 `GATES`，以及 `.githooks/commit-msg` 如何把實際 message path 傳給 commit-message validator。
+- 說明 `git_gate` 的 fail-fast 順序、輸入狀態 hash、禁止 repo 內 receipt、原子 receipt 寫入及 gate 執行前後 mutation 偵測。
+- 解釋 `validate_skills_baseline.modified_case_files` 在非 Git checkout 如何退回掃描全部 case assets，以及 `validate_commit_message.main` 無 message path 時只跑 selftest 的差異。
+- 比較 `skill_ci`、`autoresearch_eval`、`wiki_graph_sync` 與 `weekly_audit` 的事件/path filters，指出 `.agents/**`、hooks、部分 data 或 workflow 自身變更是否會觸發相應工作。
+- 說明 pytest governance test 與 molecular-lineage validator 在無 Git history 時仍能驗證哪些靜態資料，哪些 history-backed 檢查只有顯式 flags 與 Git root 才成立。
+Source evidence:
+- `.githooks/pre-push:python3 "$ROOT/scripts/git_gate.py"`／`.githooks/commit-msg:validate_commit_message.py` — 本地 push 與 commit-message 入口。
+- `scripts/git_gate.py:GATES`／`input_state_sha256`／`write_receipt`／`main` — 定義完整 gate、穩定性 hash 與 receipt 行為。
+- `scripts/validate_skills_baseline.py:modified_case_files`／`main` — 定義 Git-aware 掃描與無 Git fallback。
+- `scripts/validate_commit_message.py:main`／`selftest` — 區分真實 commit message 驗證與無參數 selftest。
+- `.github/workflows/skill_ci.yml:on.pull_request.paths`／`.github/workflows/weekly_audit.yml:on.schedule` — 顯示主要 CI/audit 的觸發邊界。
+- `tests/test_skill_asset_governance.py:test_static_defense_scripts_pass`／`test_molecular_commit_lineage_gate_passes` — 證明 pytest 中執行的是腳本預設模式，而非 Git-history audit。

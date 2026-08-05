@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-03" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/writer-publication.md lacks an explicit second interruption production-journey assertion: the cancellation probe does not identify its interruption point or the required published-artifact and pending-file cleanup outcome.</missing>
+  </result>
+  <result id="Q-04" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/overview.md names the entrypoint preflight check but does not state its exact accepted argv/matching rule or whether that rule differs between v1 and v2 packets.</missing>
+  </result>
+</results>

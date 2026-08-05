@@ -1,0 +1,333 @@
+OpenAI Codex v0.146.0
+--------
+workdir: /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AWLmVu
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fcb62-d03d-7391-9e80-8b4834d55d7c
+--------
+user
+
+You verify whether OpenWiki answers a batch of one to three source-derived engineering questions.
+
+Search only files under /openwiki. Never inspect repository source or files outside /openwiki. Never write or modify files.
+
+On an initial verification, evaluate each supplied question against every supplied acceptance criterion. On a retry where acceptance criteria are intentionally omitted, verify that every prior missing item is now answered by the listed changed pages. Do not weaken, expand, or invent requirements. Keep each result independent even when questions share pages.
+
+Status rules:
+- PASS: every criterion is answered accurately and specifically by /openwiki.
+- PARTIAL: at least one criterion is answered, but material details are missing.
+- FAIL: the wiki cannot provide a useful answer.
+- A documented evidence limit may satisfy a criterion when the wiki explicitly establishes that the source provides no guarantee, behavior, or focused test.
+
+For PARTIAL or FAIL, identify missing facts precisely enough for the parent agent to update the canonical pages and include the relevant wiki page when known. Do not restate answers, criteria, or supporting evidence. For PASS, return only None as the missing value.
+
+Return exactly:
+
+<results>
+  <result id="Q-01" status="PASS | PARTIAL | FAIL">
+    <missing>None | concise missing facts and relevant wiki pages</missing>
+  </result>
+</results>
+
+Example:
+
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/workflows/job-lifecycle.md lacks the retry limit, terminal exhaustion transition, and focused failure test.</missing>
+  </result>
+  <result id="Q-02" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+
+Return only the results block, with one result for every supplied question in the original order.
+
+---
+
+Retry verification. Each question below previously returned PARTIAL. Acceptance criteria are
+intentionally omitted: verify only that every prior missing item is now answered by the listed changed
+pages. Do not weaken, expand, or invent requirements. Return one result per question, in order.
+
+[Q-01]: 若要修改公開非同步生產流程，請追蹤 `.agents/skills/repo-terminal-operator/async-admission-facade.ts:executeAsyncProductionFacade` 的 `start`／`admit`，如何經過 `.agents/skills/repo-terminal-operator/async-job-lifecycle.ts:sealAsyncProductionRun`、`claimAsyncProductionRun`、`finishAsyncProductionRun`、`cancelAsyncProductionRun`，再由 `.agents/skills/repo-terminal-operator/async-worker-carrier.ts:executeAsyncWorker` 產生可供前景 admission 驗證的結果？
+
+Prior missing items:
+- /openwiki/terminal-operator/async-lifecycle.md 缺少 seal hash 的具體固定方式、完整合法狀態轉移、版本 CAS／lease／deadline／fencing token 的拒絕規則，以及 finish、取消競爭、公開結果發布與 recoverCommittedResult 的精確 transaction 順序。
+
+Wiki pages changed to resolve it:
+- openwiki/terminal-operator/async-lifecycle.md
+
+[Q-02]: `.agents/skills/repo-terminal-operator/async-control-plane.ts:projectAsyncControl` 如何把 lifecycle、result transaction 與 progress records 投影成 dispatch、await、recover、foreground-admission、repair-or-close 或 closed，且在新增 redrive 或 orphan 處理時必須保留哪些「只投影、不執行」界線？
+
+Prior missing items:
+- /openwiki/terminal-operator/async-lifecycle.md 缺少 classify／terminalDisposition 的完整分類矩陣、dispatch／recovery identity 與 expected-version／lease 計算、progress sequence 與 fence 驗證規則、orphan 的精確判定條件及各 activation flag 的明確值。
+
+Wiki pages changed to resolve it:
+- openwiki/terminal-operator/async-lifecycle.md
+
+warning: clamping SessionEnd hook timeout to 3s in <home>/.codex/plugins/cache/openai-codex/codex/1.0.6/hooks/hooks.json
+hook: SessionStart
+hook: SessionStart
+hook: SessionStart Completed
+hook: SessionStart Completed
+hook: PreToolUse
+2026-08-04T06:08:06.986801Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/zsh -lc "sed -n '1,260p' /openwiki/terminal-operator/async-lifecycle.md"`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+hook: PreToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,320p' openwiki/terminal-operator/async-lifecycle.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-AWLmVu
+ succeeded in 0ms:
+---
+type: Architecture
+title: Async Lifecycle
+description: The seal, claim, finish, cancel and projection rules of the async production lifecycle — the exact CAS, lease, deadline and fencing checks, the control-plane disposition matrix, and which component actually executes work.
+tags: [terminal-operator, async, admission]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [async-seal, worker-execution, admission-boundary, cas-lease-fencing]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Async Lifecycle
+
+Four modules, four different authorities. The distinction that matters most: **`async-worker-carrier.ts`
+really does execute work**, while the lifecycle, control plane and facade around it do not.
+
+## Sequence
+
+```mermaid
+sequenceDiagram
+    participant F as admission facade
+    participant L as job lifecycle
+    participant C as control plane
+    participant D as external dispatcher
+    participant W as worker carrier
+    F->>L: start, reopen HEAD and receipts
+    L->>L: seal, publish then read back
+    C->>L: project queue refs, advisory only
+    D->>W: claim a sealed job
+    W->>W: git archive snapshot, overlay candidates
+    W->>W: run hash-bound reviewer subprocess
+    W->>L: finish or cancel, monotonic CAS event
+    F->>L: admit, reopen everything again
+    F-->>F: publish one immutable ownership receipt
+```
+
+## State machine
+
+Durable state is a seal file plus append-only event files. `version` is the CAS counter; every
+transition publishes an event at `expectedVersion + 1` and never rewrites an earlier one.
+
+```mermaid
+stateDiagram-v2
+    [*] --> awaiting: sealAsyncProductionRun, version 0
+    awaiting: awaiting-production
+    running: running-production
+    awaiting --> running: claim
+    running --> running: claim after lease expiry, reclaim
+    running --> verified: finish
+    running --> failed: finish
+    running --> stale: finish
+    awaiting --> cancelled: cancel
+    running --> cancelled: cancel
+    verified --> [*]
+    failed --> [*]
+    stale --> [*]
+    cancelled --> [*]
+```
+
+`sealAsyncProductionRun()` writes `<runId>.seal.json`, **reopens it**, and throws
+`published-seal-readback-mismatch` if the re-read `candidateSha256` differs. It returns
+`repo-async-production-foreground-outcome@v2` with `status: awaiting-production`, `version: 0`, and
+`admissionEligible: false` — a seal is never admissible by itself.
+
+## Rejection rules, verbatim
+
+Every guard below throws a typed message. They are worth reading as a list because each one closes a
+specific race.
+
+**Shared**
+- `assertExpected()` → `cas-version-mismatch:<expected>-><actual>` when the durable version moved.
+- `inspectAsyncProductionRun()` → `event-seal-hash-mismatch` when the latest event's `sealSha256`
+  disagrees with the seal file, i.e. events and seal have diverged.
+- `openAsyncProductionSeal()` → `seal-hash-mismatch` unless the caller's `expectedSealSha256` matches.
+
+**`claimAsyncProductionRun()`**
+
+| Condition | Error |
+|---|---|
+| `leaseExpiresAt <= now` | `lease-must-expire-after-claim` |
+| `workerId` or `fencingToken` not a valid run-id token | `invalid-worker-or-fencing-token` |
+| version moved | `cas-version-mismatch:…` |
+| seal hash differs | `seal-hash-mismatch` |
+| `now >= deadlineAt` | `run-deadline-expired` |
+| `leaseExpiresAt > deadlineAt` | `lease-exceeds-run-deadline` |
+| status is neither `awaiting-production` nor an expired `running-production` | `job-not-claimable:<status>` |
+
+The reclaim path is precise: a `running-production` run is claimable **only** when it has a
+`leaseExpiresAt` and `now >= leaseExpiresAt`. That is the fencing rule — a worker whose lease lapsed
+loses the run to the next claimer, and its own later `finish` will be rejected.
+
+**`finishAsyncProductionRun()`**
+
+| Condition | Error |
+|---|---|
+| `terminalStatus` not in `verified` / `failed` / `stale` | `invalid-terminal-status` |
+| bad `fencingToken` or `resultSha256` shape | `invalid-finish-binding` |
+| `transactionParentDev` / `Ino` present but not safe non-negative integers | `invalid-transaction-parent-binding` |
+| version moved | `cas-version-mismatch:…` |
+| `now >= deadlineAt` | `run-deadline-expired` |
+| status is not `running-production`, or no lease recorded | `job-not-running:<status>` |
+| `fencingToken` differs from the recorded one | `fencing-token-mismatch` |
+| `now >= leaseExpiresAt` | `expired-fencing-token` |
+
+So a stale worker fails **twice over** — wrong token, or right token but lapsed lease. Neither can
+publish a terminal event.
+
+**`cancelAsyncProductionRun()`**
+- empty reason → `cancel-reason-required`
+- version moved → `cas-version-mismatch:…`
+- status not `awaiting-production` or `running-production` → `job-not-cancellable:<status>`
+
+Cancel and finish therefore race on the CAS version: whichever publishes `expectedVersion + 1` first
+wins, and the loser sees a version mismatch rather than corrupting state.
+
+## The worker is the one that executes
+
+`async-worker-carrier.ts::executeAsyncWorker()` materializes a `git archive` snapshot of the bound
+commit, overlays the candidate bytes onto it, and runs the **hash-bound reviewer subprocess** against
+that isolated tree. It persists `AsyncWorkerProgress` through an `AsyncWorkerProgressSink`, watches for
+cancellation, enforces lease and deadline (`minimumAsyncWorkerLeaseMs()`), commits the result
+transaction, and recovers a transaction that was interrupted after commit but before the public result
+was published (`recoverCommittedResult`).
+
+Treating the async layer as uniformly passive is the error to avoid: `SKILL.md`'s per-CLI prohibitions
+describe the *facade*, *lifecycle* and *control plane*, not the carrier.
+
+Requests and jobs go through strict parsers — `parseAsyncWorkerRequest()`, `parseAsyncWorkerJob()` — so
+a worker never starts from a partially understood payload.
+
+## Control-plane disposition matrix
+
+`projectAsyncControl()` classifies each run and never executes it. `classify()`:
+
+| Run state | Disposition |
+|---|---|
+| `verified` / `failed` / `stale` | delegate to `terminalDisposition()` |
+| `cancelled` | `closed` |
+| `now >= deadlineAt` | `repair-or-close` |
+| `awaiting-production`, or `nextAction == verification-lease-expired-reclaimable` | `dispatch` |
+| `running-production` | `await` |
+| anything else | `repair-or-close` |
+
+`terminalDisposition()` decides whether a finished run is admissible or needs repair:
+
+| Condition | Disposition |
+|---|---|
+| no `resultRef` / `resultSha256` | `repair-or-close` |
+| the public result artifact exists and matches its hash | `foreground-admission` |
+| missing `fencingToken`, `transactionParentDev` or `transactionParentIno` | `repair-or-close` |
+| the transactions directory's `dev`/`ino` differ from the recorded binding | **throws** `transaction-parent-binding-mismatch:<runId>` |
+| a pending `<fencingToken>.result.json` matches the hash | recover |
+| otherwise | `repair-or-close` |
+
+The inode binding check is a hard throw rather than a disposition: a transactions directory that is not
+the one the run committed into means the state root was swapped underneath, which is not something to
+classify around.
+
+## Deterministic identities and lease bounds
+
+`projectDispatch()`:
+- lease must be at least `minimumAsyncWorkerLeaseMs(seal)` → `worker-lease-insufficient:<runId>`
+- lease must not exceed the remaining time to `deadlineAt` → `worker-lease-exceeds-run-deadline:<runId>`
+- worker identity is `sha256("<sealSha256>:<version>")` — the same run at the same version always
+  projects the same request, so re-projection is idempotent.
+
+`projectRecovery()`:
+- same minimum-lease rule
+- requires `version >= 2` and a `fencingToken` → `terminal-recovery-binding-missing:<runId>`
+- targets `expectedVersion = version - 2`, i.e. the state before the terminal event
+- identity is `sha256("<sealSha256>:<expectedVersion>:<fencingToken>:recover")`, so a recovery request
+  is distinguishable from a dispatch for the same run.
+
+## Progress binding
+
+`progressProjection()` accepts a progress record only when `run_id` and `seal_sha256` match the view,
+and — when the view carries one — the record's `fencing_token` matches. Records from a fenced-out
+worker are dropped rather than merged.
+
+The accepted `expected_version` depends on the current status:
+
+| Status | Accepted expected versions |
+|---|---|
+| `running-production` | `version - 1` |
+| `verified` / `failed` / `stale` | `version - 2` |
+| `cancelled` | `version - 2` and `version - 1`, clamped at 0 |
+| otherwise | `version` |
+
+An out-of-order record, or one bound to a different fence, does not advance the projection.
+
+## Orphans are classified, never deleted
+
+`classifyOrphans()` reports transaction directories that do not correspond to any known run. It returns
+identifiers only — the control plane has no delete path. Cleaning them up is an operator decision.
+
+## Activation flags prove nothing was enabled
+
+Every projection carries, literally:
+
+```json
+"activation": {
+  "workers_executed": false,
+  "background_admission_enabled": false,
+  "forgejo_enabled": false,
+  "cloud_enabled": false
+},
+"admission_eligible": false
+```
+
+The projection is published through `publishWriterArtifact()`, then re-read and compared byte for byte
+(`projection-readback-mismatch` on failure). A projection that claims work happened would itself be a
+contract violation; these constants are what makes "project-only" checkable rather than asserted.
+
+## The facade is the only public seam
+
+`async-admission-facade-cli.ts --request <request.json>`:
+
+| Verb | Behavior |
+|---|---|
+| `start` | reopens HEAD, bounded candidate refs, a complete `small-loop-run-receipt@v1` assertion and the shared worker-job parser, then seals. **Never launches a worker.** |
+| `inspect` | read-only |
+| `cancel` | appends exactly one monotonic lifecycle event |
+| `admit` | reopens HEAD, candidate bytes, foreground receipt, job, lifecycle result, cleanup, isolation and reviewer bindings, then publishes one immutable ownership receipt |
+
+Two admitters converge and **only the first owns publication**; `cwd-only-degraded` is advisory and
+never admissible. `async-admission-verifier.ts::assertWorkerResult()` is the fail-closed check the
+admit path runs over the worker result, cleanup, reviewer and isolation bindings.
+
+## Evidence boundary
+
+Read from vendored source; there is no Bun toolchain or test suite in this checkout, so none of the
+above has been executed here. See [Terminal operator overview](overview.md). All persistence goes
+through [writer publication](writer-publication.md).
+
+codex
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/async-lifecycle.md 仍缺少 sealSha256 的精確計算與固定方式，以及 result transaction commit、finish CAS、公開結果發布、取消競爭和 recoverCommittedResult 的逐步 transaction 順序。</missing>
+  </result>
+  <result id="Q-02" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/async-lifecycle.md 仍缺少 dispatch 的 expectedVersion 與 lease 時間值計算、progress sequence 的精確接受／拒絕條件，以及 orphan 的完整判定條件。</missing>
+  </result>
+</results>
+hook: Stop
+hook: Stop Completed
+tokens used
+23,686

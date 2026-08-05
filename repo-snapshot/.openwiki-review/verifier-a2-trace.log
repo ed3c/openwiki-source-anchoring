@@ -1,0 +1,520 @@
+OpenAI Codex v0.146.0
+--------
+workdir: /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-zXSLX3
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fcb54-754d-7d00-83d1-7ae202e9e403
+--------
+user
+
+You verify whether OpenWiki answers a batch of one to three source-derived engineering questions.
+
+Search only files under /openwiki. Never inspect repository source or files outside /openwiki. Never write or modify files.
+
+On an initial verification, evaluate each supplied question against every supplied acceptance criterion. On a retry where acceptance criteria are intentionally omitted, verify that every prior missing item is now answered by the listed changed pages. Do not weaken, expand, or invent requirements. Keep each result independent even when questions share pages.
+
+Status rules:
+- PASS: every criterion is answered accurately and specifically by /openwiki.
+- PARTIAL: at least one criterion is answered, but material details are missing.
+- FAIL: the wiki cannot provide a useful answer.
+- A documented evidence limit may satisfy a criterion when the wiki explicitly establishes that the source provides no guarantee, behavior, or focused test.
+
+For PARTIAL or FAIL, identify missing facts precisely enough for the parent agent to update the canonical pages and include the relevant wiki page when known. Do not restate answers, criteria, or supporting evidence. For PASS, return only None as the missing value.
+
+Return exactly:
+
+<results>
+  <result id="Q-01" status="PASS | PARTIAL | FAIL">
+    <missing>None | concise missing facts and relevant wiki pages</missing>
+  </result>
+</results>
+
+Example:
+
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/workflows/job-lifecycle.md lacks the retry limit, terminal exhaustion transition, and focused failure test.</missing>
+  </result>
+  <result id="Q-02" status="PASS">
+    <missing>None</missing>
+  </result>
+</results>
+
+Return only the results block, with one result for every supplied question in the original order.
+
+---
+
+Verify whether the OpenWiki answers the following source-derived questions.
+
+This is the initial verification wave. Evaluate each question against every supplied acceptance
+criterion using only files under the wiki you can see. Return one result per question, in order.
+
+[Q-01]: 若要修改公開非同步生產流程，請追蹤 `.agents/skills/repo-terminal-operator/async-admission-facade.ts:executeAsyncProductionFacade` 的 `start`／`admit`，如何經過 `.agents/skills/repo-terminal-operator/async-job-lifecycle.ts:sealAsyncProductionRun`、`claimAsyncProductionRun`、`finishAsyncProductionRun`、`cancelAsyncProductionRun`，再由 `.agents/skills/repo-terminal-operator/async-worker-carrier.ts:executeAsyncWorker` 產生可供前景 admission 驗證的結果？
+Acceptance criteria:
+- 說明候選檔案、HEAD、foreground receipt、worker job 與 seal hash 在 start 階段如何被重新開啟、驗證及固定。
+- 列出 awaiting、running、verified／failed／stale、cancelled 的合法轉移，以及版本 CAS、lease、deadline、fencing token 如何拒絕過期或競爭中的 worker。
+- 解釋結果 transaction 在 finish 前後的發布順序、取消競爭，以及 `recoverCommittedResult` 如何處理 lifecycle 已提交但公開結果尚未完成的中斷。
+- 說明 admit 為何仍須重新驗證 HEAD、候選內容、receipt、job、結果、cleanup 與 isolation，且 degraded worker 即使執行完成也不能 admission。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/async-admission-facade.ts:start`／`admit` — 定義公開 start 與前景 admission 邊界。
+- `.agents/skills/repo-terminal-operator/async-job-lifecycle.ts:claimAsyncProductionRun`／`finishAsyncProductionRun`／`cancelAsyncProductionRun` — 實作 CAS、lease、fencing 與終態事件。
+- `.agents/skills/repo-terminal-operator/async-worker-carrier.ts:executeAsyncWorker`／`commitResultTransaction`／`recoverCommittedResult` — 執行隔離 review、提交結果並復原部分完成的 transaction。
+- `.agents/skills/repo-terminal-operator/async-admission-verifier.ts:assertWorkerResult` — 對 admission 所需的 worker result、cleanup、reviewer 與 isolation 綁定做 fail-closed 驗證。
+
+[Q-02]: `.agents/skills/repo-terminal-operator/async-control-plane.ts:projectAsyncControl` 如何把 lifecycle、result transaction 與 progress records 投影成 dispatch、await、recover、foreground-admission、repair-or-close 或 closed，且在新增 redrive 或 orphan 處理時必須保留哪些「只投影、不執行」界線？
+Acceptance criteria:
+- 說明 `classify` 與 `terminalDisposition` 對每個 lifecycle 狀態、deadline、公開結果及 pending transaction 的分類規則。
+- 解釋 `projectDispatch` 與 `projectRecovery` 如何計算 deterministic worker/fencing identity、選擇 expected version，並限制 lease 不得低於 worker 預算或超過 run deadline。
+- 描述 `progressProjection` 接受的 sequence transition、expected-version 與 fencing-token 綁定，以及錯序或跨 fence record 的失敗方式。
+- 說明 `classifyOrphans` 只回報哪些 transaction 為 orphan、為何不刪除它們，以及 projection 中哪些 activation flags 證明 worker、admission、Forgejo 與 cloud 未被啟用。
+Source evidence:
+- `.agents/skills/repo-terminal-operator/async-control-plane.ts:classify`／`terminalDisposition` — 將 durable lifecycle 與結果存在性轉成 disposition。
+- `.agents/skills/repo-terminal-operator/async-control-plane.ts:projectDispatch`／`projectRecovery` — 建立 hash-bound queue request 與 recovery request。
+- `.agents/skills/repo-terminal-operator/async-control-plane.ts:progressProjection` — 驗證 progress sequence、版本與 fence。
+- `.agents/skills/repo-terminal-operator/async-control-plane.ts:classifyOrphans`／`projectAsyncControl` — 投影 orphan 與明確停用的執行能力。
+
+warning: clamping SessionEnd hook timeout to 3s in <home>/.codex/plugins/cache/openai-codex/codex/1.0.6/hooks/hooks.json
+hook: SessionStart
+hook: SessionStart
+hook: SessionStart Completed
+hook: SessionStart Completed
+hook: PreToolUse
+2026-08-04T05:52:26.917710Z ERROR codex_core::tools::router: error=exec_command failed for `/bin/zsh -lc 'rg --files /openwiki'`: CreateProcess { message: "Rejected(\"Failed to create unified exec process: No such file or directory (os error 2)\")" }
+hook: PreToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/bash -c 'rg --files /openwiki' in /
+ exited 2 in 0ms:
+rg: /openwiki: IO error for operation on /openwiki: No such file or directory (os error 2)
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/bash -c 'rg --files openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-zXSLX3
+ succeeded in 0ms:
+openwiki/asset-lifecycle-map.md
+openwiki/README.md
+openwiki/code-call-lifecycle.md
+openwiki/production-bottlenecks.md
+openwiki/usage.md
+openwiki/index.md
+openwiki/wiki-graph-sync-architecture.md
+openwiki/schema-standards.md
+openwiki/quickstart.md
+openwiki/openwiki.yaml
+openwiki/structured-lifecycle-data.md
+openwiki/autoresearch-composer-lifecycle.md
+openwiki/stateful-workflow.md
+openwiki/prompt-trace-assets.md
+openwiki/operations/index.md
+openwiki/operations/entrypoint-matrix.md
+openwiki/governance/index.md
+openwiki/governance/plan-package-compatibility.md
+openwiki/governance/molecular-commit-lineage.md
+openwiki/terminal-operator/writer-publication.md
+openwiki/terminal-operator/async-lifecycle.md
+openwiki/terminal-operator/overview.md
+openwiki/terminal-operator/production-profiles-and-handoff.md
+openwiki/terminal-operator/index.md
+openwiki/terminal-operator/evidence-cost.md
+openwiki/skill-assets/autoresearch-composer.md
+openwiki/skill-assets/gemini-interactions.md
+openwiki/skill-assets/contract.md
+openwiki/skill-assets/index.md
+openwiki/validation/semantic-arbitration.md
+openwiki/validation/behavioral-eval-and-judge.md
+openwiki/validation/ablation-and-benchmark.md
+openwiki/validation/index.md
+openwiki/validation/synthetic-corpus-quality.md
+openwiki/validation/static-skill-validators.md
+openwiki/testing/test-map.md
+openwiki/testing/index.md
+openwiki/architecture/index.md
+openwiki/architecture/data-authority.md
+openwiki/architecture/defense-gate-chain.md
+openwiki/architecture/overview.md
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/bash -c "sed -n '1,260p' openwiki/terminal-operator/async-lifecycle.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-zXSLX3
+ succeeded in 0ms:
+---
+type: Architecture
+title: Async Lifecycle
+description: The seal, projection, worker and admission stages of the async production lifecycle — which component actually launches work, and which outputs are advisory rather than admissible.
+tags: [terminal-operator, async, admission]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [async-seal, worker-execution, admission-boundary]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Async Lifecycle
+
+Four modules, four different authorities. The distinction that matters most: **`async-worker-carrier.ts`
+really does execute work**, while the lifecycle, control plane and facade around it do not.
+
+## Sequence
+
+```mermaid
+sequenceDiagram
+    participant F as async-admission-facade
+    participant L as async-job-lifecycle
+    participant C as async-control-plane
+    participant D as external dispatcher
+    participant W as async-worker-carrier
+    F->>L: start — reopen HEAD, candidate refs, foreground receipt
+    L->>L: atomically seal candidate + receipt + job
+    C->>L: project queue / redrive refs (project-only, advisory)
+    D->>W: claim a sealed job
+    W->>W: git archive snapshot, overlay candidates
+    W->>W: run hash-bound reviewer subprocess
+    W->>L: append monotonic CAS events, finish or cancel
+    F->>L: admit — reopen HEAD, bytes, receipt, job, result, cleanup, isolation
+    F-->>F: publish one immutable ownership receipt
+```
+
+## `async-job-lifecycle.ts` — durable state, no execution
+
+The internal state machine. It atomically seals candidate bytes, the foreground receipt and the
+production job together; appends **monotonic CAS events** as append-only files; fences expired workers;
+and resolves cancel/finish races. Exported operations are
+`sealAsyncProductionRun`, `inspectAsyncProductionRun`, `openAsyncProductionSeal`,
+`claimAsyncProductionRun`, `finishAsyncProductionRun`, `cancelAsyncProductionRun`.
+
+It does **not** launch an agent, mutate the live checkout, admit a result, publish Git state, or enable
+background production. It is the prerequisite for those, not a substitute.
+
+## `async-control-plane.ts` — projection only
+
+Accepts an explicit `project-only` request. It may project one or many named runs, persist deterministic
+queue and redrive refs, and classify orphan transactions — but **never deletes them**, and never
+discovers implicit work, executes workers, updates `計畫.md`, changes Forgejo, or admits a result.
+
+Its queue refs are **advisory**: a separately activated local dispatcher owns the projected retry
+budget, and until that dispatcher passes production admission the refs carry no authority.
+
+## `async-worker-carrier.ts` — this one executes
+
+`executeAsyncWorker()` materializes a `git archive` snapshot of the bound commit, overlays the candidate
+bytes onto it, and runs the **hash-bound reviewer subprocess** against that isolated tree. Around that
+it persists progress (`AsyncWorkerProgress`, `AsyncWorkerProgressSink`), watches for cancellation,
+enforces lease/fencing/deadline (`minimumAsyncWorkerLeaseMs()`), records the result transaction, and
+recovers from a crash mid-transaction.
+
+Treating the async layer as uniformly passive is wrong, and it is the specific error to avoid when
+reading `SKILL.md`'s per-CLI prohibitions: those prohibitions are about the *facade*, *lifecycle* and
+*control plane*, not about the carrier.
+
+Requests and jobs are parsed by dedicated strict parsers — `parseAsyncWorkerRequest()`,
+`parseAsyncWorkerJob()` — so a worker cannot be started from a partially understood payload.
+
+## `async-admission-facade.ts` — the only public seam
+
+`async-admission-facade-cli.ts --request <request.json>` with four verbs:
+
+| Verb | Behavior |
+|---|---|
+| `start` | reopens current Git HEAD, bounded candidate refs, a producer-shared complete `small-loop-run-receipt@v1` assertion, and the complete shared worker-job parser, then atomically seals. **It never launches a worker.** |
+| `inspect` | read-only |
+| `cancel` | appends exactly one monotonic lifecycle event |
+| `admit` | reopens HEAD, candidate bytes, foreground receipt, job, lifecycle result, cleanup, isolation and reviewer bindings, then publishes one immutable ownership receipt |
+
+Two invariants on `admit`: **two admitters must converge, and only the first owns publication** — a
+second admitter observing the same state does not republish. And `cwd-only-degraded` remains
+**advisory rather than admissible**: a run that could only be verified against the live working
+directory is never admitted.
+
+Requests are anchored repo-relative artifacts; every CLI failure is a typed nonzero error. The facade
+does not dispatch work, change Git, write `計畫.md`, call Forgejo/GitHub/cloud, or discover implicit
+runs.
+
+## Invariants to preserve when changing any of this
+
+- **CAS**: lifecycle events are append-only and monotonic; never rewrite an event.
+- **Lease and fencing**: an expired worker is fenced, not trusted; leases have a computed minimum.
+- **Integrity**: every stage reopens what it was given rather than trusting a passed-in value.
+- **Isolation**: the worker runs against an archived snapshot, never the live checkout.
+- **Cleanup**: a cleanup failure is terminal, not a logged warning.
+- **Terminal statuses**: cancel and finish must resolve deterministically when they race.
+
+## Evidence boundary
+
+Everything above is read from vendored source. There is no local test suite and no runtime here — see
+[Terminal operator overview](overview.md). Persistence for every stage goes through
+[writer publication](writer-publication.md).
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/bash -c 'rg -n "classify|terminalDisposition|projectDispatch|projectRecovery|progressProjection|classifyOrphans|awaiting|fencing|recoverCommittedResult|pending transaction|repair-or-close|foreground-admission|degraded|seal hash|expected version|sequence" openwiki' in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-zXSLX3
+ succeeded in 0ms:
+openwiki/architecture/defense-gate-chain.md:4:description: How scripts/git_gate.py sequences 23 gates, proves it did not mutate the repository, and writes a tamper-evident receipt.
+openwiki/autoresearch-composer-lifecycle.md:29:The measured consequence is unusually clean. With the asset in context, all 12 behavior cases pass;
+openwiki/terminal-operator/production-profiles-and-handoff.md:39:- No shared-state read/await/write sequence. Use process isolation, or one explicit bounded lock/lease
+openwiki/terminal-operator/production-profiles-and-handoff.md:44:  awaiting exit; on timeout kill, await termination, and clear the timer in deterministic cleanup.
+openwiki/terminal-operator/production-profiles-and-handoff.md:61:A sealed-review coordinator receipt is only one internal stage: `degraded`, missing-final,
+openwiki/architecture/index.md:4:- [Defense Gate Chain](defense-gate-chain.md) - How scripts/git_gate.py sequences 23 gates, proves it did not mutate the repository, and writes a tamper-evident receipt.
+openwiki/code-call-lifecycle.md:24:sequenceDiagram
+openwiki/validation/synthetic-corpus-quality.md:64:`PROJECT-SSOT.md` states the consequence in prose: *"The current P11 117/117 result is scoped to local
+openwiki/wiki-graph-sync-architecture.md:55:overwritten**, not appended. Consequences a reader must know:
+openwiki/terminal-operator/overview.md:35:**Consequence** — this copy cannot be executed or verified standalone. Nothing on these pages is
+openwiki/production-bottlenecks.md:57:Consequence: a clean-room clone cannot reproduce the commit-governance and prompt-trace claims without
+openwiki/architecture/overview.md:38:2. **Deterministic defense gates** — 30 scripts, 23 of them sequenced by `scripts/git_gate.py`. No
+openwiki/stateful-workflow.md:78:Run the deterministic validators. In practice this is `python3 scripts/git_gate.py`, which sequences 23
+openwiki/terminal-operator/async-lifecycle.md:23:sequenceDiagram
+openwiki/terminal-operator/async-lifecycle.md:54:queue and redrive refs, and classify orphan transactions — but **never deletes them**, and never
+openwiki/terminal-operator/async-lifecycle.md:65:enforces lease/fencing/deadline (`minimumAsyncWorkerLeaseMs()`), records the result transaction, and
+openwiki/terminal-operator/async-lifecycle.md:87:second admitter observing the same state does not republish. And `cwd-only-degraded` remains
+openwiki/terminal-operator/async-lifecycle.md:98:- **Lease and fencing**: an expired worker is fenced, not trusted; leases have a computed minimum.
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/bash -c "sed -n '1,260p' openwiki/terminal-operator/overview.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-zXSLX3
+ succeeded in 0ms:
+---
+type: Architecture
+title: Terminal Operator Overview
+description: The vendored Bun/TypeScript terminal-slice operator — its packet contract, CLI surface, quality profiles, and the external dependencies that make it unrunnable from this checkout.
+tags: [terminal-operator, vendored, contracts]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [terminal-slice-packet, preflight-checks, vendored-boundary]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Terminal Operator Overview
+
+`.agents/skills/repo-terminal-operator/` is ~9.7k lines of Bun TypeScript implementing a **leased
+terminal-slice implementer**: an agent that is handed one bounded slice of work, verifies it may touch
+it, does it, and returns a typed receipt. It is invoked when `repo-neural-perception` delegates a
+`terminal-slice-packet@v2` to this repository.
+
+## Three tiers of what is actually here
+
+Read this first; it determines what any other statement on these pages can mean.
+
+**Vendored and present** — 50 `.ts` modules, three profiles (`code-quality.profile.json`,
+`production-use.profile.json`, `production-use` variants), `generated-core/manifest.json`, and
+`SKILL.md`.
+
+**Required but absent from this checkout** — `runtime/`, `skills/repo-neural-perception/` (which owns
+the `production-use.md` SSOT and `writer-contained-production-profile.ts`), adapter configuration,
+schemas, and the Bun test suites `task-quality-contract.ts` references. There is also **no
+`package.json`, no `tsconfig.json`, and no local TypeScript test** in this tree.
+
+**Consequence** — this copy cannot be executed or verified standalone. Nothing on these pages is
+evidence produced here; it is contract read from vendored source. External test suites must not be cited
+as evidence available in this repository.
+
+## Contracts
+
+| Direction | Contract |
+|---|---|
+| input | `terminal-slice-packet@v2` (v1 retained only for backward-compatible preflight) |
+| output | `small-loop-run-receipt@v1` |
+| description | `repo-terminal-operator-description@v1` |
+| preflight | `repo-terminal-preflight-receipt@v1` |
+
+A v2 packet must hash-bind its complete `guided-claim-set@v1`. Commands are run as argv arrays; a packet
+is never interpolated into a shell string.
+
+## CLI surface
+
+`repo-adapter.ts` is the entrypoint, resolving `outputRepo` two levels above the module directory and
+`workspaceRoot` two above that:
+
+```sh
+bun run repo-adapter.ts --describe            # profile summary
+bun run repo-adapter.ts --selftest            # same, but fails if either profile has no real command
+bun run repo-adapter.ts --preflight <packet>  # lease/HEAD/path gate only
+bun run repo-adapter.ts --run <packet>        # preflight -> code-quality -> production-use -> receipt
+```
+
+`--run` blocks production-use after a code-quality failure, so the two profiles are ordered but not
+merged. Exit codes: `0` passed, `2` failed, `64` usage.
+
+## Preflight
+
+`repo-preflight.ts` gates before any edit. It verifies the objective, invariants, public contract,
+failure modes, bounded active files, red/green receipts, minimal-diff assertions, target repository,
+expected Git head, live write lease, allowed paths, and the generated-core bundle. Two exported checks
+are named directly: `claimSetCheck()` (the v2 hash-bound claim set) and `tddReceiptCheck()` (a failing
+public-behavior test must exist before implementation).
+
+The operator may modify only `allowed_paths`, only while the expected HEAD and the lease remain valid,
+and must recheck both before publishing a candidate. Scope drift is a structured failure, not a
+negotiation.
+
+## Quality profiles are independent
+
+`code-quality.profile.json` and `production-use.profile.json` run **independently**; neither substitutes
+for the other, and a green test substitutes for neither.
+
+`task-quality-contract.ts` is the registration chain for the task profile: four bounded static stages
+run in a parallel phase — typed ESLint, Prettier check, strict TypeScript, dependency boundaries — and
+the bounded focused behavior suites run **only when every static stage passes**. The contract's
+sharpest rule: *exit code zero without an observed test count is a failure*. A suite that silently
+selected nothing cannot report success.
+
+The task profile deliberately records coverage as `not-selected` rather than claiming a misleading
+aggregate over subprocess-tested modules, and routes coverage/race/leak admission to
+`production-use/writer-entrypoint` instead. See
+[Production profiles and handoff](production-profiles-and-handoff.md).
+
+## What it may never do
+
+From `SKILL.md`, and worth stating because several modules look like they could:
+
+- Return `small-loop-run-receipt@v1` — but **not** admit, merge, release, or rewrite Git history.
+- A preflight PASS emits the next writer-production mode; it **cannot** admit writer safety.
+- The control plane may project queue and redrive refs but must not discover implicit work, execute
+  workers, update `計畫.md`, change Forgejo, or admit a result.
+- The evidence-cost projector never runs a worker or grants admission.
+- The Forgejo seam pushes Git state but cannot create repositories, issues, PRs, or merges.
+
+## Pages
+
+- [Async lifecycle](async-lifecycle.md) — seal, projection, worker, admission, and what really executes.
+- [Writer publication](writer-publication.md) — the atomic persistence core nine modules depend on.
+- [Evidence cost](evidence-cost.md) — cost measurement and the unclosed v1/v2 handoff.
+- [Production profiles and handoff](production-profiles-and-handoff.md) — admission-valid profiles and
+  the Forgejo boundary.
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/bash -c "sed -n '1,260p' openwiki/terminal-operator/production-profiles-and-handoff.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-zXSLX3
+ succeeded in 0ms:
+---
+type: Architecture
+title: Production Profiles and Handoff
+description: Which production journey can actually admit writer safety, why the local one cannot, and the exact boundary of the Forgejo git handoff.
+tags: [terminal-operator, admission, git-handoff]
+node_kind: RepoDoc
+ingest_lane: concept
+repo: local/agent-skills-repo
+covers: [admission-profiles, contained-carrier, forgejo-handoff]
+libraries: [bun]
+generated_by: claude-code+opus (skill-bettor openwiki port)
+generated_at: null
+---
+
+# Production Profiles and Handoff
+
+## Three journeys, one of which can admit
+
+| Module / profile | Emits | Can admit writer safety? |
+|---|---|---|
+| `production-journey.ts` | legacy receipt | **No — legacy only, must not be used for admission** |
+| `writer-production-journey.ts` (local) | `small-loop-run-receipt` **v1** | **No** — the gate expects v2 |
+| `os-contained-production-profile.ts` | preflight receipt | **No** — preflight PASS cannot admit writer safety |
+| `writer-contained-production-profile.ts` (upstream, via `production-use.profile.json`) | v2 receipt | **Yes** — it invokes the real repo-local `writer-entrypoint.ts` inside the OS-contained carrier |
+
+`SKILL.md` states the rule directly: *"Direct host execution of either journey is invalid for
+admission."* Admission requires the digest-pinned local OS carrier with network disabled and bounded
+PID, CPU and memory resources — not a process started on the host.
+
+The v1/v2 gap is the practical trap: the locally present journey emits v1, and the profile the gate
+consults expects v2 from a script that lives in the absent `skills/repo-neural-perception/` tree. So
+**no admission-valid production evidence can be produced from this checkout**. See
+[Terminal operator overview](overview.md).
+
+## Production-use rules the profile encodes
+
+From `SKILL.md`, these are the properties the production profile exists to check:
+
+- No shared-state read/await/write sequence. Use process isolation, or one explicit bounded lock/lease
+  owner with a fixed acquisition order.
+- No empty catch and no default-value fallback after a system failure; preserve the original diagnostic
+  and emit a typed nonzero receipt.
+- Own and close every subprocess, stream, timer, listener and network handle. Drain streams before
+  awaiting exit; on timeout kill, await termination, and clear the timer in deterministic cleanup.
+- Do not promote process groups, inherited descriptors or preload PID registries into
+  arbitrary-descendant ownership.
+- Give external calls hard deadlines and cancellation signals.
+- `Promise.allSettled` only for explicit partial success, or to await every owned task for complete
+  cleanup — without partial-success semantics, any rejection still fails the batch.
+- Do not add a mutex unless shared mutable state crosses an async or process boundary.
+
+`bounded-subprocess.ts` (`runBoundedProcess()`, `BoundedProcessOptions`, `BoundedProcessResult`) is the
+shared primitive for the subprocess half of those rules.
+
+## Sealed review is not async admission
+
+Production-use is synchronous by default. Expensive review may move behind an immutable seal only
+through the lifecycle in the upstream `async-production-seed.md`, and the current production command
+must never be detached against a mutable checkout.
+
+A sealed-review coordinator receipt is only one internal stage: `degraded`, missing-final,
+mutable-checkout, unfenced and non-atomic receipts are rejected, and a reviewer PASS is **not** async
+admission. The admission verb lives on the facade — see [Async lifecycle](async-lifecycle.md).
+
+## Forgejo git handoff
+
+`forgejo-git-handoff-cli.ts` accepts an **admitted** request and nothing else. Two request types:
+
+### `forgejo-git-handoff-request@v1`
+
+May add, or idempotently reuse, only the `forgejo` remote. Pushes the exact hash-bound HEAD to
+`refs/heads/main` **without force and without upstream mutation**, preserves `origin`, and reads the
+remote hash back. Every Git process is bounded and fully drained.
+
+Typed nonzero failure on: stale HEAD, conflicting remote, bootstrap hash drift, cleanup failure, or a
+readback mismatch. `forgejoPushArgs()` builds the argv; `GitHandoffFailure` is the typed error.
+
+### `forgejo-pr-branch-handoff-request@v1`
+
+Bounded to a `refs/heads/pr/*` target and **create-only**: it validates the ref, proves the remote ref
+is absent before pushing, forbids force and upstream mutation, and reads the exact hash back. An
+existing target ref **fails closed** rather than being updated.
+
+### The boundary
+
+This seam publishes Git state. It does **not** create repositories, issues, pull requests, or merges,
+and does not touch cloud state. Publishing a review branch is not opening a review.
+
+## Evidence boundary
+
+Read from vendored source. No Bun toolchain, no local tests, and the admission-valid profile's script is
+absent from this checkout.
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/bash -c "sed -n '1,260p' openwiki/terminal-operator/index.md" in /var/folders/l6/44bf7nvs64j60f1mpyy88hdm0000gn/T/openwiki-verifier-zXSLX3
+ succeeded in 0ms:
+# Files
+
+- [Async Lifecycle](async-lifecycle.md) - The seal, projection, worker and admission stages of the async production lifecycle — which component actually launches work, and which outputs are advisory rather than admissible.
+- [Evidence Cost](evidence-cost.md) - The cost cache and collector, their hash-bound request flow, the axis semantics that refuse to report a measured zero, and the unclosed v1/v2 handoff between them.
+- [Terminal Operator Overview](overview.md) - The vendored Bun/TypeScript terminal-slice operator — its packet contract, CLI surface, quality profiles, and the external dependencies that make it unrunnable from this checkout.
+- [Production Profiles and Handoff](production-profiles-and-handoff.md) - Which production journey can actually admit writer safety, why the local one cannot, and the exact boundary of the Forgejo git handoff.
+- [Writer Publication](writer-publication.md) - publishWriterArtifact — the atomic persistence core shared by nine modules, its FFI locking and crash-recovery mechanism, and its failure taxonomy.
+
+codex
+<results>
+  <result id="Q-01" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/async-lifecycle.md 缺少 seal hash 的具體固定方式、完整合法狀態轉移、版本 CAS／lease／deadline／fencing token 的拒絕規則，以及 finish、取消競爭、公開結果發布與 recoverCommittedResult 的精確 transaction 順序。</missing>
+  </result>
+  <result id="Q-02" status="PARTIAL">
+    <missing>/openwiki/terminal-operator/async-lifecycle.md 缺少 classify／terminalDisposition 的完整分類矩陣、dispatch／recovery identity 與 expected-version／lease 計算、progress sequence 與 fence 驗證規則、orphan 的精確判定條件及各 activation flag 的明確值。</missing>
+  </result>
+</results>
+hook: Stop
+hook: Stop Completed
+tokens used
+33,325

@@ -1,0 +1,8 @@
+<results>
+  <result id="Q-01" status="FAIL">
+    <missing>/openwiki 不存在，無可用頁面回答任何驗收項目。</missing>
+  </result>
+  <result id="Q-02" status="FAIL">
+    <missing>/openwiki 不存在，無可用頁面回答任何驗收項目。</missing>
+  </result>
+</results>
