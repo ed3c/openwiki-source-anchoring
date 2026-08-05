@@ -1,0 +1,72 @@
+name: External maintainer review
+description: Review the evidence chain and onboarding as a non-author
+title: "[Maintainer review]: "
+labels:
+  - reproducibility
+  - portfolio
+body:
+  - type: input
+    id: commit
+    attributes:
+      label: Reviewed commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: first_read
+    attributes:
+      label: Strongest claim after a 60-second read
+      description: Record this before running repository commands
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, architecture, shell, and Bun version
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands, exit codes, and complete output
+      description: Include failed attempts and remove secrets or proprietary source
+    validations:
+      required: true
+  - type: textarea
+    id: interpretation
+    attributes:
+      label: Lexical validity versus semantic support
+      description: Explain the distinction in your own words
+    validations:
+      required: true
+  - type: textarea
+    id: evidence_chain
+    attributes:
+      label: Evidence chain reviewed
+      description: Name one PROJECT_EVIDENCE.yaml claim, its command, artifact, and limitation
+    validations:
+      required: true
+  - type: textarea
+    id: decision
+    attributes:
+      label: Effect on a real maintainer decision
+      description: Did the artifact change how you would review AI-generated documentation? Why or why not?
+    validations:
+      required: true
+  - type: textarea
+    id: blocker
+    attributes:
+      label: First blocker or confusing point
+    validations:
+      required: true
+  - type: checkboxes
+    id: independence
+    attributes:
+      label: Independence and disclosure
+      options:
+        - label: I am not the repository author and did not generate this report on the author's behalf
+          required: true
+        - label: I removed secrets, private source, proprietary prompts, and identifying employer information
+          required: true
+        - label: I permit this evidence to be cited; naming me still requires my explicit permission
+          required: true
