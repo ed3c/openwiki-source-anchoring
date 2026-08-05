@@ -31,6 +31,7 @@ The primary unit is one independently generated wiki run against one frozen targ
 - At least 2 independent judges or one judge plus a blinded human sample.
 
 These are minimum engineering targets, not a power calculation. Before execution, replace them with a simulation- or pilot-based sample-size justification.
+Use `plan-repeats.mjs` to document assumption-driven scenarios, then freeze the chosen repeat count and rationale in the production study directory. Planning simulations are not observed evidence.
 
 ## Frozen inputs required before the first run
 

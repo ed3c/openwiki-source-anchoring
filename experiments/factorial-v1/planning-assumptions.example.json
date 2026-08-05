@@ -1,0 +1,14 @@
+{
+  "schema_version": "openwiki-factorial-planning@1.0.0",
+  "baseline_pass_rate": 0.4,
+  "gate_effect_pp": 10,
+  "authoring_effect_pp": 10,
+  "interaction_effect_pp": 5,
+  "run_sd_pp": 10,
+  "alpha": 0.05,
+  "target_power": 0.8,
+  "min_repeats_per_cell": 5,
+  "max_repeats_per_cell": 30,
+  "simulations": 10000,
+  "seed": "replace-with-frozen-planning-seed"
+}

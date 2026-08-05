@@ -2,6 +2,8 @@
 
 This challenge operationalizes issue #10. It is ready to run, but the repository does not claim external validation until non-authors submit evidence.
 
+The active two-track invitation is in [`REVIEWER_SPRINT.md`](REVIEWER_SPRINT.md). Verified non-author reports are recorded in [`reproduction/REPRODUCERS.md`](../reproduction/REPRODUCERS.md), which starts at zero by design.
+
 ## Participants sought
 
 - maintainers who review AI-generated technical documentation;
@@ -20,7 +22,7 @@ This challenge operationalizes issue #10. It is ready to run, but the repository
 
 3. Explain the difference between lexical validity and semantic support.
 4. Trace one claim through `PROJECT_EVIDENCE.yaml`.
-5. Open an issue using the reproduction template or propose one focused pull request.
+5. Open an issue using the reproduction or external maintainer review template, or propose one focused pull request.
 
 ## Measures
 
@@ -53,5 +55,6 @@ Stop claiming benchmark readiness when external reviewers cannot reproduce the e
 - Anonymize interview notes by default.
 - Publish failed attempts and onboarding confusion, not only successful reports.
 - Never ask participants to expose private repositories, prompts, credentials, or proprietary model transcripts.
+- Repository-owner runs, CI, agents operating for the owner, and synthetic smoke tests do not count as external participants.
 
-Use [`reproduction/reports/TEMPLATE.md`](../reproduction/reports/TEMPLATE.md) for each report.
+Use [`reproduction/reports/TEMPLATE.md`](../reproduction/reports/TEMPLATE.md) for a report committed to the repository, or the GitHub issue templates for an issue-based report.

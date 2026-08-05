@@ -15,7 +15,8 @@ The deterministic auditor may be pointed at a repository that is not trusted. Re
 - extremely deep directory structures;
 - invalid UTF-8 or binary input presented as source text;
 - filesystem races while a repository is being modified concurrently;
-- external agent drivers that execute commands or mutate writable files.
+- external agent drivers that execute commands or mutate writable files;
+- factorial study configurations that name executable adapter commands.
 
 The auditor runs without network access, streams directory entries, does not recurse through symlinks, checks both lexical and real paths, validates UTF-8 with fatal decoding, and returns an explicit incomplete receipt when a resource/input boundary prevents a complete audit.
 
@@ -62,6 +63,19 @@ For an untrusted target:
 
 The deterministic auditor and the agent-driven mutation loop have different trust levels. `trigger.sh` can invoke external tools with write access; it is not a sandbox.
 
+## Factorial study runner boundary
+
+`experiments/factorial-v1/run-study.mjs` executes the authoring, answering, judging, and audit commands named in a study configuration. A study configuration is therefore **executable trusted input**, not passive data.
+
+- Never run a study config or adapter from an untrusted pull request, repository, or download.
+- Inspect every command and argument before execution.
+- Run production adapters in an isolated, operator-controlled environment with explicit network, filesystem, process, token, and monetary limits.
+- Provide credentials only through the operator environment; never commit them to configs, prompts, logs, manifests, or fixtures.
+- Mount target repositories read-only when the authoring design permits it, and isolate each cell/run from earlier outputs.
+- Paid or credentialed adapters are intentionally excluded from pull-request CI. CI runs only deterministic repository-owned mocks.
+
+The validator verifies hashes and required provenance, but hash correctness does not make a command safe to execute.
+
 ## Remaining boundaries
 
 - A synchronous filesystem call already in progress cannot be preempted by the internal deadline.
@@ -71,6 +85,7 @@ The deterministic auditor and the agent-driven mutation loop have different trus
 - The resource defaults are conservative engineering bounds, not a formal denial-of-service proof.
 - Lexical quote presence does not establish semantic support.
 - CI covers the published fixtures on Ubuntu, not every filesystem or operating system.
+- Study adapters can contact external services and execute arbitrary provider-specific behavior; isolation and provider policy enforcement remain operator responsibilities.
 
 ## Reporting a vulnerability
 
