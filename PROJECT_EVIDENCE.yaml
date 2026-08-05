@@ -2,26 +2,158 @@ schema_version: agent-portfolio/v1
 
 project:
   name: openwiki-source-anchoring
-  purpose: Evidence verification infrastructure for AI-generated software artifacts.
+  repository: ed3c/openwiki-source-anchoring
+  purpose: >-
+    Test whether forcing source verification changes the usefulness and checkability
+    of AI-generated code documentation.
+  primary_user: maintainers and reviewers evaluating generated technical documentation
+  maturity: research-artifact
+  recommendation: conditional
+
+review:
+  branch: agent-portfolio-hardening
+  method: yc-inspired-independent-multi-role-review
+  hard_gates:
+    license_present: true
+    public_selftest: true
+    raw_aggregate_results_present: true
+    complete_generation_reproduction: false
+    exact_authorship_provenance: partial
 
 verification:
-  principle: claim -> evidence -> verification command -> observed result
+  principle: claim -> evidence -> verification command -> observed result -> limitation
+  clean_room_command: sh harness/selftest.sh
+  expected_exit_code: 0
+  expected_final_line: selftest: PASS(valid/hollow/malformed/symlink and breaker controls)
+  runtime:
+    name: bun
+    version_file: .bun-version
+    version: 1.3.13
 
 claims:
-  - id: harness-reproducible
+  - id: harness-detects-valid-anchor
+    claim: The deterministic fixture with valid paths and verbatim quotes passes.
     evidence:
+      code: harness/src/audit_wiki.ts
+      fixture: harness/tests/fixtures/wiki-good
+      target: harness/tests/fixtures/target
+      command: >-
+        bun run harness/src/audit_wiki.ts
+        harness/tests/fixtures/wiki-good
+        harness/tests/fixtures/target
+    expected:
+      exit_code: 0
+    status: verified-by-selftest
+
+  - id: harness-detects-hollow-anchor
+    claim: A real path with a quote absent from the file is rejected for the correct reason.
+    evidence:
+      test: harness/selftest.sh
+      fixture: harness/tests/fixtures/wiki-hollow
+    expected:
+      exit_code: 2
+      reason: quote not found in that file
+    status: verified-by-selftest
+
+  - id: harness-detects-malformed-anchor
+    claim: A source-looking malformed anchor cannot silently disappear from the audit.
+    evidence:
+      test: harness/selftest.sh
+      fixture: harness/tests/fixtures/wiki-malformed
+    expected:
+      exit_code: 2
+      reason: malformed anchor
+    status: verified-by-selftest
+
+  - id: harness-blocks-symlink-escape
+    claim: An anchor that resolves through a symlink outside the target root is rejected.
+    evidence:
+      code: harness/src/audit_wiki.ts
+      test: harness/selftest.sh
       command: sh harness/selftest.sh
-    status: pending-ci-verification
+    expected:
+      exit_code: 0
+      embedded_negative_control_reason: symlink escapes target
+    status: pending-ci-confirmation
+
+  - id: trigger-reaudits-final-mutation
+    claim: The retry loop audits again after the final permitted modification before deciding.
+    evidence:
+      code: harness/trigger.sh
+      code_pattern: final audit after loop before unresolved receipt generation
+    limitation: implementation inspection exists; a dedicated final-retry mutation fixture remains desirable
+    status: implementation-verified
+
+  - id: word-floor-is-enforced
+    claim: A retry that reduces the page below the word floor is restored and stopped.
+    evidence:
+      code: harness/trigger.sh
+      code_pattern: snapshot before dispatch and restore on word-count decrease
+    limitation: word count is a coarse anti-deletion proxy, not claim-preservation proof
+    status: implementation-verified
+
+  - id: audit-is-lexical-not-semantic
+    claim: The auditor proves quote presence, not that evidence entails the surrounding claim.
+    evidence:
+      code: harness/src/audit_wiki.ts
+      documentation:
+        - README.md
+        - METRICS.md
+        - EXPERIMENT_REVIEW.md
+    status: explicitly-bounded
+
+results:
+  public_qa_run:
+    denominator: 30
+    repeats: 1
+    arms:
+      A:
+        pass: 7
+        pass_rate: 0.2333
+      B:
+        pass: 12
+        pass_rate: 0.4
+      Bs:
+        pass: 12
+        pass_rate: 0.4
+      C:
+        pass: 14
+        pass_rate: 0.4667
+      D:
+        pass: null
+        note: QA not measured
+    interpretation: directional-only
+    raw_evidence:
+      - qa/
+      - data/arm-comparison.json
 
 limitations:
-  - semantic correctness requires separate adjudication from lexical validation
-  - experiment conclusions should not exceed available evidence
+  - n=30 with one stochastic run and no repeated generations
+  - equality of B and Bs aggregate PASS is not an equivalence result
+  - B and C differ on multiple dimensions and do not isolate a gate effect
+  - the original target and host pipeline are not fully public
+  - exact immutable model identifiers and sampling parameters are incomplete
+  - only 22 of 53 author-reported corrections were blindly adjudicated
+  - the threshold-freezing commit is outside this public repository
+  - the claim denominator is defined by a heuristic parser
+  - lexical validity is not semantic correctness
 
 authorship:
-  human_decisions:
+  policy_document: AUTHORSHIP.md
+  human_accountability:
+    - problem selection
     - experiment design
-    - metric interpretation
-    - acceptance criteria
+    - interpretation and claim boundaries
+    - merge decision
   agent_assisted:
-    - implementation assistance
-    - documentation generation
+    - generation and adjudication steps in the original study
+    - repository review and hardening changes
+    - documentation and issue drafting
+  provenance_quality: partial
+
+collaboration:
+  contributing: CONTRIBUTING.md
+  security: SECURITY.md
+  governance: GOVERNANCE.md
+  code_of_conduct: CODE_OF_CONDUCT.md
+  citation: CITATION.cff
