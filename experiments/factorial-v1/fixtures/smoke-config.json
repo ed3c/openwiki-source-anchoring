@@ -1,0 +1,126 @@
+{
+  "schema_version": "openwiki-factorial-study@1.0.0",
+  "mode": "smoke",
+  "experiment_id": "factorial-v1",
+  "protocol": {
+    "path": "../PROTOCOL.md",
+    "commit_sha": "0000000000000000000000000000000000000000",
+    "sha256": "8cfbf9b42b7383c32f28eda4ca5cd897e8a5fd2cb65600c029c0276ad904b9b0"
+  },
+  "target": {
+    "repository": "fixture://experiments/factorial-v1/fixtures/target",
+    "checkout_path": "target",
+    "commit_sha": "0000000000000000000000000000000000000000",
+    "tree_sha256": "4efce4663251cc50f0f266a458a86b288fa83887af00e920be9e41884f76ca6d"
+  },
+  "question_bank": {
+    "path": "questions.json",
+    "sha256": "f571139f63721df9dd35f0067392a9261a19965465e02b6f00e0b8afc821a94a",
+    "split_manifest_path": "split.json",
+    "split_manifest_sha256": "aaf570cc90aff9fcfcbd678422a4a58aa4bf1eaa53d42f6eb7a19c0ed24712f5"
+  },
+  "prompts": [
+    {
+      "role": "authoring-system",
+      "path": "prompts/authoring-system.md",
+      "sha256": "742799561ab4a967c5f81e688d2a001655e36ae37dfd0de6f3fd17bcdda9f06d"
+    },
+    {
+      "role": "answerer-system",
+      "path": "prompts/answerer-system.md",
+      "sha256": "f72a7d3cb5c1fe8e6e0da7e316f6262197519784011f1c97551beb76627261df"
+    },
+    {
+      "role": "judge-system",
+      "path": "prompts/judge-system.md",
+      "sha256": "0824d0e1099a8c687e9dc2f8bcfd31f4afc7c22a4e8de12e36aca620cfde9192"
+    }
+  ],
+  "models": {
+    "authoring": {
+      "provider": "deterministic-mock",
+      "model_id": "mock-v1.0.0",
+      "immutable": true,
+      "runtime_version": "repository-script-v1",
+      "parameters": {
+        "temperature": 0,
+        "top_p": 1,
+        "max_output_tokens": 512,
+        "seed_supported": true,
+        "seed": 101
+      }
+    },
+    "answerer": {
+      "provider": "deterministic-mock",
+      "model_id": "mock-v1.0.0",
+      "immutable": true,
+      "runtime_version": "repository-script-v1",
+      "parameters": {
+        "temperature": 0,
+        "top_p": 1,
+        "max_output_tokens": 256,
+        "seed_supported": true,
+        "seed": 202
+      }
+    },
+    "judge": {
+      "provider": "deterministic-mock",
+      "model_id": "mock-v1.0.0",
+      "immutable": true,
+      "runtime_version": "repository-script-v1",
+      "parameters": {
+        "temperature": 0,
+        "top_p": 1,
+        "max_output_tokens": 128,
+        "seed_supported": true,
+        "seed": 303
+      }
+    }
+  },
+  "design": {
+    "cells": [
+      "A",
+      "R0",
+      "R1",
+      "G0",
+      "G1"
+    ],
+    "repeats_per_cell": 1,
+    "answer_repeats": 1,
+    "judges": 2,
+    "equivalence_margin_pp": 5,
+    "randomization_seed": "synthetic-smoke-seed-v1",
+    "bootstrap_iterations": 500
+  },
+  "adapters": {
+    "authoring": {
+      "command": "node",
+      "args": [
+        "../adapters/mock-adapter.mjs",
+        "authoring"
+      ]
+    },
+    "answering": {
+      "command": "node",
+      "args": [
+        "../adapters/mock-adapter.mjs",
+        "answering"
+      ]
+    },
+    "judging": {
+      "command": "node",
+      "args": [
+        "../adapters/mock-adapter.mjs",
+        "judging"
+      ]
+    }
+  },
+  "audit": {
+    "command": "node",
+    "args": [
+      "../adapters/mock-audit.mjs"
+    ],
+    "exclude": []
+  },
+  "output_root": "results"
+}
