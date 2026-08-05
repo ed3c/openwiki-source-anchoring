@@ -235,3 +235,50 @@ deterministic, cheap and reproducible, and it says nothing about whether the res
 reader. On this data it is negatively associated with the reader-facing measures. It belongs in a
 diagnostic table, not in a headline, and an earlier version of this repository had that the wrong
 way round.
+
+---
+
+## The corrections, adjudicated blind
+
+The 53 corrections were the weakest link here: identified, applied and reported by the same
+agents. Twenty-two were re-adjudicated by fresh agents that read only source.
+
+Each record was split into its two competing statements — what the page said, and what it was
+changed to — with every verdict word stripped and the order shuffled by index parity, so the
+adjudicator was not told which was which. Adjudicators were instructed to default to
+`CANNOT_DETERMINE`, that "both partly right" was a legitimate verdict, and to state how the
+statement they rejected could still be defensible.
+
+| outcome | count |
+|---|---|
+| correction upheld | **21** |
+| original upheld | **0** |
+| both partly right | 1 |
+| neither | 0 |
+| could not determine | 0 |
+
+**No sampled correction was overturned.** The one split verdict concerns a claim that was right
+in direction and over-stated in scope, not one that was false.
+
+The evidence is specific — exact line numbers, `grep -n` output, runtime stdout from actually
+executing the gates — and the notes do argue the losing side. One of them surfaces a defect
+nobody had recorded: a genuine `git_gate.py` receipt carries 22 gates, while
+`check_plan_package_compat.py` tests `expected_gate_count` against a 23-entry list, so a real
+receipt fails that check.
+
+### Two reasons to read this result with care
+
+**Blinding was only partial.** The corrected half of each pair is systematically more detailed,
+because it was written after someone read the source. An adjudicator could plausibly infer which
+was which from specificity alone — and that heuristic correlates with being right, so it cannot
+be separated from the verdict. Each adjudicator did produce independent source evidence, which
+mitigates the leak without closing it.
+
+**Zero abstentions across 22, all at high confidence**, despite an explicit instruction to
+abstain when the source is silent. That is the profile of either a genuinely clear-cut sample or
+an instrument that does not discriminate. The quoted evidence argues for the first. A 22-for-22
+sweep should still be read as what it is.
+
+**n = 22 of 53.** The defensible statement is that most corrections hold and none of those
+sampled was overturned — not that all 53 are correct. Full records, including the sampling rule,
+are in [`data/correction-adjudication.json`](data/correction-adjudication.json).

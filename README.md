@@ -48,9 +48,12 @@ Arm C, run cold and independently, found **seven more** the earlier arms missed 
 gate list of 22 entries against a guard expecting 23, so the repository's fast path cannot accept
 any receipt its own gate produces.
 
-**These 53 are author-reported.** Nine were verified independently; the rest were identified and
-corrected by the same agents. That is the weakest link in the strongest result here, and it is
-stated rather than buried.
+**These 53 were author-reported, and 22 have now been adjudicated blind.** Fresh agents reading
+only source, shown the two competing statements with verdict words stripped and the order
+shuffled, upheld the correction 21 times, split once, and **overturned none**. Blinding was only
+partial — the corrected half is systematically more detailed — and there were zero abstentions
+across 22, both of which are reasons to read a clean sweep carefully. Details and limits in
+[`FINDINGS.md`](FINDINGS.md).
 
 ## The measurement
 
@@ -131,7 +134,8 @@ finding, which makes it a property of the anchor form rather than a one-off bug.
 ## Limits
 
 - **`n = 30`, one run, no repeats.** Directional. No variance estimate, no inter-judge agreement.
-- **The 53 corrections are mostly author-reported.** Nine independently verified.
+- **22 of the 53 corrections were adjudicated blind**, 21 upheld and none overturned; the other 31
+  remain author-reported. Blinding was partial and there were zero abstentions — see FINDINGS.
 - **The question bank is model-written**, including its acceptance criteria. No human audited all 60.
 - **Arm A predates the others** by a session and a model generation, so A-versus-C is not a clean
   single-variable comparison.

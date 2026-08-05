@@ -1,0 +1,177 @@
+{
+  "schema_version": "correction-adjudication@1.0.0",
+  "population": 53,
+  "sampled": 22,
+  "adjudicated": 22,
+  "sampling": "12 records matching the representative set published in FINDINGS, plus 10 drawn from the remaining 41 by a fixed FNV-1a hash of seed-20260805 + the record text, so the draw is reproducible",
+  "tally": {
+    "correction_upheld": 21,
+    "original_upheld": 0,
+    "neither": 0,
+    "both_partly": 1,
+    "undetermined": 0
+  },
+  "upheld_rate": 0.9545,
+  "method": "Each recorded correction was split into its two competing statements, verdict words removed, order shuffled by idx parity so the adjudicator could not tell which was original. Adjudicators read source only, were told to default to CANNOT_DETERMINE, and to state how the rejected statement could still be defensible.",
+  "limitations": [
+    "Blinding was partial. The corrected half of each pair is systematically more detailed, because it was written after reading source, so an adjudicator could plausibly infer which was which from specificity alone. That heuristic correlates with truth, so it cannot be separated from the verdict here. Each adjudicator did supply independent source evidence, which mitigates but does not remove the leak.",
+    "Zero CANNOT_DETERMINE verdicts across 22, all at high confidence, despite an explicit instruction to abstain when the source does not settle the question. That is the profile of either a genuinely clear-cut sample or an instrument that is not discriminating. The quoted evidence — exact line numbers, grep output, runtime stdout — argues for the former, and the notes do actively defend the losing statement, but a 22/22 high-confidence sweep should be read with that in mind.",
+    "n = 22 of 53. Extrapolating 21/22 to the population gives a wide interval; the defensible statement is that most corrections hold and none of the sampled ones was overturned."
+  ],
+  "rows": [
+    {
+      "idx": 1,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_openwiki.py — grep -n output: `73:        \"scripts/check_wiki_graph_sync.py\",` and `76:        \"gcr_molecular_commits.json: protected_history=157 compensated=157 failed=0 schema=v0.2\",` (line 75 is `\"data/commit_lineage/gcr_molecular_commits.json\",`).",
+      "note": "STATEMENT TWO is exact on both line numbers and on the literal's text. STATEMENT ONE's only defence would be a different revision of the file — but in the checked-out tree line 73 is unambiguously the check_wiki_graph_sync.py entry, and nothing anywhere in the non-generated source cites `check_openwiki.py:73` as an anchor (grep for `check_openwiki.py:` returned nothing outside the excluded openwiki/ trees), so the 73 figure has no support here."
+    },
+    {
+      "idx": 2,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_autoresearch_lifecycle.py:55-58 —\n            source_cases = json.loads(source_cases_text)\n            repo_cases = json.loads(REPO_CASES.read_text(encoding=\"utf-8\")) if REPO_CASES.is_file() else []\n            if source_cases != repo_cases:\n                failures.append(\"source cases and production repo cases differ\")\n\nRuntime proof: `ls -la` shows <host-repo>/.claude/skills/autoresearch-composer/cases.json = 3629 bytes vs <target-repo>/skills/autoresearch_composer/cases.json = 3935 bytes; `diff -q` printed \"Files ... differ\"; `python3 -c` json.load on both printed \"parsed equal: True\"; and `python3 scripts/check_autoresearch_lifecycle.py` printed \"PASS: autoresearch lifecycle optimization gate\".",
+      "note": "STATEMENT TWO is defensible only if \"identical\" is read as \"identical as data\" — the two files are demonstrably not identical as bytes (306-byte size difference) yet the gate passes, so as a claim about the files themselves it is false."
+    },
+    {
+      "idx": 3,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_autoresearch_lifecycle.py:128-136 —\n        telemetry = payload[\"telemetry\"]\n        if (\n            telemetry[\"case_count\"] != 12\n            or telemetry[\"delta\"] <= 0.05\n            or telemetry[\"verdict\"] != \"PASS\"\n            or telemetry.get(\"negative_case_count\") != 6\n            or telemetry.get(\"negative_with_skill_success_rate\") != 1.0\n        ):\n            failures.append(f\"ablation telemetry insufficient: {telemetry}\")\nRuntime: `python3 scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json --json` printed telemetry: \"case_count\": 12, \"delta\": 1.0, \"negative_case_count\": 6, \"negative_with_skill_success_rate\": 1.0, \"positive_case_count\": 6, \"positive_with_skill_success_rate\": 1.0, \"verdict\": \"PASS\", \"with_skill_success_rate\": 1.0, \"without_skill_success_rate\": 0.0 — none of with_skill_success_rate / without_skill_success_rate / positive_case_count appears anywhere in check_autoresearch_lifecycle.py.",
+      "note": "Statement TWO's quoted predicate is verbatim identical to the source and its three named unchecked fields genuinely never appear in the gate; the delta guard is a `> 0.05` threshold, not the measured 1.0. Statement ONE is defensible only in the half it shares with TWO: the gate really does re-run the numbers rather than trust a recorded table — it shells out to scripts/ablation_engine.py (line ~118) and parses fresh stdout. But 'requires all five of those table values' is wrong under any reading where the row's columns include with_skill/without_skill success rates or positive_case_count."
+    },
+    {
+      "idx": 4,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/git_gate.py:39-49 (inside the GATES list literal): \"# scripts/validate_molecular_commit_lineage.py is deliberately NOT gated here.\" ... \"# Worse, GATES invokes every gate with no arguments, and the no-argument path is a\" / \"# schema check that never walks history at all (0.07s vs 19s), so the gate reported\" / \"# PASS while asserting almost nothing. Lineage is validated where the commits are:\" / \"#   python3 scripts/validate_molecular_commit_lineage.py \\\\\" / \"#       --repo-root <authoring-workspace> [--audit-protected-history]\". Runtime: `python3 scripts/git_gate.py --receipt <tmp>` printed \"PASS: git gate defenses passed\"; the receipt has gate_count 22 and `[g['gate'] for g in gates if 'lineage' in g['gate']]` == [] — the lineage validator is absent from the executed chain.",
+      "note": "STATEMENT TWO is not baseless: scripts/check_plan_package_compat.py:19-43 still lists \"scripts/validate_molecular_commit_lineage.py\" as entry 21 of GIT_GATE_ORDER, and line 282 does invoke the validator (`receipt[\"scripts/validate_molecular_commit_lineage.py\"] if receipt else subprocess.run(...)`), so the validator is part of the defense apparatus — just not of the git_gate.py chain. Note this is a live inconsistency: a real git_gate receipt (22 gates) would fail the compat check's `payload.get(\"expected_gate_count\") != len(GIT_GATE_ORDER)` test at line 106."
+    },
+    {
+      "idx": 5,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "`ls` of <target-repo>/skills/autoresearch_composer/ shows exactly `cases.json`, `references/`, `skills.md` — no status.json (repo-wide `find -name status.json` returns only skills/gemini_interactions/status.json). <target-repo>/data/lifecycle/skill_optimization_registry.json:19: `\"current_status\": \"production-seed-candidate\",` and <target-repo>/scripts/check_lifecycle_datasets.py:54-55: `if skills and skills[0].get(\"current_status\") != \"production-seed-candidate\":` / `failures.append(\"autoresearch_composer status must be production-seed-candidate\")`.",
+      "note": "STATEMENT ONE is right about half the picture and is not pure invention: skills/gemini_interactions/status.json really does exist and really does say `\"status\": \"quarantined\"`, and there really are exactly two slugs. Its false part is the universal — autoresearch_composer carries no status.json, and its promotion string lives only in the lifecycle registry. So the recording location is split, not uniform; TWO states that correctly, ONE over-generalises from the one slug that does have the file."
+    },
+    {
+      "idx": 6,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/.plan-package.lock.yaml:24 — `final_repo_small_loop_policy: forbidden`\n\n<target-repo>/plan-package.compat.yaml contains no such key; `grep -n \"final_repo\\|small_loop\"` over it returns only:\n5:prototype_small_loop_required: false\n6:final_repo_has_small_loop: false\n7:final_repo_forbidden_paths: small-loop,packets,templates/skill-defense-governance\n\n<target-repo>/scripts/check_openwiki.py:151 — `\"final_repo_small_loop_policy: forbidden\",` listed under the REQUIRED_LITERALS key `\"openwiki/nonofficial/openwiki.yaml\"`, and `python3 scripts/check_openwiki.py` printed \"PASS: openwiki usage and lifecycle wiring\" (exit=0), so that literal really is present in openwiki.yaml.",
+      "note": "STATEMENT TWO could be reached by conflating compat.yaml's neighbouring keys `final_repo_has_small_loop: false` / `final_repo_forbidden_paths: small-loop,...` — semantically the same policy, but the literal key `final_repo_small_loop_policy` is not in that file."
+    },
+    {
+      "idx": 7,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_openwiki.py:137 and :151 —\n    \"openwiki/nonofficial/openwiki.yaml\": [\n        ...\n        \"final_repo_small_loop_policy: forbidden\",\nSame path also at check_openwiki.py:29 (REQUIRED_FILES), scripts/check_plan_package_compat.py:170, tests/test_skill_asset_governance.py:42, README.md:22. `ls openwiki/openwiki.yaml` → \"No such file or directory\".",
+      "note": "The policy key `final_repo_small_loop_policy: forbidden` is pinned as a required literal of `openwiki/nonofficial/openwiki.yaml`, which is a REQUIRED_LITERALS dict key exactly as TWO says, and the shallower path does not exist on disk. I can find no reading on which ONE is defensible — the only near-miss is that `openwiki/quickstart.md` (the declared openwiki_entry) does sit at the shallow level, but that is a different file and holds no policy key."
+    },
+    {
+      "idx": 8,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_plan_package_compat.py:295-299 — `or manifest.get(\"project_template_file_count\") != \"86\"` / `or manifest.get(\"molecular_commit_count\") != \"10\"` / `or manifest.get(\"lineage_edge_count\") != \"92\"` / ... / `or manifest.get(\"plan_package_input_count\") != \"39\"`. A grep for all six names across scripts/, tests/, data/ and the lock file returns hits for `governance_template_count` and `shadow_defense_count` only in <target-repo>/plan-package.compat.yaml:9 (`governance_template_count: 16`) and :11 (`shadow_defense_count: 8`) — no script reads them.",
+      "note": "STATEMENT TWO would be defensible only in the loose sense that all six values are declared and frozen in plan-package.compat.yaml, and the file as a whole is hash-pinned elsewhere (`frozen_source_sha256` at line 13), so the two unread counts cannot silently change either — but the gate itself never compares them, which is what 'enforces' means here."
+    },
+    {
+      "idx": 9,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_openwiki.py:76: `\"gcr_molecular_commits.json: protected_history=157 compensated=157 failed=0 schema=v0.2\",`; line 73 is `\"scripts/check_wiki_graph_sync.py\",`. Both sit inside the REQUIRED_LITERALS entry for `\"openwiki/nonofficial/code-call-lifecycle.md\"`, a plain list of literal strings with no line numbers.",
+      "note": "Same file, same lines as idx 1 — TWO is exact. TWO's trailing clause \"the reference is carried as the REQUIRED_LITERALS entry name with no line number, in both places\" is supported for the checker itself: the literal appears exactly once (line 76) and no source file in the repo cites any `check_openwiki.py:<n>` anchor. The only defence for ONE would be a stale revision; nothing in the current tree puts that literal at 73."
+    },
+    {
+      "idx": 10,
+      "outcome": "both_partly",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_openwiki.py, numbered via `grep -n \"\"`:\n73:        \"scripts/check_wiki_graph_sync.py\",\n74:        \"scripts/validate_molecular_commit_lineage.py\",\n75:        \"data/commit_lineage/gcr_molecular_commits.json\",\n76:        \"gcr_molecular_commits.json: protected_history=157 compensated=157 failed=0 schema=v0.2\",\n\nStaleness check (runtime): `python3 -c` over <target-repo>/data/commit_lineage/gcr_molecular_commits.json printed `comp 235`, and <target-repo>/data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json prints `commit_count = 235`, `compensated_commit_count = 235`, `failed_commit_count = 0` — so the pinned 157/157 is stale, but it sits at line 76, not 73.",
+      "note": "ONE is right that the 157/157 literal is at line 76 but wrong that line 73 is validate_molecular_commit_lineage.py — that is line 74; line 73 is check_wiki_graph_sync.py. TWO is right that check_openwiki.py pins a stale expected value (157 vs the ledger's actual 235) but attaches it to the wrong line (73 instead of 76). ONE's trailing clause about \"the reference carries the literal itself and no line number\" concerns openwiki/nonofficial/production-bottlenecks.md, which I was instructed not to read, so that sub-clause is unverified either way."
+    },
+    {
+      "idx": 11,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_openwiki.py:13-29 — REQUIRED_FILES = [ ... \"openwiki/nonofficial/openwiki.yaml\", ]  (line 29, last entry). `ls openwiki/openwiki.yaml` → \"ls: .../openwiki/openwiki.yaml: No such file or directory\".",
+      "note": "Every REQUIRED_FILES entry except README.md and openwiki/quickstart.md sits under openwiki/nonofficial/, and the yaml is one of them. ONE would only be defensible against an older layout where the yaml sat one level up; nothing in the current tree supports it (grep for 'openwiki.yaml' across scripts/, tests/, README.md returns the nonofficial path every time)."
+    },
+    {
+      "idx": 12,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "ast.literal_eval of the GATES assignment in <target-repo>/scripts/git_gate.py prints \"GATES count = 22\"; ast.literal_eval of GIT_GATE_ORDER in <target-repo>/scripts/check_plan_package_compat.py prints \"GIT_GATE_ORDER count = 23\", the extra entry being line 40: `\"scripts/validate_molecular_commit_lineage.py\",`. git_gate.py:39 states `# scripts/validate_molecular_commit_lineage.py is deliberately NOT gated here.` Runtime receipt from an actual run: gate_count 22, expected_gate_count 22, status passed.",
+      "note": "The count itself (22, not 23) is settled by both static parse and a live run, so STATEMENT TWO is wrong on the number. The only part of ONE the source cannot fully settle is the causal attribution — that a wiki page's '23' was *derived from* GIT_GATE_ORDER rather than from miscounting the literal; that is an inference, though a well-supported one since 23 is exactly GIT_GATE_ORDER's length and its surplus entry is the one the comment excludes."
+    },
+    {
+      "idx": 13,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "`ast.literal_eval` of the GATES assignment in <target-repo>/scripts/git_gate.py printed: `len: 22 lines: 18 52`. The list ends `\"scripts/check_autoresearch_lifecycle.py\",` / comment block / `\"scripts/no_op_pruner.py\", \"scripts/no_ops_purger.py\",`; git_gate.py:120 `for gate in GATES:` and :161 `\"expected_gate_count\": len(GATES),` — the count exists only as a list length.",
+      "note": "TWO wins the disputed number (22) but is wrong on a detail: the excluded-lineage comment block is 11 lines (file lines 39-49), not 6 — quote it as 11 if the wiki repeats that. ONE's 23 is defensible in one specific way worth flagging: <target-repo>/scripts/check_plan_package_compat.py:19-43 defines GIT_GATE_ORDER with 23 entries — the same list *including* `\"scripts/validate_molecular_commit_lineage.py\"` — and lines 106-107 assert `payload.get(\"expected_gate_count\") != len(GIT_GATE_ORDER)`. So a 23 does exist in the repo, in a stale mirror that git_gate.py's own receipt (22) would now fail; but for git_gate.py's GATES the answer is 22."
+    },
+    {
+      "idx": 14,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_openwiki.py:64 —\n    \"openwiki/nonofficial/code-call-lifecycle.md\": [\n\nand the same path is the REQUIRED_FILES entry at line 21: `    \"openwiki/nonofficial/code-call-lifecycle.md\",`. `grep -n` finds no occurrence of the string \"openwiki/code-call-lifecycle.md\" as a standalone key anywhere in the file.",
+      "note": "STATEMENT TWO would be right about the file's role (it is the page the code-call-lifecycle literals are greped in) and is a plausible pre-split memory — commit 3cbbfd1 \"split gate-pinned wiki pages into openwiki/nonofficial\" suggests the path once lacked the `nonofficial/` segment — but the current source pins the nonofficial path."
+    },
+    {
+      "idx": 15,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/tests/test_skill_asset_governance.py:22-24 — `def test_skill_asset_structure() -> None:` / `    required = [` / `        \".githooks/pre-push\",` … list ends at line 80 with `\"tests/test_autoresearch_eval_suite.py\",`. ast.literal_eval on that assignment: len 58, unique 58 (no duplicates, no comments in the literal).",
+      "note": "Exactly 58 entries, all distinct, so TWO is right and ONE undercounts. ONE is defensible only as a hedged approximation — it writes '~57', and off-by-one eyeball counts of a 58-line literal are the classic failure mode this pair is testing; but the source settles the exact number."
+    },
+    {
+      "idx": 16,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "`python3 -c \"...ast.literal_eval...\"` on the GATES assignment in <target-repo>/scripts/git_gate.py prints \"GATES count = 22\" (entries 1 scripts/validator.py … 22 scripts/no_ops_purger.py). A real run wrote a receipt with `\"expected_gate_count\": 22` / gate_count 22. The comment block sitting inside the literal is git_gate.py:39-49 — eleven `#` lines, opening `# scripts/validate_molecular_commit_lineage.py is deliberately NOT gated here.`",
+      "note": "ONE is right on the count at issue but wrong on an incidental detail: the in-literal comment block is 11 lines (39-49), not 9. STATEMENT TWO's 23 is defensible only as an eye-count that mistakes the commented-out `scripts/validate_molecular_commit_lineage.py` path on line 39 for a 23rd entry — which is exactly the failure mode ONE describes — or as a reading of GIT_GATE_ORDER in check_plan_package_compat.py, which genuinely has 23; neither is what git_gate.py sequences."
+    },
+    {
+      "idx": 17,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/.agents/skills/repo-terminal-operator/repo-adapter.ts:7-9: `const root = import.meta.dir;` / `const outputRepo = resolve(root, \"../../..\");` / `const workspaceRoot = resolve(outputRepo, \"../..\");`",
+      "note": "Three `..` segments, and from .agents/skills/repo-terminal-operator/ they land on the agent-skills-repo root, so TWO is right on both the count and the destination, and right that workspaceRoot is two further levels up. ONE's \"two levels\" would only be defensible if someone counted the path segments stripped to reach the repo root from `.agents/skills/` rather than from the module directory itself — a miscount, not a reading the file supports."
+    },
+    {
+      "idx": 18,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/tests/test_skill_asset_governance.py:114-116 —\n    ]:\n        result = run_script(script)\n        assert result.returncode == 0, result.stderr + result.stdout\n(the assert is inside the `for script in [...]` body opened at line 88, so the first non-zero return aborts the test)\n\n<target-repo>/scripts/git_gate.py:143-146 —\n        if result.returncode != 0:\n            print(f\"FAIL: gate failed: {gate}\", file=sys.stderr)\n            exit_code = result.returncode\n            break\n\nast.literal_eval counts (script at scratchpad/count2.py): `GATES count 22`, `test scripts count 25`, `in test not GATES: ['scripts/check_prompt_trace_assets.py', 'scripts/eval_autoresearch_composer.py', 'scripts/git_gate.py', 'scripts/sample_autoresearch_traces.py', 'scripts/validate_molecular_commit_lineage.py']`, `in GATES not test: ['scripts/semantic_arbitration_report.py', 'scripts/synthetic_case_quality_report.py']`. `python3 -m pytest tests/test_skill_asset_governance.py -k static_defense -q` printed \"1 passed, 5 deselected in 4.79s\".",
+      "note": "TWO is right on the count (25) and on the fact that every one of them currently exits 0 — the test passes, and each runs as its own subprocess — so \"independently\" holds in the isolation sense; but its explicit claim that the test does not stop at the first failure is contradicted by the in-loop assert, which short-circuits exactly like git_gate.py's `break`."
+    },
+    {
+      "idx": 19,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/interactions_patch_assert_runner.py:16 `RULES = {` (module-level table) ; :49 `rules = RULES.get(language.lower())` ; :84-87 `def patched_agent(_prompt: str, language: str) -> str:` / `    if language.lower() == \"typescript\":` / `        return \"import { GoogleGenAI } from '@google/genai';…\"` / `    return \"from google import genai…\"` ; :92 `return load_generator().generate_cases(117)`. `grep -n \"expected_checks\" scripts/interactions_patch_assert_runner.py` → no match (exit 1), while scripts/synthetic_case_generator.py:29 defines `def expected_checks(language: str) -> list[str]:` and attaches it to every case at :61. Runtime: `python3 scripts/interactions_patch_assert_runner.py` printed \"PASS: interactions regex assertions total_cases_evaluated=117 passed_cases=117 success_rate=1.0 zero_llm_api_calls=0\".",
+      "note": "TWO is accurate on every checkable point: no expected_checks read, own RULES table, prompt discarded (`_prompt`), two constant return strings, 117/117 PASS by construction. ONE is weakly defensible in one narrow sense — the runner does consume the generator's cases and would fail with 'Unmapped language framework' (line 51) if the generator emitted a language RULES does not cover, so it incidentally tests agreement on the *language* field; but it never compares the generator's expected_checks regexes against RULES, so it cannot 'prove the generator and the matcher agree' in the sense the words imply."
+    },
+    {
+      "idx": 20,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_lifecycle_datasets.py:68-77 — `expected_summary = {` `\"pr_cases\": 4,` `\"pr_passed\": 4,` `\"nightly_cases\": 3,` `\"nightly_passed\": 3,` `\"trace_samples\": 3,` `\"failure_trace_samples\": 2,` `\"ablation_delta\": 1.0,` `\"status\": \"PASS\",` `}` — eight keys, each compared with `if summary.get(key) != value` at :78-80. The data side agrees: result_summary in data/lifecycle/eval_runs/autoresearch_composer_2026-07-23.json has exactly those 8 keys (printed len 8).",
+      "note": "I cannot verify ONE's trailing sub-claim that the page's own code block already lists the same eight, since /openwiki is out of scope — but that does not affect the count. STATEMENT TWO's seven has no support I could find; the nearest defence is that `status` is a verdict string rather than a metric, so someone counting only the numeric fields would get seven."
+    },
+    {
+      "idx": 21,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_autoresearch_lifecycle.py:55-58: `source_cases = json.loads(source_cases_text)` / `repo_cases = json.loads(REPO_CASES.read_text(encoding=\"utf-8\")) if REPO_CASES.is_file() else []` / `if source_cases != repo_cases:` / `failures.append(\"source cases and production repo cases differ\")`",
+      "note": "The comparison is on parsed objects, so indentation/key-order-preserving reformats and trailing-whitespace changes do not trip it — TWO states the mechanism, ONE states only the consequence. ONE is defensible as a loose summary rather than a false claim: it never says \"byte-level\", and for any semantic divergence it is correct; it is merely imprecise about what \"differ\" means, which is exactly the question posed here."
+    },
+    {
+      "idx": 22,
+      "outcome": "correction_upheld",
+      "confidence": "high",
+      "evidence": "<target-repo>/scripts/check_openwiki.py:139 — `        \"openwiki_entry: openwiki/quickstart.md\",` (a REQUIRED_LITERALS entry for \"openwiki/nonofficial/openwiki.yaml\"), reinforced by lines 15-17 of REQUIRED_FILES:\n    # The declared openwiki_entry. Existence only -- it is generated by the wiki\n    # pipeline on every run, so pinning its content would freeze a generated file.\n    \"openwiki/quickstart.md\",\n\nnonofficial/README.md is REQUIRED_FILES line 18 and its REQUIRED_LITERALS block at lines 38-46 holds exactly eight strings: \"Usage Entry\", \"Asset Lifecycle Map\", \"stateful-workflow.md\", \"production-bottlenecks.md\", \"autoresearch-composer-lifecycle.md\", \"wiki-graph-sync-architecture.md\", \"schema-standards.md\", \"prompt-trace-assets.md\". `python3 scripts/check_openwiki.py` → \"PASS: openwiki usage and lifecycle wiring\".",
+      "note": "TWO is defensible as a description of role rather than of the key: nonofficial/README.md is the index page of the nonofficial subtree and is itself gate-pinned, whereas quickstart.md is existence-only — so it is the more 'entry-like' page in substance. But the literal `openwiki_entry:` value the gate pins is openwiki/quickstart.md, not this page. ONE's phrase \"eight greped literal section names\" is slightly loose — five of the eight are filenames, not section headings — but the count and the existence-plus-literals characterisation are exact."
+    }
+  ]
+}
