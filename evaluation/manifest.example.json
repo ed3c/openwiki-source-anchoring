@@ -1,0 +1,94 @@
+{
+  "schema_version": "openwiki-evaluation/v1",
+  "study_id": "replace-with-study-id",
+  "experimental_unit": "repository_generation_run",
+  "primary_outcomes": [
+    "source_grounded_task_success",
+    "atomic_claim_support_rate"
+  ],
+  "repositories": [
+    {
+      "id": "target-001",
+      "source": {
+        "repository": "owner/source-repository",
+        "commit": "0000000000000000000000000000000000000000",
+        "path": "evaluation/snapshots/target-001"
+      },
+      "openwiki_outputs": [
+        {
+          "id": "target-001-baseline-run-01",
+          "method": "baseline",
+          "path": "evaluation/outputs/target-001/baseline/run-01",
+          "run_id": "run-01",
+          "generation": {
+            "provenance": "partial",
+            "model": {
+              "id": null,
+              "provider": null,
+              "immutable": false
+            },
+            "prompt_sha256": null,
+            "config_sha256": null
+          }
+        },
+        {
+          "id": "target-001-anchored-run-01",
+          "method": "source-anchored-with-gate",
+          "path": "evaluation/outputs/target-001/anchored/run-01",
+          "run_id": "run-01",
+          "generation": {
+            "provenance": "complete",
+            "model": {
+              "id": "replace-with-immutable-model-snapshot",
+              "provider": "replace-with-provider",
+              "immutable": true
+            },
+            "prompt_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "config_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      ],
+      "evaluation": {
+        "splits": {
+          "development": {
+            "path": "evaluation/tasks/target-001/development.json",
+            "spent": true
+          },
+          "public": {
+            "path": "evaluation/tasks/target-001/public.json",
+            "spent": false
+          },
+          "holdout": {
+            "path": "evaluation/tasks/target-001/holdout.json",
+            "spent": false
+          }
+        },
+        "tasks": {
+          "repository_qa": "evaluation/tasks/target-001/repository-qa.json",
+          "navigation": "evaluation/tasks/target-001/navigation.json",
+          "change_impact": "evaluation/tasks/target-001/change-impact.json",
+          "implementation": "evaluation/tasks/target-001/implementation.json"
+        },
+        "isolation": {
+          "source_only_task_author": [
+            "evaluation/outputs",
+            "qa",
+            "results",
+            ".openwiki-review"
+          ],
+          "wiki_only_answerer": [
+            "evaluation/snapshots/target-001",
+            "evaluation/tasks/target-001/holdout.json",
+            "results",
+            ".openwiki-review"
+          ],
+          "blind_judge": [
+            "evaluation/snapshots/target-001",
+            "results/aggregate",
+            ".openwiki-review"
+          ]
+        }
+      }
+    }
+  ]
+}
