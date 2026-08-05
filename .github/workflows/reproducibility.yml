@@ -8,58 +8,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   BUN_VERSION: "1.3.13"
 
 jobs:
-  apply_bundle:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'reproduction-and-adversarial-hardening'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out feature branch
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: reproduction-and-adversarial-hardening
-          persist-credentials: true
-
-      - name: Apply self-removing hardening bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ ! -f .github/hardening-bundle.part-00 ]; then
-            echo "bundle already applied"
-            exit 0
-          fi
-          cat \
-            .github/hardening-bundle.part-00 \
-            .github/hardening-bundle.part-01 \
-            .github/hardening-bundle.part-02 \
-            .github/hardening-bundle.part-03 \
-            .github/hardening-bundle.part-04a \
-            .github/hardening-bundle.part-04b \
-            .github/hardening-bundle.part-05 \
-            .github/hardening-bundle.part-06 \
-            .github/hardening-bundle.part-07a \
-            .github/hardening-bundle.part-07b \
-            | base64 --decode > /tmp/hardening.tar.gz
-          tar -xzf /tmp/hardening.tar.gz
-          git checkout -- .github/workflows/reproducibility.yml .github/workflows/apply-hardening-bundle.yml
-          rm .github/hardening-bundle.part-*
-          chmod +x harness/selftest.sh harness/trigger.sh harness/verify.sh \
-            harness/tests/fake_driver.sh reproduction/recompute.sh
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet && exit 0
-          git commit -m "feat: add deterministic reproduction, claim preservation, and resource limits"
-          git push origin HEAD:reproduction-and-adversarial-hardening
-
   selftest:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -76,11 +33,37 @@ jobs:
           bun --version
           shellcheck --version
 
-      - name: ShellCheck all harness scripts for errors
-        run: shellcheck --severity=error harness/*.sh
+      - name: ShellCheck all executable shell paths for errors
+        run: >-
+          shellcheck --severity=error
+          harness/*.sh
+          harness/tests/*.sh
+          reproduction/*.sh
 
-      - name: ShellCheck gate paths for warnings
-        run: shellcheck --severity=warning harness/selftest.sh harness/verify.sh harness/trigger.sh
+      - name: ShellCheck primary verification paths for warnings
+        run: >-
+          shellcheck --severity=warning
+          harness/selftest.sh
+          harness/verify.sh
+          harness/trigger.sh
+          harness/tests/fake_driver.sh
+          reproduction/recompute.sh
+
+      - name: Parse committed JSON artifacts
+        run: |
+          bun -e '
+          import { readFileSync } from "node:fs";
+          for (const path of [
+            "reproduction/provenance.json",
+            "reproduction/expected-receipts/good.json",
+            "reproduction/expected-receipts/hollow.json",
+            "experiments/factorial-v1/provenance-template.json",
+            "experiments/factorial-v1/run-manifest.schema.json"
+          ]) JSON.parse(readFileSync(path, "utf8"));
+          '
 
       - name: Run harness self-test
         run: sh harness/selftest.sh
+
+      - name: Recompute deterministic bundle
+        run: sh reproduction/recompute.sh
