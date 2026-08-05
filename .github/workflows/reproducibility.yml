@@ -1,0 +1,43 @@
+name: Reproducibility
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: "1.3.13"
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Record toolchain
+        run: |
+          bun --version
+          shellcheck --version
+
+      - name: ShellCheck all harness scripts for errors
+        run: shellcheck --severity=error harness/*.sh
+
+      - name: ShellCheck gate paths for warnings
+        run: shellcheck --severity=warning harness/selftest.sh harness/verify.sh harness/trigger.sh
+
+      - name: Run harness self-test
+        run: sh harness/selftest.sh

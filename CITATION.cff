@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: >-
+  If you use the harness, data, or experimental design, cite this repository and the exact commit or release you reviewed.
+title: OpenWiki Source Anchoring
+type: software
+authors:
+  - family-names: ed3c
+    given-names: ed3c
+    alias: ed3c
+abstract: >-
+  An evidence-first research artifact and mechanical harness for studying source anchoring in AI-generated code documentation. The auditor checks path and lexical quote validity; it does not establish semantic entailment.
+repository-code: https://github.com/ed3c/openwiki-source-anchoring
+url: https://github.com/ed3c/openwiki-source-anchoring
+license: MIT
+keywords:
+  - generated documentation
+  - source anchoring
+  - reproducibility
+  - AI agents
+  - software engineering
+  - evaluation

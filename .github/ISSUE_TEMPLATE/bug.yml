@@ -1,0 +1,10 @@
+name: Bug report
+description: Report a reproducible problem
+body:
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include command and observed result
+    validations:
+      required: true

@@ -4,156 +4,173 @@
 
 </div>
 
-# 讓生成式 code wiki 變得可查：什麼真的幫到讀者，什麼只是看起來像
+# OpenWiki Source Anchoring
 
-生成出來的 wiki 會陳述大量關於某個 codebase 的具體事情，而其中幾乎沒有一句查得了。這裡量的是
-「**逼作者去查證**會發生什麼」——更有用的是，**那個逼迫裡的哪一部分在做事**。
+一個 evidence-first 實驗：研究如何讓 AI 生成的程式碼文件更容易被驗證。
 
-四臂、一組題、一位盲判。
+這個 repository 聚焦一個明確問題：
 
-| | anchor | 錨定率 | **QA PASS** | PASS+PARTIAL | *「wiki 沒寫」* |
-|---|---|---|---|---|---|
-| **A** baseline，官方 pipeline | 0 | 0% | 23.3% | 56.7% | 10 / 30 |
-| **B** 事後錨定，閘驅動 | 312 | **100%** | 40.0% | 66.7% | 6 |
-| **Bs** arm B 刪掉所有標記 | 0 | 0% | **40.0%** | 56.7% | 5 |
-| **C** 寫作當下錨定，無閘 | 590 | 41.3% | **46.7%** | **86.7%** | **1** |
-| **D** 寫作當下錨定，**有閘** | **1053** | **100%** | 未量測 | — | — |
+> 當生成文件被要求引用原始碼路徑與逐字引文時，觀察到的改善有多少來自「查證原始碼的過程」，有多少來自讀者看得到的 citation markers？
 
-比率一律以 `--exclude nonofficial` 計算。每一臂都有 14 頁是這個 repo **自有的手寫文檔**，
-不是受測 pipeline 的產物。它們留在磁碟上——五支腳本硬性要求，而且讀者實際拿得到——但**拿它們進分母
-去評 pipeline 的產出是範疇錯誤**。**被量測的集合 ≠ 被交付的集合**，而本頁的較早版本混了兩者：
-arm B 被允許錨那些頁、arm C/D 不被允許，於是三臂帶著三個分母。上表每個數字都可用上述指令重算，
-原始輸出在 [`data/arm-comparison.json`](data/arm-comparison.json)。
+目前定位是 **具備可執行 harness 的 research artifact**，不是成熟產品，也不是通用的 Agent 招募 benchmark。
 
-兩件事掉了出來，而且都與直覺讀法相反。
+## 十秒結論
 
-**引用標記對答對率的貢獻是零。** 把 arm B 的 486 個 `(src: …)` 標記全部刪除、其餘一字不動，
-PASS 率**分毫未動**，仍是 30 題中的 12 題。相對 baseline 的增益，**全部來自錨定過程所補上的
-「內容」**，不是它留下的標記。逼一個作者去找逐字引文，會讓他去讀源碼並把讀到的寫下來；**引文本身
-是副產物。**
+- 在一次 public run 中，事後加入 source verification，QA PASS 從 **7/30 提升到 12/30**。
+- 將同一份內容中的可見 citation markers 移除後，aggregate PASS 仍是 **12/30**。
+- 這個相同結果**不能證明兩者等效**；目前只有 `n = 30`、單次 stochastic run、沒有 repeats。
+- Mechanical gate 驗證的是 **lexical validity**：路徑存在，而且引文確實出現在該檔案；它不能證明引文支持旁邊的 claim。
 
-**錨定率不是品質指標。** arm C 只有 41%，卻在每一個面向讀者的指標上勝過 arm B 的 100%。
-**錨定率說的是作者做了多少查證，不是結果幫不幫得上人**——而在這份資料上，兩者方向相反。
+## 公開結果
 
-**而閘幾乎是免費的。** arm D 就是 arm C 的程序加上閘迴圈——同樣冷啟動、同樣的靶、閘跑了 24 次。
-它達到 **100%、零無效 anchor、覆蓋 32/32**，而且**寫得比 arm C 更多**（50 頁 vs 48、36,730 字 vs
-35,530），成本 590K vs 563K tokens。**多 5% 的成本，換 41% 到 100% 的差距**，而且沒有出現前科警告
-的縮範圍現象。閘抓到的東西用它自己作者的話說是「每一個都是真缺陷」：六條引文在源碼裡根本不逐字存
-在、它沒意識到 heading 與表格列也算 claim、以及引文內的 `)` 讓 anchor 提早截斷。
+| Arm | 流程 | Anchors | Anchor rate | QA PASS | PASS + PARTIAL |
+|---|---|---:|---:|---:|---:|
+| A | 官方 baseline pipeline | 0 | 0% | 7/30 | 17/30 |
+| B | 事後 retrofit verification + gate | 312 | 100% | 12/30 | 20/30 |
+| Bs | 保留 B 的內容、移除 markers | 0 | 0% | 12/30 | 17/30 |
+| C | Fresh authoring 時查證、無 gate | 590 | 41.3% | 14/30 | 26/30 |
+| D | Fresh authoring 時查證、有 gate | 1,053 | 100% | 未量測 | 未量測 |
 
-> **錨定率是流程指標。它該待在儀表板上，不是頭條上。**
+Anchor rate 使用 `--exclude nonofficial`。`nonofficial/` 會隨每個 arm 一起交付，但不是被測 pipeline 生成的內容。衍生數字可由 [`data/arm-comparison.json`](data/arm-comparison.json) 重新計算。
 
-## 逼作者查證，實際上找到了什麼
+## 證據支持與不支持的結論
 
-arm A 通過了官方程序檢查的每一項——三個 review subagent、零壞鏈、`status: success`——而它含有
-**53 句與源碼矛盾的敘述**。那條 pipeline 裡沒有任何一步會把句子拿去跟它描述的檔案對質，所以這類
-缺陷**在它的量程之外**，不是被它漏掉。
+**目前支持的 observation**
 
-其中一個誤數已擴散到**十頁**，進了 frontmatter、標題與一張 mermaid 圖。**十頁一致不是十份證據，
-是一份重複了十次。**
+- A → B 的方向有利，值得 replication。
+- B 與 Bs 在一次 run 的 aggregate PASS 相同，但 individual verdict 並不完全相同。
+- 在這些 runs 中，anchor rate 比較像 process metric，不是 reader-quality metric。
+- 嘗試建立 anchors 時，找到了原始 pipeline checks 沒有測到的 contradictions。
+- Gate 可以在公開 fixture 上把目前的 lexical metrics 推到門檻。
 
-arm C 冷跑、獨立地又找到**七個**前面各臂都沒抓到的——包含一份 22 條的 gate 清單對上一個期待 23 條
-的守衛，**代表這個 repo 的快路徑無法接受它自己的 gate 產出的任何 receipt**。
+**目前未建立的結論**
 
-**這 53 條原為作者自報，現已有 22 條經盲判裁決。** 只讀源碼的 fresh agent 在判決詞剝除、順序洗牌
-的條件下，**支持更正 21 次、分歧 1 次、推翻 0 次**。但**盲判只是部分成立**（更正版系統性地更詳細）
-且 **22 條零棄權**——兩者都是「全勝結果要謹慎讀」的理由。細節與限制見 [`FINDINGS.md`](FINDINGS.zh-TW.md)。
+- Citation markers 的 causal effect 等於零。
+- Fresh authoring 的改善是由 gate 單獨造成；B 與 C 同時存在多個差異。
+- Quote matching 能建立 semantic correctness 或 evidentiary correctness。
+- 結果可泛化到 organic repositories、其他 models 或 repeated generations。
 
-## 量測方式
+下一個 causal design 應比較 retrofit／fresh authoring 與 gate／no gate 的 factorial cells。見 [`docs/NEXT_EXPERIMENT.md`](docs/NEXT_EXPERIMENT.md)。
 
-public 30 題出自一個 60 題題庫，由四個**只讀源碼**的 agent 寫出，所有 wiki 與 review 逐字稿明令
-禁開。依排序後的 id 機械切分。作答者拿到一份 wiki、**禁讀源碼**。判官每題看四個匿名答案、標籤逐批
-輪轉，只回傳 PASS/PARTIAL/FAIL。**總分由腳本計算，判官從未看到任何一個總數。**
+## 執行 verifier
 
-更早一次用保留的 30 題只比 A 對 B，結果是 30.0% 對 43.3%，在
-[`qa/holdout-result.json`](qa/holdout-result.json)，**已用盡**。
+需求：
 
-**`n = 30`、單次、無重複。** 一到三題的差異在雜訊範圍內，**不當成效果宣稱**。A→B 的 16.7pp 與
-A→C 的 23.4pp 大到值得討論；B 與 Bs 之間 3 題的 PARTIAL/FAIL 差異**不算**。
+- Bun **1.3.13**，固定於 [`.bun-version`](.bun-version)
+- POSIX shell
 
-## 這准許什麼結論
-
-| 觀察 | 准許的結論 |
-|---|---|
-| B 與 Bs 的 PASS 完全相同 | **標記不驅動正確性，補上的內容才是** |
-| C 在每個讀者指標最好、錨定率卻最低 | **錨定率不是品質指標** |
-| C 的「沒寫」只有 1，A 是 10 | 查證紀律用在**寫作當下**，比同樣的紀律用在事後，產出的 wiki 完整得多 |
-| 53 句矛盾只有靠嘗試錨定才浮現 | 官方三閘**看不見自信的錯誤內容** |
-
-**不准許的：** 「把閘迭代到歸零有害」。arm B 與 C 差**兩件事**——事後 retrofit vs 從頭寫、有閘 vs
-無閘——而這份證據**兩者都分不開**。未測的那一格是**從頭寫 + 有閘**，那正是兩條證據共同指向的地方，
-而這裡沒有跑過它。
-
-同樣不准許：任何關於「有真實歷史的 repo」的結論。**靶是合成的**，由同一套系統生成又由它文檔化。
-
-## 這裡有什麼
-
-| 路徑 | 內容 |
-|---|---|
-| [`LICENSE`](LICENSE) | MIT。wiki 描述的是第三方 repo，授權涵蓋本 repo 自己的產出 |
-| [`THRESHOLDS.md`](THRESHOLDS.zh-TW.md) | 六條門檻，與在任何數字存在**之前**固定它們的那個 commit |
-| [`METHOD.md`](METHOD.zh-TW.md) | 各臂怎麼做出來的、哪些 model 釘死、單靠這裡重現不了什麼 |
-| [`STAGES.md`](STAGES.zh-TW.md) | 推理階段，與沒人預料到的那幾件事 |
-| [`FINDINGS.md`](FINDINGS.zh-TW.md) | 錯誤主張與各自的源碼反證，以及逐結果的限制 |
-| [`wiki/arm-a-baseline/`](wiki/arm-a-baseline/) | 官方 pipeline 的產出，未修改 |
-| [`wiki/arm-b-retrofit/`](wiki/arm-b-retrofit/) | arm A 經閘驅動錨定 pass 之後 |
-| [`wiki/arm-b-stripped/`](wiki/arm-b-stripped/) | arm B 機械刪除全部標記 |
-| [`wiki/arm-c-generated/`](wiki/arm-c-generated/) | 冷跑，生成當下就錨定，無閘 |
-| [`wiki/arm-d-gate-driven/`](wiki/arm-d-gate-driven/) | 同上，但有閘迴圈 |
-| [`harness/`](harness/) | gate、wrapper、circuit breaker、派工 packet、作者側附錄、fixtures |
-| [`qa/`](qa/) | 題庫、切分、兩次執行的逐題判定 |
-| [`data/`](data/) | 錯誤主張清單、各臂稽核、arm C 的 receipt、形塑設計的前科 |
-
-## 什麼是 anchor
-
+```sh
+sh harness/selftest.sh
 ```
+
+預期輸出：
+
+```text
+selftest: PASS(...)
+```
+
+對 target repository 執行 audit：
+
+```sh
+bun run harness/src/audit_wiki.ts \
+  wiki/arm-d-gate-driven \
+  /path/to/target-repository \
+  --exclude nonofficial
+```
+
+Self-test 包含 valid、hollow、malformed、degraded 與 circuit-breaker 的正負控制。CI 會在 clean Ubuntu runner 上，用固定的 Action revisions 與 Bun version 執行相同測試。
+
+## Gate 真正證明什麼
+
+Anchor 格式：
+
+```text
 (src: scripts/git_gate.py `lineage manifest must be staged`)
 ```
 
-一個 repo 相對路徑，加上一段**從該檔複製出來**的子字串，以字面比對驗證。**不帶行號**：官方提示詞
-要求 stable paths 優於行號，而它是對的——行號在下一個 commit 就過期，**逐字引文才是證據本體**。
+Harness 會檢查：
 
-作者側規則（含為何 rationale 豁免、改標 `(inferred)`）在
-[`harness/anchor-extension.md`](harness/anchor-extension.md)。它是**附錄**：**沒有動過任何一個官方
-提示詞的位元組**。
+1. anchor syntax 是否正確；
+2. path 是否留在 target repository 內；
+3. referenced file 是否存在；
+4. quote 是否逐字出現在該檔案；
+5. measured claim、coverage 與 verifiable-share thresholds 是否通過。
 
-**閘檢查的是字面層，不是證據層。** 它驗證的是「該引文逐字出現在該檔案裡」。它**不驗證**那段引文
-是否支持它所在的那句話；而且一個區塊只要帶一個格式正確的 anchor 就算已錨，即使該區塊裡其他敘述
-無人支持。本頁稍早把這個叫做「錨正確率 100%」，**那個措辭正好邀請最錯的讀法**。它是
-**anchor lexical validity（字面有效性）**。要建立證據層的正確性，需要 claim 切分、claim 對 anchor
-的映射、以及 entailment 檢查——這套 harness 一項都沒做。
+Harness **不會**執行 claim segmentation、claim-to-anchor entailment 或 semantic adjudication。請一致使用以下名詞：
 
-```sh
-sh harness/selftest.sh                                        # 先跑這個
-bun run harness/src/audit_wiki.ts wiki/arm-d-gate-driven <target-repo> --exclude nonofficial
+| 名詞 | 定義 |
+|---|---|
+| Path validity | Referenced file 可安全解析於 target repository 內 |
+| Lexical validity | Quote 逐字存在於 referenced file |
+| Semantic support | Evidence 支持旁邊的 claim |
+| Human adjudication | 獨立 reviewers 對 claim 與 evidence 達成一致 |
+
+詳見 [`METRICS.md`](METRICS.md) 與 [`EXPERIMENT_REVIEW.md`](EXPERIMENT_REVIEW.md)。
+
+## Reproducibility 狀態
+
+| 分類 | 狀態 |
+|---|---|
+| Available | 是 |
+| Licensed | 是，MIT |
+| Harness functional | 由 CI 執行 `harness/selftest.sh` |
+| Reusable | 部分；verifier 與 fixtures 公開 |
+| Generation reproducible | 否；原始 target 與 host pipeline 未完整公開 |
+| Adjudication reproducible | 部分；verdict files 公開，但完整 model environment 未固定 |
+| Independently reproduced | 尚未 |
+
+完整限制見 [`METHOD.md`](METHOD.md)、[`THRESHOLDS.md`](THRESHOLDS.md) 與 [`REPRODUCE.md`](REPRODUCE.md)。
+
+## Agent portfolio evidence
+
+Repository 將能力主張與驗證證據分開：
+
+- [`PROJECT_EVIDENCE.yaml`](PROJECT_EVIDENCE.yaml)：machine-readable claim-to-evidence manifest
+- [`AUTHORSHIP.md`](AUTHORSHIP.md)：human decisions 與 agent-assisted work
+- [`REVIEWER_GUIDE.md`](REVIEWER_GUIDE.md)：十分鐘獨立審查流程
+- [`docs/AGENT_REVIEW_PROMPT.md`](docs/AGENT_REVIEW_PROMPT.md)：可重複使用的 multi-role review protocol
+
+建議使用以下 evaluation chain：
+
+```text
+skill claim → repository evidence → verification command → observed result → limitation
 ```
 
-兩者都在 CI 的空白 Ubuntu runner 上執行。**它們曾經有好幾個 commit 是不能跑的**：發佈的腳本指向
-這個佈局裡不存在的路徑，於是 self-test 印出失敗然後結束，而沒有人發現——**這個 repo 出貨了它自己
-正在批評的那種「靜默通過的閘」**。CI 的存在就是為了讓這件事無法再悄悄發生。
+Stars、commit 數量與生成文字長度不應作為主要能力證據。
 
-**最該先讀 `selftest.sh`。** 分不出 *hollow* anchor——路徑真實、引文卻不在該檔——與真 anchor 的
-verifier 就是空殼，它印的每個數字都只是裝飾。那份 fixture 斷言的是**失敗理由**。
+## Repository map
 
-arm C 獨立得到同一結論：checker 必須比較 `(src:` 出現次數與 regex 匹配數，**否則畸形 anchor 會靜默
-消失**。它從未看過那個發現——**這是錨形的性質，不是一次性 bug**。
+| Path | 用途 |
+|---|---|
+| [`METHOD.md`](METHOD.md) | Experiment procedure 與 provenance limits |
+| [`FINDINGS.md`](FINDINGS.md) | Contradiction inventory 與 adjudication notes |
+| [`STAGES.md`](STAGES.md) | Measurement failures 與修正歷程 |
+| [`THRESHOLDS.md`](THRESHOLDS.md) | Mechanical thresholds 與 provenance |
+| [`harness/`](harness/) | Auditor、retry loop、fixtures 與 self-test |
+| [`qa/`](qa/) | Question bank、splits 與 per-question verdicts |
+| [`data/`](data/) | Audit receipts 與 derived comparisons |
+| [`wiki/`](wiki/) | Arms A、B、Bs、C、D 的公開 outputs |
 
-## 限制
+## 貢獻與安全性
 
-- **`n = 30`、單次、無重複。** 方向性的。無變異估計、無判官一致性量測。
-- **53 條中 22 條經盲判裁決**，21 條被支持、0 條被推翻；其餘 31 條仍為作者自報。**盲判只是部分成立、
-  且零棄權**——見 FINDINGS。
-- **題庫是模型寫的**，連驗收標準也是。人類沒有逐題稽核全部 60 題。
-- **arm A 早於其餘各臂**一個 session 與一個 model 世代，所以 A 對 C **不是乾淨的單變因對照**。
-- **靶是合成的**，沒有有機 git 歷史。
-- **作者端 model 沒有釘死**，只有 QA 層有 provenance。
-- **閘自己定義自己的分母。** 什麼算一條 claim 是 `audit_wiki.ts` 裡的啟發式，**改掉它，本頁每一個
-  比率都會變**。
-- **anchor 的有效性是字面層的。** 閘證明引文存在於某檔，不證明它支持周圍那句話。
-- **凍結門檻的那個 commit 不在這個 repo 裡。** 它在未公開的 host repo，**外部審查者無法驗證那個
-  順序主張**——見 [`THRESHOLDS.md`](THRESHOLDS.zh-TW.md)。
-- **單次執行的相等不等於等效。** arm B 與 Bs 同為 12/30 是一個觀察，不是「標記無效果」的證明；
-  那需要重複執行與事先宣告的等效邊界。
+提交 change 前請閱讀：
 
-路徑已脫敏：`<target-repo>`、`<host-repo>`、`<sandbox>`、`<home>`。wiki 對其生成 repo 的相對引用
-維持原樣——**它們是被研究的 artifact 的一部分**，改寫會竄改被量測的東西。
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`SECURITY.md`](SECURITY.md)
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- [`GOVERNANCE.md`](GOVERNANCE.md)
+
+Contribution 應包含 falsifiable claim、verification command、expected result，以及適用時的 negative control。
+
+## 主要限制
+
+- `n = 30`，每個公開比較只有一次 generation 與一次 judge run。
+- 沒有 repeated generations、equivalence margin 或 inter-rater agreement estimate。
+- Target repository 是 synthetic。
+- Authoring model 與完整 execution environment 沒有精確固定。
+- 53 個 author-reported corrections 中只有 22 個接受 blind adjudication。
+- Threshold-freezing commit 位於此公開 repository 之外。
+- Auditor 的 claim denominator 是 heuristic；parser 改變時 rate 也會改變。
+- Lexical validity 不等於 semantic correctness。
+
+目前結果應被視為 **directional evidence 與 replication 邀請**，不是已確立的 causal conclusion。
