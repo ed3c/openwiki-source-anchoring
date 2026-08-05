@@ -1,54 +1,125 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ed3c/openwiki-source-anchoring/experiments/factorial-v1/run-manifest.schema.json",
-  "title": "OpenWiki factorial run manifest",
+  "title": "OpenWiki factorial run manifest v2",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
+    "evidence_class",
     "run_id",
     "cell",
     "repeat_index",
     "target_commit",
     "protocol_commit",
+    "freeze_sha256",
+    "schedule_sha256",
     "provenance_path",
-    "raw_artifacts",
+    "artifacts",
     "audit_receipt",
-    "status"
+    "status",
+    "failure",
+    "linked_failed_run_id",
+    "deviations"
   ],
+  "$defs": {
+    "file_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "bytes"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "bytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "tree_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "exit_code", "message"],
+      "properties": {
+        "stage": { "type": "string", "minLength": 1 },
+        "exit_code": { "type": "integer" },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
   "properties": {
-    "schema_version": { "const": "openwiki-factorial-run@1.0.0" },
+    "schema_version": { "const": "openwiki-factorial-run@2.0.0" },
+    "evidence_class": { "enum": ["synthetic-pipeline-test", "prospective-experiment"] },
     "run_id": { "type": "string", "minLength": 1 },
     "cell": { "enum": ["A", "R0", "R1", "G0", "G1"] },
     "repeat_index": { "type": "integer", "minimum": 1 },
     "target_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "protocol_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "freeze_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "schedule_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "provenance_path": { "type": "string", "minLength": 1 },
-    "raw_artifacts": {
+    "artifacts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["wiki", "answers", "judgments", "prompts"],
+      "required": [
+        "wiki_tree",
+        "answers",
+        "judgments",
+        "prompts_tree",
+        "adapter_logs",
+        "cost_log",
+        "error_log"
+      ],
       "properties": {
-        "wiki": { "type": "string", "minLength": 1 },
-        "answers": { "type": "string", "minLength": 1 },
-        "judgments": { "type": "string", "minLength": 1 },
-        "prompts": { "type": "string", "minLength": 1 },
-        "cost_log": { "type": ["string", "null"] },
-        "error_log": { "type": ["string", "null"] }
+        "wiki_tree": { "$ref": "#/$defs/tree_ref" },
+        "answers": { "$ref": "#/$defs/file_ref" },
+        "judgments": { "$ref": "#/$defs/file_ref" },
+        "prompts_tree": { "$ref": "#/$defs/tree_ref" },
+        "adapter_logs": { "$ref": "#/$defs/tree_ref" },
+        "cost_log": { "$ref": "#/$defs/file_ref" },
+        "error_log": { "$ref": "#/$defs/file_ref" }
       }
     },
     "audit_receipt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["path", "sha256", "complete"],
+      "required": ["path", "sha256", "complete", "status"],
       "properties": {
         "path": { "type": "string", "minLength": 1 },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "complete": { "const": true }
+        "complete": { "type": "boolean" },
+        "status": { "enum": ["passed", "failed", "incomplete"] }
       }
     },
     "status": { "enum": ["completed", "failed", "excluded"] },
+    "failure": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/failure" }] },
     "linked_failed_run_id": { "type": ["string", "null"] },
     "deviations": { "type": "array", "items": { "type": "string" } }
-  }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "completed" } } },
+      "then": {
+        "properties": {
+          "failure": { "type": "null" },
+          "audit_receipt": {
+            "properties": {
+              "complete": { "const": true },
+              "status": { "enum": ["passed", "failed"] }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "failed" } } },
+      "then": { "properties": { "failure": { "$ref": "#/$defs/failure" } } }
+    }
+  ]
 }
