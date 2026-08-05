@@ -1,56 +1,58 @@
 {
-  "schema_version": "openwiki-factorial-provenance@1.0.0",
+  "schema_version": "openwiki-factorial-provenance@2.0.0",
+  "evidence_class": "prospective-experiment",
   "experiment_id": "factorial-v1",
-  "protocol_commit": null,
-  "protocol_sha256": null,
+  "run_id": null,
+  "cell": null,
+  "repeat_index": null,
+  "config_sha256": null,
+  "freeze_sha256": null,
+  "schedule_sha256": null,
+  "protocol": {
+    "path": "PROTOCOL.md",
+    "commit_sha": null,
+    "sha256": null
+  },
   "target": {
     "repository": null,
     "commit_sha": null,
-    "fixture_or_release_hash": null
+    "tree_sha256": null
   },
-  "authoring": {
-    "provider": null,
-    "model_id": null,
-    "model_snapshot_date": null,
-    "system_prompt_path": null,
-    "system_prompt_sha256": null,
-    "user_prompt_path": null,
-    "user_prompt_sha256": null,
-    "temperature": null,
-    "top_p": null,
-    "seed": null,
-    "max_tokens": null,
-    "tool_configuration": null,
-    "api_or_cli_version": null
+  "prompts": [],
+  "models": {
+    "authoring": {
+      "provider": null,
+      "model_id": null,
+      "immutable": true,
+      "runtime_version": null,
+      "parameters": {
+        "temperature": null,
+        "top_p": null,
+        "max_output_tokens": null,
+        "seed_supported": null,
+        "seed": null
+      }
+    },
+    "answerer": {
+      "provider": null,
+      "model_id": null,
+      "immutable": true,
+      "runtime_version": null,
+      "parameters": null
+    },
+    "judge": {
+      "provider": null,
+      "model_id": null,
+      "immutable": true,
+      "runtime_version": null,
+      "parameters": null
+    }
   },
-  "answerer": {
-    "provider": null,
-    "model_id": null,
-    "parameters": null,
-    "prompt_sha256": null
+  "adapter_commands": {
+    "authoring": null,
+    "answering": null,
+    "judging": null
   },
-  "judge": {
-    "provider": null,
-    "model_id": null,
-    "parameters": null,
-    "prompt_sha256": null,
-    "anonymization_map_hash": null
-  },
-  "question_bank": {
-    "path": null,
-    "sha256": null,
-    "split_manifest_sha256": null
-  },
-  "environment": {
-    "operating_system": null,
-    "container_digest": null,
-    "bun_version": "1.3.13",
-    "analysis_commit": null
-  },
-  "budget": {
-    "maximum_runs": null,
-    "maximum_tokens": null,
-    "maximum_cost": null,
-    "currency": null
-  }
+  "audit_command": null,
+  "deviations": []
 }
