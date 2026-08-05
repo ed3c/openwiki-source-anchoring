@@ -36,9 +36,9 @@ verification:
     version_file: .bun-version
     version: 1.3.13
   ci_evidence:
-    tested_commit: pending-pr-ci
-    gate_workflow: pending
-    reproducibility_workflow: pending
+    tested_commit: 9d2cc6e30d3c29b85294289f5c5269a6b076faf0
+    gate_workflow: success
+    reproducibility_workflow: success
     checks:
       - ShellCheck executable shell paths
       - parse committed JSON artifacts
@@ -106,7 +106,7 @@ claims:
         complete: false
         status: incomplete
     limitation: application limits do not replace host CPU, memory, disk, and process isolation
-    status: pending-pr-ci
+    status: verified-by-selftest-and-ci
 
   - id: trigger-reaudits-final-mutation
     claim: A claim fixed on the final allowed retry passes only after a fresh post-loop audit.
@@ -118,7 +118,7 @@ claims:
     expected:
       trigger_exit_code: 0
       final_receipt_status: passed
-    status: pending-pr-ci
+    status: verified-by-selftest-and-ci
 
   - id: trigger-records-invalid-final-mutation
     claim: An invalid anchor introduced on the final retry appears in the final unresolved receipt.
@@ -129,7 +129,7 @@ claims:
     expected:
       trigger_exit_code: 2
       reason: quote not found in that file
-    status: pending-pr-ci
+    status: verified-by-selftest-and-ci
 
   - id: tracked-claims-cannot-silently-disappear
     claim: Removing an explicit claim ID while keeping word count flat or higher is restored and rejected.
@@ -143,7 +143,7 @@ claims:
       exit_code: 2
       reason: claim-id missing without disposition
     limitation: pages without explicit claim IDs still use a coarse word-count fallback
-    status: pending-pr-ci
+    status: verified-by-selftest-and-ci
 
   - id: deterministic-bundle-recomputes
     claim: The public fixture receipts match frozen expected JSON and SHA-256 manifests.
@@ -155,7 +155,7 @@ claims:
       exit_code: 0
       final_line: reproduction: PASS (protocol, fixtures, and receipts match)
     limitation: this reproduces deterministic harness behavior, not the original stochastic model experiment
-    status: pending-pr-ci
+    status: verified-by-selftest-and-ci
 
   - id: audit-is-lexical-not-semantic
     claim: The auditor proves quote presence, not that evidence entails the surrounding claim.
