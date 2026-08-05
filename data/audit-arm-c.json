@@ -1,0 +1,819 @@
+{
+  "schema_version": "wiki-anchor-audit@v1",
+  "status": "failed",
+  "pages": 48,
+  "anchor": {
+    "total": 590,
+    "invalid": 2,
+    "rate": 0.2723404255319149,
+    "correctness": 0.9966101694915255
+  },
+  "claims": {
+    "c1_shaped": 235,
+    "anchored": 64,
+    "inferred": 12,
+    "verifiable_share": 0.951417004048583
+  },
+  "code_refs": {
+    "total": 132,
+    "resolved_exact": 50,
+    "resolved_loose": 76,
+    "missing": 6,
+    "missing_paths": [
+      "package.json",
+      "repo-terminal-async-admission-facade.test.ts",
+      "repo-terminal-async-control-plane.test.ts",
+      "repo-terminal-async-job-lifecycle.test.ts",
+      "tests/skills/repo-evidence-cost-collector.production.test.ts",
+      "tsconfig.json"
+    ],
+    "loose_paths": [
+      "ablation_engine.py",
+      "anchored-artifact-read.ts",
+      "async-admission-facade-cli.ts",
+      "async-admission-facade.ts",
+      "async-control-plane-cli.ts",
+      "async-job-lifecycle-cli.ts",
+      "async-worker-carrier-cli.ts",
+      "async-worker-carrier.ts",
+      "autoresearch_eval.yml",
+      "benchmark_runner.py",
+      "bounded-subprocess.ts",
+      "cases.json",
+      "check_autoresearch_lifecycle.py",
+      "check_lifecycle_datasets.py",
+      "check_openwiki.py",
+      "check_plan_package_compat.py",
+      "check_prompt_trace_assets.py",
+      "check_wiki_graph_sync.py",
+      "code-quality.profile.json",
+      "eval_autoresearch_composer.py",
+      "eval_runs/autoresearch_composer_2026-07-23.json",
+      "evidence-cost-cache.ts",
+      "evidence-cost-collector.production.profile.json",
+      "evidence-cost-collector.ts",
+      "gemini_interactions_real_driver_2026-07-27.json",
+      "git_gate.py",
+      "github_skill_harvester.py",
+      "golden_dataset_versions.json",
+      "interactions_patch_assert_runner.py",
+      "llm_judge.py",
+      "local_regex_runner.py",
+      "malformed-terminal-packet.json",
+      "no_op_pruner.py",
+      "no_ops_purger.py",
+      "nonofficial/openwiki.yaml",
+      "openwiki.yaml",
+      "openwiki/openwiki.yaml",
+      "pr_golden_set.json",
+      "production-journey-fixture.ts",
+      "production-journey.ts",
+      "production-safety-journey.ts",
+      "production-use.profile.json",
+      "promotion_records.json",
+      "real_driver_ablation.py",
+      "render_lifecycle_openwiki.py",
+      "repo-adapter.ts",
+      "repo-preflight.ts",
+      "sample_autoresearch_traces.py",
+      "sample_graph.json",
+      "schema.json",
+      "skill_ci.yml",
+      "skill_description_linter.py",
+      "skill_optimization_registry.json",
+      "small-loop-runner.ts",
+      "stale-terminal-packet.json",
+      "status.json",
+      "sync_wiki_to_graph.py",
+      "synthetic_case_generator.py",
+      "synthetic_case_quality_report.py",
+      "task-quality-runner.ts",
+      "test_autoresearch_eval_suite.py",
+      "test_real_driver_ablation.py",
+      "test_skill_asset_governance.py",
+      "trace_privacy_classification.json",
+      "valid-terminal-packet.json",
+      "validate_commit_message.py",
+      "validate_goal_constraints.py",
+      "validate_progressive_disclosure.py",
+      "validate_skills_baseline.py",
+      "validator.py",
+      "weekly_audit.yml",
+      "wiki_graph_sync.yml",
+      "writer-entrypoint.ts",
+      "writer-native-library.ts",
+      "writer-native.ts",
+      "writer-production-observer.ts"
+    ]
+  },
+  "entrypoints": {
+    "total": 32,
+    "uncovered": 0,
+    "coverage": 1,
+    "uncovered_paths": []
+  },
+  "invalid_anchors": [
+    {
+      "page": "lifecycle/structured-datasets.md",
+      "path": "openwiki/nonofficial/structured-lifecycle-data.md",
+      "quote": "For every new optimized skill, add exactly one registry row, at least one Golden",
+      "reason": "circular evidence: openwiki is this wiki's own output, not source"
+    },
+    {
+      "page": "skill-assets/contract.md",
+      "path": "openwiki/nonofficial/structured-lifecycle-data.md",
+      "quote": "For every new optimized skill, add exactly one registry row, at least one Golden",
+      "reason": "circular evidence: openwiki is this wiki's own output, not source"
+    }
+  ],
+  "unanchored_claims": [
+    {
+      "page": "quickstart.md",
+      "block": "| a skill's routing card | [Skill asset contract](skill-assets/contract.md) | `skill_description_linter.py`, `validate_progressive_disclosure.py::validate_skill` | same | `python3 scripts/validate_progressive_disclosure.py --json` |"
+    },
+    {
+      "page": "quickstart.md",
+      "block": "| the Gemini asset or its quarantine | [gemini_interactions](skill-assets/gemini-interactions.md) | `skills/gemini_interactions/`, `status.json` | `test_p11_synthetic_and_zero_llm_telemetry` | `python3 scripts/local_regex_runner.py` |"
+    },
+    {
+      "page": "quickstart.md",
+      "block": "| the autoresearch asset or its state graph | [autoresearch_composer](skill-assets/autoresearch-composer.md) | `skills/autoresearch_composer/references/state_graph.md` | `test_autoresearch_eval_suite.py` | `python3 scripts/check_autoresearch_lifecycle.py` |"
+    },
+    {
+      "page": "quickstart.md",
+      "block": "| the golden datasets or the judge | [Behavioral eval and judge](validation/behavioral-eval-and-judge.md) | `eval_autoresearch_composer.py::deterministic_guardrails` | `test_autoresearch_eval_suite.py` | `python3 scripts/eval_autoresearch_composer.py --dataset data/autoresearch_golden/pr_golden_set.json` |"
+    },
+    {
+      "page": "quickstart.md",
+      "block": "| the A/B or benchmark numbers | [Ablation and benchmark](validation/ablation-and-benchmark.md) | `ablation_engine.py::evaluate`, `benchmark_runner.py::run_matrix` | `test_real_driver_ablation.py` | `python3 scripts/ablation_engine.py` |"
+    },
+    {
+      "page": "quickstart.md",
+      "block": "| the real-agent driver | [Ablation and benchmark](validation/ablation-and-benchmark.md) | `real_driver_ablation.py::invoke`, `resolve_model` | `test_real_driver_ablation.py` | `python3 -m pytest -q tests/test_real_driver_ablation.py` |"
+    },
+    {
+      "page": "quickstart.md",
+      "block": "| anything under `.agents/` | [Terminal operator overview](terminal-operator/overview.md) | `repo-adapter.ts`, `small-loop-runner.ts` | none in this checkout | none — it cannot run here |"
+    },
+    {
+      "page": "quickstart.md",
+      "block": "- **Generated vs hand-written.** `openwiki/nonofficial/structured-lifecycle-data.md` is a build artifact   compared byte-for-byte against its renderer; `index.md` files are generated after each wiki run.   See [Data authority](architecture/data-authority.md). - **The gate must not change the tree.** `git_gate.py` hashes the working tree before and after and   exits 125 on any difference. - **Evide"
+    },
+    {
+      "page": "quickstart.md",
+      "block": "| `git_gate.py` has 22 gates; `check_plan_package_compat.py` expects 23, so `--gate-receipt` cannot accept any receipt this repo produces | [Defense gate chain](architecture/defense-gate-chain.md) |"
+    },
+    {
+      "page": "quickstart.md",
+      "block": "| `check_openwiki.py` still expects `protected_history=157` where the ledger says 235 | [Molecular commit lineage](governance/molecular-commit-lineage.md) |"
+    },
+    {
+      "page": "lifecycle/structured-datasets.md",
+      "block": "| `skill_optimization_registry.json` | `skill-lifecycle-registry@0.1.0` | one row per governed skill and the nine artifacts it must declare |"
+    },
+    {
+      "page": "lifecycle/structured-datasets.md",
+      "block": "| `golden_dataset_versions.json` | `golden-dataset-versions@0.1.0` | dataset id, path, case count, required fields, rollback rule |"
+    },
+    {
+      "page": "lifecycle/structured-datasets.md",
+      "block": "| `eval_runs/autoresearch_composer_2026-07-23.json` | `skill-lifecycle-eval-run@0.1.0` | the four commands run and their result summary |"
+    },
+    {
+      "page": "lifecycle/structured-datasets.md",
+      "block": "| `promotion_records.json` | `skill-lifecycle-promotion-records@0.1.0` | the promotion decision and its unsigned human-admit binding |"
+    },
+    {
+      "page": "lifecycle/structured-datasets.md",
+      "block": "| `trace_privacy_classification.json` | `trace-privacy-classification@0.1.0` | per-dataset cloud policy and prerequisites |"
+    },
+    {
+      "page": "lifecycle/structured-datasets.md",
+      "block": "`scripts/check_lifecycle_datasets.py` does not validate the files in isolation; almost every rule spans two of them."
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `skill_ci.yml` | PR touching `skills/**` or `scripts/**` | `skill-ci` | `python scripts/git_gate.py` |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `autoresearch_eval.yml` | PR touching seven paths, or dispatch | `local-first-eval` | PR golden eval, trace sampler, `pytest -q -m evals` |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `autoresearch_eval.yml` | same | `cloud-judge-disabled-by-default` | nightly dataset in cloud mode — only if a variable is set |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `wiki_graph_sync.yml` | push/PR touching `openwiki/**/*.md` or three files, or dispatch | `local-first-wiki-graph-sync` | sync, validate, upload artifact |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `wiki_graph_sync.yml` | same | `external-graph-write-disabled-by-default` | external graph write — only if a variable is set |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `weekly_audit.yml` | cron `0 3 * * 1`, or dispatch | `ablation-audit` | `python scripts/ablation_engine.py` |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `scripts/check_plan_package_compat.py` | hand, or the `.sh` wrapper — **not** in `GATES`, not in any workflow |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `scripts/check_prompt_trace_assets.py` | hand and `tests/test_skill_asset_governance.py` — not in `GATES` |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `scripts/validate_molecular_commit_lineage.py` | hand and the pytest selftest — deliberately excluded from `GATES` |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `scripts/sync_wiki_to_graph.py` | `wiki_graph_sync.yml`, `check_wiki_graph_sync.py`, pytest — never `GATES` |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `scripts/real_driver_ablation.py` | hand and `tests/test_real_driver_ablation.py` — no gate, no workflow |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| `scripts/test_plan_package_compat.sh` | hand |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| 22 gates in `git_gate.py` | pre-push hook, `skill_ci.yml` |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| golden datasets + traces + `evals` marker | `autoresearch_eval.yml` |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| wiki→graph projection | `wiki_graph_sync.yml` |"
+    },
+    {
+      "page": "operations/entrypoint-matrix.md",
+      "block": "| simulated ablation | `weekly_audit.yml` |"
+    },
+    {
+      "page": "testing/test-map.md",
+      "block": "| `test_skill_asset_governance.py` | pytest functions | none | the repository's shape and that every gate exits 0 |"
+    },
+    {
+      "page": "testing/test-map.md",
+      "block": "| `test_autoresearch_eval_suite.py` | pytest functions | `evals` | the two golden datasets and the trace sampler pass locally |"
+    },
+    {
+      "page": "testing/test-map.md",
+      "block": "| `test_real_driver_ablation.py` | `unittest.TestCase` | none | seven failure-mode invariants of the real-agent driver |"
+    },
+    {
+      "page": "testing/test-map.md",
+      "block": "## `test_skill_asset_governance.py` — shape and exit codes"
+    },
+    {
+      "page": "testing/test-map.md",
+      "block": "## `test_autoresearch_eval_suite.py` — the CI marker"
+    },
+    {
+      "page": "testing/test-map.md",
+      "block": "## `test_real_driver_ablation.py` — seven failure-mode invariants"
+    },
+    {
+      "page": "testing/test-map.md",
+      "block": "The only suite here that exercises a *process boundary* rather than a pure function. It drives `scripts/real_driver_ablation.py` against a fixture agent, one invariant per test:"
+    },
+    {
+      "page": "skill-assets/autoresearch-composer.md",
+      "block": "Files: `skills.md` (router), `references/state_graph.md` (Layer 3), `cases.json` (twelve cases)."
+    },
+    {
+      "page": "skill-assets/gemini-interactions.md",
+      "block": "Files: `skills/gemini_interactions/skills.md` (nine lines, four route signals), `references/deploy_guide.md` (Layer 3), `cases.json` (ten cases), `status.json`."
+    },
+    {
+      "page": "skill-assets/gemini-interactions.md",
+      "block": "Nothing enforces it. `status.json` is read by no script (see the last section of [Skill asset contract](contract.md)), and the asset remains the **default input** of three gates that run inside `git_gate.py`:"
+    },
+    {
+      "page": "skill-assets/gemini-interactions.md",
+      "block": "Its content also drives `scripts/synthetic_case_generator.py`, whose 117 fixtures encode the same rule set — see [Synthetic corpus](../validation/synthetic-corpus.md)."
+    },
+    {
+      "page": "skill-assets/contract.md",
+      "block": "## `cases.json`: the behaviour baseline"
+    },
+    {
+      "page": "skill-assets/contract.md",
+      "block": "## Promotion state is not `status.json`"
+    },
+    {
+      "page": "skill-assets/contract.md",
+      "block": "`skills/gemini_interactions/status.json` exists; `skills/autoresearch_composer/` has no equivalent. That asymmetry is real and load-bearing:"
+    },
+    {
+      "page": "architecture/overview.md",
+      "block": "- **Promotion state** — `data/lifecycle/promotion_records.json` is pinned to   `candidate_until_human_admit`, described in [Structured lifecycle datasets](../lifecycle/structured-datasets.md). - **Adversarial coverage** — an actor that did not run is surfaced as a pending gate, never inferred   as success; see [Semantic arbitration](../validation/semantic-arbitration.md). - **Corpus honesty** — th"
+    },
+    {
+      "page": "architecture/overview.md",
+      "block": "Wiki→graph projection (`scripts/sync_wiki_to_graph.py`, `data/wiki_graph/`) is documented by the two gate-pinned pages [Wiki graph sync architecture](../nonofficial/wiki-graph-sync-architecture.md) and [Schema standards](../nonofficial/schema-standards.md); this section does not duplicate them."
+    },
+    {
+      "page": "architecture/data-authority.md",
+      "block": "| **Hand-written SSOT** | a human edits it; gates read it | `data/lifecycle/*.json`, `data/prompt_trace/*`, `skills/*/skills.md`, `plan-package.compat.yaml` |"
+    },
+    {
+      "page": "architecture/data-authority.md",
+      "block": "| **Generated, overwritten** | a script rewrites it wholesale; no equality assertion | `data/wiki_graph/event_log.jsonl`, `data/wiki_graph/sample_graph.json`, `openwiki/**/index.md` |"
+    },
+    {
+      "page": "architecture/data-authority.md",
+      "block": "`data/verification_runs/` is similar in spirit but *is* consumed: the two GCR traceability runs are re-checked by `scripts/validate_molecular_commit_lineage.py`, while `gemini_interactions_real_driver_2026-07-27.json` is referenced only from `skills/gemini_interactions/status.json` and by no gate at all — see [gemini_interactions](../skill-assets/gemini-interactions.md)."
+    },
+    {
+      "page": "architecture/data-authority.md",
+      "block": "| `data/semantic_arbitration_claims.json` | `python3 scripts/semantic_arbitration_report.py` |"
+    },
+    {
+      "page": "governance/plan-package-compat.md",
+      "block": "It is currently **unusable**, because its `GIT_GATE_ORDER` has 23 entries while `git_gate.py` writes 22. The mechanics are in [Defense gate chain](../architecture/defense-gate-chain.md#the-receipt-fast-path-is-currently-unusable). Omit the flag and the slow subprocess path runs instead."
+    },
+    {
+      "page": "terminal-operator/overview.md",
+      "block": "`small-loop-runner.ts` enforces the sequence rather than trusting the caller:"
+    },
+    {
+      "page": "terminal-operator/production-profiles-and-evidence.md",
+      "block": "| `code-quality.profile.json` | task-scoped static + bounded tests | 90 s | `bun run .agents/.../repo-code-quality.ts` |"
+    },
+    {
+      "page": "terminal-operator/production-profiles-and-evidence.md",
+      "block": "| `production-use.profile.json` | `writer-entrypoint` | 60 s | `bun run ../../skills/repo-neural-perception/scripts/writer-contained-production-profile.ts` |"
+    },
+    {
+      "page": "terminal-operator/production-profiles-and-evidence.md",
+      "block": "| `evidence-cost-collector.production.profile.json` | `evidence-cost-collector/axis-scoped` | 15 s | `bun test` over two production suites |"
+    },
+    {
+      "page": "terminal-operator/production-profiles-and-evidence.md",
+      "block": "| `repo-terminal-code-quality-receipt@v1` | `task-quality-runner.ts` | eight named stages ran clean, with observed test counts |"
+    },
+    {
+      "page": "terminal-operator/production-profiles-and-evidence.md",
+      "block": "| `repo-terminal-writer-receipt@v1` | `writer-entrypoint.ts` | one artifact was published or matched, plus recovery outcome |"
+    },
+    {
+      "page": "terminal-operator/production-profiles-and-evidence.md",
+      "block": "| `repo-terminal-production-journey-receipt@v1` | `production-journey.ts`, `production-safety-journey.ts` | **preflight behaviour only** |"
+    },
+    {
+      "page": "terminal-operator/production-profiles-and-evidence.md",
+      "block": "| `small-loop-run-receipt@v1` | `small-loop-runner.ts` | the whole run, with per-stage status and typed failures |"
+    },
+    {
+      "page": "terminal-operator/production-profiles-and-evidence.md",
+      "block": "- **No script in this repository reads them.** They are not inputs to any gate, test or workflow. - **No script here can regenerate them** — the code that wrote them cannot execute (see   [Terminal operator overview](overview.md)). - **Nothing expires them.** There is no retention rule, and the packet fixtures embed a `head` that is   stale by construction. - **`check_plan_package_compat.py` does "
+    },
+    {
+      "page": "terminal-operator/shared-primitives.md",
+      "block": "## `bounded-subprocess.ts`"
+    },
+    {
+      "page": "terminal-operator/shared-primitives.md",
+      "block": "## `anchored-artifact-read.ts`"
+    },
+    {
+      "page": "terminal-operator/evidence-cost.md",
+      "block": "| `evidence-cost-cache.ts` | in the normal loop | `repo-evidence-cost-ledger@v1`, cache entries | `external-hash-bound-observation/unadmitted-collector` |"
+    },
+    {
+      "page": "terminal-operator/evidence-cost.md",
+      "block": "| `evidence-cost-collector.ts` | only under an env switch | `repo-evidence-cost-observation@v2` and three other receipts | `trusted-direct-process-collector/axis-scoped` |"
+    },
+    {
+      "page": "terminal-operator/evidence-cost.md",
+      "block": "Neither module runs in this checkout, and the profile's test targets (`tests/skills/repo-evidence-cost-collector.production.test.ts` and its sibling) do not exist. Contracts here are read from source."
+    },
+    {
+      "page": "terminal-operator/async-production.md",
+      "block": "`async-worker-carrier.ts` (the largest file, ~1,200 lines) builds an isolated view and runs the reviewer:"
+    },
+    {
+      "page": "terminal-operator/async-production.md",
+      "block": "None of this runs here (see [Terminal operator overview](overview.md)), and the Bun suites that own it — `repo-terminal-async-job-lifecycle.test.ts`, `repo-terminal-async-control-plane.test.ts`, `repo-terminal-async-admission-facade.test.ts` — do not exist in this checkout. This page therefore states contracts and invariants read from source, not observed behaviour."
+    },
+    {
+      "page": "nonofficial/schema-standards.md",
+      "block": "`data/wiki_graph/schema.json` is the single declaration every projection artifact is validated against. It carries two independent version strings, because the event contract and the graph contract move separately:"
+    },
+    {
+      "page": "nonofficial/schema-standards.md",
+      "block": "## What `check_wiki_graph_sync.py` actually checks"
+    },
+    {
+      "page": "nonofficial/schema-standards.md",
+      "block": "1. **Seven required files exist** — `.github/workflows/wiki_graph_sync.yml`,    `openwiki/wiki-graph-sync-architecture.md`, `openwiki/schema-standards.md`,    `scripts/sync_wiki_to_graph.py`, `data/wiki_graph/schema.json`,    `data/wiki_graph/event_log.jsonl`, `data/wiki_graph/sample_graph.json`. Missing files short-circuit    the run before anything else is checked. 2. **The workflow really passe"
+    },
+    {
+      "page": "nonofficial/schema-standards.md",
+      "block": "| `sample_graph.json` | must contain every name in `schema.required_graph_fields` — `nodes`, `edges`, `chunks`, `retrieval` |"
+    },
+    {
+      "page": "nonofficial/schema-standards.md",
+      "block": "Because the field lists are read from `schema.json` at check time, adding a name to `required_event_fields` immediately tightens the gate — the schema is the contract, not a copy of it. Note the asymmetry in the `retrieval` rules: the two `enabled` flags are checked for truthiness, while `external_write_enabled` is compared with `is not False`, so a missing or `None` value fails rather than passin"
+    },
+    {
+      "page": "nonofficial/schema-standards.md",
+      "block": "| the field lists above | consumed by `scripts/sync_wiki_to_graph.py` at projection time |"
+    },
+    {
+      "page": "nonofficial/schema-standards.md",
+      "block": "| everything in the numbered list | `scripts/check_wiki_graph_sync.py` |"
+    },
+    {
+      "page": "nonofficial/wiki-graph-sync-architecture.md",
+      "block": "`write_external_graph_if_enabled()` returns immediately unless `ENABLE_GRAPH_DB_WRITE == \"true\"` in the environment, and it is only reached when the CLI was given `--write-external-graph`. **Both** are required; setting the environment variable alone does nothing, and passing the flag alone does nothing. `data/wiki_graph/schema.json` records the stance as `external_graph_write_policy: disabled-by-"
+    },
+    {
+      "page": "nonofficial/usage.md",
+      "block": "Requires Python ≥ 3.11 (`pyproject.toml`). No third-party runtime dependency; `pytest` is needed only for the test suite."
+    },
+    {
+      "page": "nonofficial/usage.md",
+      "block": "`git_gate.py` is also what `.githooks/pre-push` and `.github/workflows/skill_ci.yml` run, so a green local run is the same evidence CI will produce."
+    },
+    {
+      "page": "nonofficial/usage.md",
+      "block": "Note the argument in the last row. Under `git_gate.py`, `validate_commit_message.py` and `validate_goal_constraints.py` run with **no arguments**, which exercises only their selftest path — see [Production bottlenecks](production-bottlenecks.md)."
+    },
+    {
+      "page": "nonofficial/usage.md",
+      "block": "| `python3 scripts/check_plan_package_compat.py` | `PROJECT-SSOT.md`, `plan-package.compat.yaml`, or `.plan-package.lock.yaml` changed |"
+    },
+    {
+      "page": "nonofficial/usage.md",
+      "block": "`git_gate.py` can persist a machine-readable receipt:"
+    },
+    {
+      "page": "nonofficial/production-bottlenecks.md",
+      "block": "The headline telemetry — `total_cases_evaluated=117 passed_cases=117 zero_llm_api_calls=0` from `scripts/interactions_patch_assert_runner.py` — is a **local-zero-LLM-regex-canary**. It proves that 117 generated fixtures still match their expected patterns with zero API calls. It does not prove that an agent writes better code with the skill loaded."
+    },
+    {
+      "page": "nonofficial/production-bottlenecks.md",
+      "block": "`plan-package.compat.yaml` records the same limit twice, deliberately: `p11_current_scope: local-zero-llm-regex-canary` and `synthetic_case_quality_status: insufficient`. `scripts/synthetic_case_quality_report.py` measures why — 117 cases across 10 unique scenarios, 2 unique expected-check sets, 0 negative cases, and a maximum template similarity ratio of `0.9969`. A corpus that near-identical mea"
+    },
+    {
+      "page": "nonofficial/production-bottlenecks.md",
+      "block": "The only real-agent measurement this repository holds is a failure: `data/verification_runs/gemini_interactions_real_driver_2026-07-27.json`, `A2_FAIL_DO_NOT_PROMOTE`, which is why `skills/gemini_interactions/status.json` is `quarantined`. See [gemini_interactions](../skill-assets/gemini-interactions.md)."
+    },
+    {
+      "page": "nonofficial/production-bottlenecks.md",
+      "block": "- `scripts/validate_commit_message.py` requires `Plan-Package:`, `Small-Loop:` and `Final-Repo:` to   equal paths derived from `workspace_root()`, whose final fallback is a literal   `<host-repo>`. - `data/prompt_trace/prompt_trace_dataset.json` and `data/commit_lineage/gcr_molecular_commits.json`   carry absolute `*_abs` paths outside this directory. - `scripts/check_autoresearch_"
+    },
+    {
+      "page": "nonofficial/production-bottlenecks.md",
+      "block": "`.agents/skills/repo-terminal-operator/` is ~9.7k lines of Bun TypeScript with no `package.json`, no `tsconfig.json`, and no local test suite. It references `runtime/`, `skills/repo-neural-perception/`, adapter configuration and Bun test suites that do not exist in this checkout. It is vendored source, not runnable evidence. See [Terminal operator overview](../terminal-operator/overview.md)."
+    },
+    {
+      "page": "nonofficial/production-bottlenecks.md",
+      "block": "- `scripts/validate_goal_constraints.py` and `scripts/validate_commit_message.py` run **argument-less**   inside `scripts/git_gate.py`, which exercises only their selftest path. A green git_gate does not mean   a real commit message or skill file was validated. - `scripts/git_gate.py::GATES` has 23 entries and does not include   `scripts/check_plan_package_compat.py`, `scripts/check_prompt_trace_a"
+    },
+    {
+      "page": "nonofficial/production-bottlenecks.md",
+      "block": "`scripts/semantic_arbitration_report.py` reports `executed_adversarial_reviews=3` and `pending_adversarial_reviews=3` with `semantic_arbitration_status=candidate_until_human_admit`. The repository's own rule is that an actor that did not run is surfaced as a gate rather than inferred as success. See [Semantic arbitration](../validation/semantic-arbitration.md)."
+    },
+    {
+      "page": "nonofficial/production-bottlenecks.md",
+      "block": "1. **`scripts/check_openwiki.py:73` carries a stale expected value.** It requires    `code-call-lifecycle.md` to contain `protected_history=157 compensated=157`, while the authoritative    evidence reports 235. That page quotes the stale expectation explicitly and states the true counts;    the one-value correction to the gate has not been made because a documentation run does not modify    source"
+    },
+    {
+      "page": "nonofficial/stateful-workflow.md",
+      "block": "Decide whether the task matches this repository's archetype at all. `PROJECT-SSOT.md` fixes it: `project_archetype: skill-asset-governance-repo`, and explicitly *\"not a LangGraph application seed\"*. `README.md` states the ownership boundary — this repo owns skill assets, defense scripts, hooks, provenance lock and compatibility guards, and does **not** own plan packets, small-loop routes, or templ"
+    },
+    {
+      "page": "nonofficial/stateful-workflow.md",
+      "block": "Pick the routing decision before generating anything. For the `autoresearch_composer` asset this is modelled explicitly by `simulate_autoresearch_plan()` in `scripts/eval_autoresearch_composer.py`, which emits one of five routes — `native-yield:diagnose`, `native-yield:security-review`, `native-yield:tdd`, `/autoresearch:evals`, or `/autoresearch:plan`. The native-yield routes are the \"this belong"
+    },
+    {
+      "page": "nonofficial/stateful-workflow.md",
+      "block": "Write `skills/<slug>/skills.md` with the four sections (WHY, HOW, WHEN, WHEN NOT) and move deployment or reference detail into `references/` so the router stays dense. `scripts/skill_description_linter.py` and `scripts/validate_progressive_disclosure.py` police those two properties; `scripts/validate_goal_constraints.py` requires goal/constraint phrasing rather than brittle step lists."
+    },
+    {
+      "page": "nonofficial/stateful-workflow.md",
+      "block": "Write `skills/<slug>/cases.json` to the baseline in `scripts/validator.py`: 10–20 cases, each with `id` / `prompt` / `should_trigger` / `expected_checks`, no weak check patterns, at least five positive and five negative cases, and no two prompts above a 0.85 `SequenceMatcher` similarity ratio. See [Skill asset contract](../skill-assets/contract.md)."
+    },
+    {
+      "page": "nonofficial/stateful-workflow.md",
+      "block": "Deterministic guardrails plus a judge. `scripts/eval_autoresearch_composer.py` checks route equality and `must_include` / `must_not_include` literals before any judging, then applies the local heuristic judge. `scripts/ablation_engine.py` measures the with-skill/without-skill delta against `TARGET_DELTA = 0.05`. A delta below target routes back to S4 (`conditional_edge.S6.delta_below_target`) beca"
+    },
+    {
+      "page": "nonofficial/stateful-workflow.md",
+      "block": "Update the wiki, then project it. `scripts/check_openwiki.py` validates that the required pages exist and carry their required literals; `scripts/sync_wiki_to_graph.py` projects the Markdown into an event log and graph, and `scripts/check_wiki_graph_sync.py` validates the result. `conditional_edge.S7.openwiki_fail` routes a documentation failure back to S3, because in this repository a missing or "
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "OpenWiki would not create any of these. They exist because `scripts/check_openwiki.py`, `scripts/check_plan_package_compat.py`, `scripts/check_lifecycle_datasets.py`, `scripts/check_autoresearch_lifecycle.py`, `scripts/check_prompt_trace_assets.py`, `scripts/check_wiki_graph_sync.py` and `tests/test_skill_asset_governance.py::test_skill_asset_structure` name them literally — several also require s"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `README.md` | OpenWiki's entrypoint is `quickstart.md`; this second entry exists only because `check_openwiki.py` requires it |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `openwiki.yaml` | a page manifest. OpenWiki has no such file at all |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `structured-lifecycle-data.md` | **generated by `scripts/render_lifecycle_openwiki.py` and byte-compared.** Not documentation at all — a build artifact that happens to be Markdown. Never hand-edit it |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `scripts/check_openwiki.py` | `REQUIRED_FILES`, the `REQUIRED_LITERALS` keys, and the `openwiki.yaml` value literals |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `scripts/check_plan_package_compat.py` | the required-path list |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `scripts/check_wiki_graph_sync.py` | two required files and the two pages it reads |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `scripts/check_lifecycle_datasets.py` | the display-page path |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `scripts/check_autoresearch_lifecycle.py` | `REPORT` |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `scripts/check_prompt_trace_assets.py` | the display-page path |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `scripts/render_lifecycle_openwiki.py` | its write target **and** the dataflow line it emits — the second one matters, because the generated page is byte-compared and a stale dataflow line breaks equality |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `tests/test_skill_asset_governance.py` | the twelve required paths |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "| `nonofficial/openwiki.yaml` | its own self-referencing page values |"
+    },
+    {
+      "page": "nonofficial/provenance.md",
+      "block": "`.github/workflows/wiki_graph_sync.yml` needed no change: its filter is `openwiki/**/*.md`, already recursive, and `scripts/sync_wiki_to_graph.py` walks the wiki with `rglob`."
+    },
+    {
+      "page": "nonofficial/prompt-trace-assets.md",
+      "block": "- `data/prompt_trace/prompt_trace_dataset.json` — `schema_version` and `dataset_version`   (`prompt-trace-assets@2026-07-27`), the `input_to_terminal_trace` (dataflow nodes, directory roots,   auto-prompt snapshot, next route node and conditional edge), `records`, `selection_actors`,   `selection_question`, and a `privacy_policy`. - `data/prompt_trace/golden_prompt_trace_eval.json` — the golden ev"
+    },
+    {
+      "page": "nonofficial/prompt-trace-assets.md",
+      "block": "`check_prompt_trace_assets.py` requires every record to fill `REQUIRED_SLOTS`:"
+    },
+    {
+      "page": "nonofficial/prompt-trace-assets.md",
+      "block": "Keeping the three separate is the whole point: a single merged \"the prompt\" makes it impossible to tell a designed instruction from an emergent one, which is the same conflation [Stateful workflow](stateful-workflow.md) refuses at the node level. The molecular commit message contract mirrors these slots — `Fixed-Prompt-Context:`, `Iteration-Auto-Context:` and `Emergent-Prompt-Context:` are three o"
+    },
+    {
+      "page": "nonofficial/prompt-trace-assets.md",
+      "block": "which is the same `GCR-SLICE-\\d{2}` marker `scripts/validate_commit_message.py` requires on every commit. Note that this repository directory has no `.git` of its own, so the command must be run against the enclosing repository or one supplied via `--commit-repo`."
+    },
+    {
+      "page": "nonofficial/prompt-trace-assets.md",
+      "block": "The dataset carries a `privacy_policy`, and `data/lifecycle/trace_privacy_classification.json` classifies each dataset. These are **metadata-local prompt traces**: `classification: local-structured-prompt-metadata`, `cloud_upload_allowed: false`, `raw_external_model_outputs_stored: false`. The `terms_guard` states the boundary exactly — store prompt/context metadata, route decisions and verdicts; "
+    },
+    {
+      "page": "nonofficial/prompt-trace-assets.md",
+      "block": "Cloud upload and model training use require a later human-admit record. `model_training_use` is `local_or_private_finetune_candidate_after_human_admit`, i.e. eligibility is a decision that has not been made, not a default. No trace is shipped to a cloud judge in any case — the cloud path in `scripts/eval_autoresearch_composer.py` performs no API call at all, as documented in [Behavioral eval and j"
+    },
+    {
+      "page": "nonofficial/prompt-trace-assets.md",
+      "block": "`scripts/check_prompt_trace_assets.py` is **not** in `scripts/git_gate.py::GATES`, so a routine push does not run it. Invoke it deliberately; see [Entrypoint matrix](../operations/entrypoint-matrix.md)."
+    },
+    {
+      "page": "nonofficial/README.md",
+      "block": "- **This page** is the human navigation index and the entry named by `openwiki/openwiki.yaml`   (`openwiki_entry`) and required by `scripts/check_openwiki.py`. - **[Quickstart](../quickstart.md)** is the agent entry point. It carries the task-routing table that maps   a change area to its page, source entrypoints, tests, and minimal validation command. Start there if   you are about to change some"
+    },
+    {
+      "page": "nonofficial/README.md",
+      "block": "- **[Skill asset contract](../skill-assets/contract.md)** — the `skills.md` / `cases.json` / `references/`   shape and the baseline `scripts/validator.py` enforces. - **[gemini_interactions](../skill-assets/gemini-interactions.md)** — quarantined asset; read this before   routing it anywhere. - **[autoresearch_composer](../skill-assets/autoresearch-composer.md)** — the state-graph asset and its   "
+    },
+    {
+      "page": "nonofficial/README.md",
+      "block": "- **[Structured Lifecycle Data](structured-lifecycle-data.md)** — generated display layer for   `data/lifecycle/`. **Never hand-edit**: `scripts/check_lifecycle_datasets.py` requires it to be   byte-equal to `scripts/render_lifecycle_openwiki.py --stdout`. - **[prompt-trace-assets.md](prompt-trace-assets.md)** — the three prompt slots, the five required   actors, and which parts of the gate need e"
+    },
+    {
+      "page": "nonofficial/README.md",
+      "block": "- **[Defense gate chain](../architecture/defense-gate-chain.md)** — `git_gate.py` internals and its   input-state guarantee. - **[Entrypoint matrix](../operations/entrypoint-matrix.md)** — every hook and workflow, its exact argv and   environment format, and the scripts nothing triggers. - **[Terminal operator](../terminal-operator/overview.md)** — the vendored Bun/TypeScript operator and why   it"
+    },
+    {
+      "page": "nonofficial/asset-lifecycle-map.md",
+      "block": "`.githooks/commit-msg` runs `scripts/validate_commit_message.py` against the message file. `.githooks/pre-push` runs `scripts/git_gate.py`, which executes 23 registered gates in order and stops at the first failure. Both hooks require `git config core.hooksPath .githooks`; they are opt-in per clone and are not enforced server-side."
+    },
+    {
+      "page": "nonofficial/asset-lifecycle-map.md",
+      "block": "`scripts/git_gate.py` also hashes the entire repository input state before and after the run and exits 125 if any gate mutated a tracked input, so a \"gate\" that writes files is itself a failure. Details in [Defense gate chain](../architecture/defense-gate-chain.md)."
+    },
+    {
+      "page": "nonofficial/asset-lifecycle-map.md",
+      "block": "`.github/workflows/skill_ci.yml` re-runs `scripts/git_gate.py` on any pull request touching `skills/**` or `scripts/**`. Three further workflows carry their own narrower triggers — `wiki_graph_sync.yml`, `autoresearch_eval.yml`, and `weekly_audit.yml`. Their exact argv, path filters, and environment-variable formats are tabulated in [Entrypoint matrix](../operations/entrypoint-matrix.md), includin"
+    },
+    {
+      "page": "nonofficial/asset-lifecycle-map.md",
+      "block": "Behavioral judgement in this phase is local-first: `scripts/eval_autoresearch_composer.py` applies deterministic guardrails and then a local heuristic judge, and `scripts/llm_judge.py` implements the double-lock parse used to accept or reject a judge verdict (`verdict == PASS`, `score >= 0.85`, and no `breach detected` in the reasoning). The cloud judge path exists but performs no API call; see [B"
+    },
+    {
+      "page": "nonofficial/asset-lifecycle-map.md",
+      "block": "`.github/workflows/weekly_audit.yml` runs `scripts/ablation_engine.py` on a Monday 03:00 UTC cron. The engine simulates the same cases with and without skill context and requires a delta above `TARGET_DELTA = 0.05`. The delta is dataset-dependent: the default `skills/gemini_interactions/cases.json` yields `delta=0.50`, while `--cases skills/autoresearch_composer/cases.json` yields `delta=1.00 case"
+    },
+    {
+      "page": "nonofficial/asset-lifecycle-map.md",
+      "block": "Retirement is the intended terminal edge: an asset whose delta collapses is a candidate for removal rather than repair. The real-driver counterpart (`scripts/real_driver_ablation.py`) runs an actual agent command and is **not** part of this weekly workflow; it is invoked deliberately, and its last recorded run is the failure that quarantined `gemini_interactions`."
+    },
+    {
+      "page": "nonofficial/asset-lifecycle-map.md",
+      "block": "What this phase proves: a deterministic simulated delta. Only `real_driver_ablation.py` produces evidence about a real agent, and that evidence is what promotion decisions must cite."
+    },
+    {
+      "page": "nonofficial/code-call-lifecycle.md",
+      "block": "`.githooks/pre-push` → `scripts/git_gate.py` → the 23 entries of `GATES`, sequentially, stopping at the first nonzero exit. `.githooks/commit-msg` → `scripts/validate_commit_message.py` with the message file as its argument."
+    },
+    {
+      "page": "nonofficial/code-call-lifecycle.md",
+      "block": "`scripts/check_openwiki.py` is one of those 23 gates, which is why a documentation change can fail a push. `scripts/check_wiki_graph_sync.py` and `scripts/render_lifecycle_openwiki.py` are also in the list."
+    },
+    {
+      "page": "nonofficial/code-call-lifecycle.md",
+      "block": "- `.github/workflows/skill_ci.yml` — on pull requests touching `skills/**` or `scripts/**`, runs   `python scripts/git_gate.py`. Same chain as the hook, clean checkout. - `.github/workflows/wiki_graph_sync.yml` — on push/PR touching `openwiki/**/*.md`,   `data/wiki_graph/schema.json`, `scripts/sync_wiki_to_graph.py`, or `scripts/check_wiki_graph_sync.py`.   Runs `scripts/sync_wiki_to_graph.py` wit"
+    },
+    {
+      "page": "nonofficial/code-call-lifecycle.md",
+      "block": "Not reached by any of the above: `scripts/check_plan_package_compat.py`, `scripts/check_prompt_trace_assets.py`, and `scripts/real_driver_ablation.py`. They are invoked deliberately. See [Entrypoint matrix](../operations/entrypoint-matrix.md)."
+    },
+    {
+      "page": "nonofficial/code-call-lifecycle.md",
+      "block": "`scripts/llm_judge.py` is the separate double-lock parser used when an external judge response must be accepted: it extracts JSON from an XML-shielded payload, rejects non-finite scores, and rejects unless `verdict == PASS`, `score >= 0.85`, and the reasoning contains no `breach detected`."
+    },
+    {
+      "page": "nonofficial/code-call-lifecycle.md",
+      "block": "The two ablation rows are the same script on different datasets. Quoting `delta=1.0` without naming `skills/autoresearch_composer/cases.json` misreports the default behavior."
+    },
+    {
+      "page": "nonofficial/code-call-lifecycle.md",
+      "block": "- `data/verification_runs/gcr_three_surface_commit_traceability_2026-07-27.json` —   `commit_count=235`, `compensated_commit_count=235`, `failed_commit_count=0`,   `schema_version=molecular-commit-verification-run@0.2.0`, `status=pass`, `strict_message_count=20`. - `data/commit_lineage/gcr_molecular_commits.json` — `schema_version=molecular-commit-lineage@0.2.0`,   235 entries in `compensated_comm"
+    },
+    {
+      "page": "nonofficial/code-call-lifecycle.md",
+      "block": "The string `157` appears in those two files only as an incidental substring of SHA-256 digests. The correct current statement is **protected_history=235 compensated=235 failed=0 schema=v0.2**. The quoted sentence above is reproduced solely because `check_openwiki.py` matches by substring containment and still expects it; nothing on this page asserts 157 as a measurement. Correcting `scripts/check_"
+    },
+    {
+      "page": "nonofficial/structured-lifecycle-data.md",
+      "block": "| `autoresearch-pr-golden@2026-07-23` | `data/autoresearch_golden/pr_golden_set.json` | 4 | pull-request gate |"
+    },
+    {
+      "page": "nonofficial/structured-lifecycle-data.md",
+      "block": "For every new optimized skill, add exactly one registry row, at least one Golden Dataset version, one dated eval run, one promotion record, trace privacy entries, and one drift-history row. Then expose the same IDs in openwiki and make `scripts/render_lifecycle_openwiki.py --write` and `scripts/check_lifecycle_datasets.py` pass."
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "A **Golden Dataset cases** file pins expected behavior per case rather than scoring free text. `data/autoresearch_golden/pr_golden_set.json` is the pull-request set; each case declares `expected_route`, `must_include`, `must_not_include`, `judge_rubric`, `trace_tags` and `risk_level`, and `scripts/eval_autoresearch_composer.py::validate_case_schema()` rejects a case missing any of them."
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "**A/B ablation is a hard gate.** `scripts/check_autoresearch_lifecycle.py` re-runs `scripts/ablation_engine.py --cases skills/autoresearch_composer/cases.json --json` and fails unless the telemetry satisfies all of: `case_count == 12`, `delta > 0.05`, `verdict == PASS`, `negative_case_count == 6`, and `negative_with_skill_success_rate == 1.0`. The negative half is not decoration — an asset that fi"
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "The same gate cross-checks the repo asset against its upstream source skill and requires the two `cases.json` files to be identical, so the production copy cannot drift from the authored one."
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "The ablation figure is dataset-specific. The same script on its default `skills/gemini_interactions/cases.json` reports `delta=0.50 case_count=10`. A delta quoted without its dataset is not a fact about this asset."
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "| `data/lifecycle/skill_optimization_registry.json` | the managed skill and its `current_status` |"
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "| `data/lifecycle/golden_dataset_versions.json` | `autoresearch-pr-golden@2026-07-23` (4 cases), `autoresearch-nightly-golden@2026-07-23` (3 cases) |"
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "| `data/lifecycle/eval_runs/autoresearch_composer_2026-07-23.json` | the recorded run summary |"
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "| `data/lifecycle/promotion_records.json` | promotion decisions |"
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "| `data/lifecycle/trace_privacy_classification.json` | per-dataset privacy classification |"
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "`scripts/check_lifecycle_datasets.py` enforces that the display page is byte-equal to `scripts/render_lifecycle_openwiki.py --stdout`, and cross-checks the dataset versions and case counts above against the registry."
+    },
+    {
+      "page": "nonofficial/autoresearch-composer-lifecycle.md",
+      "block": "- **No real-driver evidence for this asset.** Every number above comes from a deterministic simulation   (`simulate_autoresearch_plan()`, `simulate_agent()`). `scripts/real_driver_ablation.py` — the runner   that invokes an actual agent — has never been recorded against `autoresearch_composer`. The one asset   that was measured that way failed and is quarantined; see   [gemini_interactions](../ski"
+    },
+    {
+      "page": "validation/behavioral-eval-and-judge.md",
+      "block": "| `eval_autoresearch_composer.py` | golden datasets | none (local) / disabled (cloud) | per-case route, states, judge verdict |"
+    },
+    {
+      "page": "validation/behavioral-eval-and-judge.md",
+      "block": "| `llm_judge.py` | a judge response string | none | accept/reject of a verdict payload |"
+    },
+    {
+      "page": "validation/behavioral-eval-and-judge.md",
+      "block": "| `sample_autoresearch_traces.py` | trace JSONL | none | sample and observed-state counts |"
+    },
+    {
+      "page": "validation/behavioral-eval-and-judge.md",
+      "block": "| `local_regex_runner.py` | `cases.json` | none | per-case pass rate over 5 trials |"
+    },
+    {
+      "page": "validation/behavioral-eval-and-judge.md",
+      "block": "`interactions_patch_assert_runner.py` belongs to the same family and is covered under [Synthetic corpus](synthetic-corpus.md)."
+    },
+    {
+      "page": "validation/synthetic-corpus.md",
+      "block": "The `117/117` figure that appears throughout this repository comes from three scripts that generate a fixed corpus, score it without any model, and then measure how weak it is. All three sit inside `git_gate.py`."
+    },
+    {
+      "page": "validation/static-validators.md",
+      "block": "| `validator.py` | `skills/*/cases.json` | case-count, polarity balance, weak checks, near-duplicates |"
+    },
+    {
+      "page": "validation/static-validators.md",
+      "block": "| `validate_skills_baseline.py` | git-modified case files, else all | the same rules, scoped by `git status` |"
+    },
+    {
+      "page": "validation/static-validators.md",
+      "block": "| `skill_description_linter.py` | `skills/*/skills.md` | >200 words, missing route signals, fluff phrases |"
+    },
+    {
+      "page": "validation/static-validators.md",
+      "block": "| `validate_progressive_disclosure.py` | `skills/*/skills.md` + `references/` | missing signals, missing Layer 3, leaked deployment detail |"
+    },
+    {
+      "page": "validation/static-validators.md",
+      "block": "| `validate_goal_constraints.py` | files passed as argv | step-sequenced prose, missing GOAL/CONSTRAINTS |"
+    },
+    {
+      "page": "validation/static-validators.md",
+      "block": "| `no_op_pruner.py` | `skills/*/skills.md` | five no-op phrases, read-only |"
+    },
+    {
+      "page": "validation/static-validators.md",
+      "block": "| `no_ops_purger.py` | one `skills.md` | nothing; reports what a prune *would* remove |"
+    },
+    {
+      "page": "validation/static-validators.md",
+      "block": "| `github_skill_harvester.py` | `skills/*/skills.md` | nothing; emits per-file metrics |"
+    },
+    {
+      "page": "validation/static-validators.md",
+      "block": "`skill_description_linter.py` and `validate_progressive_disclosure.py` overlap deliberately on the four route signals but diverge on everything else — the linter owns length and fluff, the disclosure validator owns the `references/` boundary and the credential-leak pattern. Both are detailed in [Skill asset contract](../skill-assets/contract.md)."
+    },
+    {
+      "page": "validation/ablation-and-benchmark.md",
+      "block": "| `benchmark_runner.py` | none — an arithmetic formula | none; a shape check |"
+    },
+    {
+      "page": "validation/ablation-and-benchmark.md",
+      "block": "| `ablation_engine.py` | a hard-coded simulator | consistency of cases against a rule table |"
+    },
+    {
+      "page": "validation/ablation-and-benchmark.md",
+      "block": "| `real_driver_ablation.py` | a real subprocess agent | behavioural, and the only one |"
+    },
+    {
+      "page": "validation/ablation-and-benchmark.md",
+      "block": "## `ablation_engine.py` — simulated A/B"
+    },
+    {
+      "page": "validation/ablation-and-benchmark.md",
+      "block": "## `benchmark_runner.py` — a deterministic matrix"
+    },
+    {
+      "page": "validation/ablation-and-benchmark.md",
+      "block": "## `real_driver_ablation.py` — the only real agent"
+    },
+    {
+      "page": "validation/ablation-and-benchmark.md",
+      "block": "`real_driver_ablation.py` is in no `GATES` list and no workflow. It is invoked by hand and by `tests/test_real_driver_ablation.py`, which drives it against a fixture agent — the seven invariants that suite pins are in [Test map](../testing/test-map.md)."
+    }
+  ],
+  "failures": [
+    "anchor_rate 27.2% < 85%",
+    "anchor_correctness 99.7% < 100% (2 invalid/malformed)"
+  ]
+}

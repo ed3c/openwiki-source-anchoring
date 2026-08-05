@@ -29,7 +29,7 @@ session runs it.
 
 ---
 
-## Arm A — baseline (`wiki/baseline/`)
+## Arm A — baseline (`wiki/arm-a-baseline/`)
 
 ### Prompt integrity
 
@@ -82,7 +82,7 @@ because no step compares a sentence to the file it describes.
 
 ---
 
-## Arm B — anchored (`wiki/candidate/`)
+## Arm B — anchored (`wiki/arm-b-retrofit/`)
 
 **Update, not regeneration.** Arm B starts as a byte copy of arm A and is edited in place.
 Regenerating would have discarded a 93.8%-coverage artifact that already passed three gates,
@@ -185,29 +185,83 @@ and every number reported — all of them recomputable from the two published wi
 
 ---
 
-## Arm C — the configuration this repository does **not** contain
+## Arm C — anchored during generation (`wiki/arm-c-generated/`)
 
-The port's skill was also modified: the anchoring appendix is now referenced at the generation
-step, alongside the official system prompt and the other appendices. A fresh run of that skill
-would therefore produce anchors **while writing**, rather than acquiring them afterwards.
+**Cold run of the modified skill.** The anchoring appendix is referenced at the skill's
+generation step, so this arm produces anchors while writing rather than acquiring them
+afterwards. It is the configuration anyone adopting the appendix would actually be running.
 
-**That path has never been executed.** The target's run metadata still records the baseline
-run, unchanged. Everything measured here is arm B — a retrofit over finished pages.
+### Isolation
 
-The distinction is not cosmetic, and it inverts the most important prior in this repository:
+The target is a **copy** of the repository. Two paths that would have leaked arm A were removed
+from it before the run: the 42 review transcripts under `.openwiki-review/`, which contain arm
+A's skeleton and its QA questions, and arm A's eight generated section directories,
+`quickstart.md`, `index.md` and run metadata. `openwiki/nonofficial/` was kept — those pages are
+the repository's own hand-written content and arm A had them too, so removing them would have
+broken comparability rather than protected it.
 
-| | arm B, measured | arm C, unmeasured |
+The generating agent was forbidden to read arm A's copy or the sandbox, and **its prompt carried
+none of this work's findings** — not the gate count, not the 53 corrections, not the fact that
+the anchor form works. It was given the skill, the target, and the boundaries.
+
+### What it did
+
+It completed the whole Init workflow: preflight, evidence gate, skeleton, `skeleton_critic`
+twice, 26 pages, an unknown-unknown pass, `wiki_question_finder` once, `wiki_answer_verifier`
+across four batches and three retry waves to 10/10, quickstart, skeleton deletion, finalize.
+`stopped_because` records *"Nothing ran out."*
+
+It wrote 590 anchors and 77 `(inferred)` markers, and verified them with a checker it wrote
+itself, re-run after every page.
+
+### The result, and what it means
+
+| | arm B, gate-driven retrofit | arm C, convention-only generation |
 |---|---|---|
-| when the anchoring cost is paid | after the pages exist | while deciding what to write |
-| what a bounded author can trade away | nothing — the pages are already written | **scope**, which is exactly what the prior says happens |
-| coverage squeeze possible? | **structurally no** | **yes, and it was measured once at 6 pages → 3** |
+| anchors written | 486 | **590** |
+| anchor rate | **100%** | **27.2%** (41.3% excluding inherited pages) |
+| invalid anchors | 0 | 2 |
 
-So arm B did not survive the squeeze; it was **never exposed to it**. The +13.3pp measured here
-belongs to the retrofit and does **not** transfer to a skill-generated wiki. Anyone wiring the
-appendix into their generation step is entering the configuration
-[`data/prior-anchoring-squeezes-breadth.md`](data/prior-anchoring-squeezes-breadth.md) warns
-about, with no measurement of it in this repository — and should ship a coverage gate beside it
-before believing any anchor-rate number it produces.
+Arm C wrote more anchors and reached less than half the rate. The cause is visible in its own
+notes: it never ran the gate. Its checker counted anchors *written*; the gate reports claims
+*still unanchored*. Those are different questions, and only the second one tells an author where
+they are not finished.
 
-Measuring arm C means running the modified skill cold on the same target and comparing coverage
-and cost against arm A. That has not been done.
+**So the appendix buys about 41% and the gate-driven loop buys the rest.** The skill as modified
+wires in the author-side convention and not the mechanical feedback, which makes it half a
+mechanism. That is a defect in the skill, not in this run.
+
+Both invalid anchors point into `openwiki/nonofficial/` — the wiki's own output, which the
+appendix explicitly forbids as circular evidence. Arm C's checker had no such rule and therefore
+self-reported zero bad anchors. A rule stated in the prompt and absent from the tool is decided
+by the tool.
+
+### Independently rediscovered
+
+Arm C's notes record that a checker must compare `(src:` occurrences against regex matches,
+because a malformed anchor otherwise disappears silently. That is the same silent-pass hole this
+work found and fixed, reached by an agent that had never seen the finding — which makes it a
+property of the anchor form rather than a one-off bug.
+
+### On the coverage squeeze
+
+The prior predicts that paying the anchoring cost during generation makes a bounded author
+narrow scope. Arm C covered 32/32 entrypoints against arm A's 30/32, wrote 20% more words, and
+completed. The six entries in its `what_was_cut` are reasoned deferrals recorded as Backlog
+items, not silent narrowing.
+
+**This is not a clean refutation.** Arm A came from an earlier session and a different model
+generation, so the honest statement is that no squeeze was observed under arm C's conditions.
+
+### Side effect worth knowing
+
+Creating `openwiki/quickstart.md` is what flips the target's own `check_openwiki.py` from failing
+to passing, which unblocks its commit gate. Arm A's target had been sitting in a failed gate
+state for the duration of this work.
+
+### Cost
+
+563K subagent tokens and 74 minutes for generation *and* measurement, against roughly 2.88M for
+the retrofit across three workflows. On this target, anchoring while writing is substantially
+cheaper than anchoring afterwards — but the retrofit is what reached 100%, so the two are not
+interchangeable at equal quality.

@@ -302,3 +302,58 @@ answerable as a side effect.
 
 **One question went backwards.** An anchored rewrite dropped a branch the original mentioned.
 Rewriting a sentence to make it true can lose something that was already true.
+
+---
+
+## S12 · The cold run that split the mechanism in two
+
+Everything above validated a retrofit. The skill had been modified to reference the appendix at
+its generation step, and that path had never been executed once — so what was proven was the
+harness, not the skill.
+
+Arm C is that run: the modified skill, cold, on a clean copy of the target, with arm A's review
+transcripts and generated pages removed and a prompt carrying **none** of the findings above.
+
+It completed the whole workflow. It wrote **590 anchors — more than the retrofit's 486 — and
+reached 27.2%**, or 41.3% once the pages it inherited and was not authorised to edit are
+excluded. The retrofit reached 100%.
+
+```mermaid
+flowchart LR
+    CONV["convention<br/><i>what an anchor is</i>"] --> P41["≈41%"]
+    CONV --> GATE["+ gate<br/><i>which claims still lack one</i>"]
+    GATE --> P100["100%"]
+    ARMC["arm C<br/>convention only"] -.-> P41
+    ARMB["arm B<br/>convention + gate loop"] -.-> P100
+
+    classDef part fill:#3a3020,stroke:#a08040,color:#e8d8c0
+    classDef full fill:#1e3320,stroke:#4a8a50,color:#c8e8c8
+    class P41,ARMC part
+    class P100,ARMB full
+```
+
+The cause is in arm C's own notes: it never ran the gate, and the checker it built counted
+anchors **written** rather than claims **still unanchored**. Those are different questions.
+
+> A convention tells an author what good looks like. Only a gate tells them where they are not
+> there yet.
+
+# The fifth thing that was not anticipated
+
+## 5 · The convention was assumed to be the mechanism
+
+Every stage above treated the anchor form as the intervention and the gate as its scorekeeper.
+Arm C shows that backwards: the form is worth about 41%, and **the loop that reports what is
+still missing is worth the rest**. Wiring an appendix into a generation prompt and calling the
+job done ships less than half of what was measured.
+
+The corollary is uncomfortable and general: **the numbers reported for arm B are properties of
+the gate-driven loop, not of the anchor convention.** Anyone adopting the convention alone
+should expect roughly 41%, and this repository would have implied otherwise had arm C not been
+run.
+
+Two smaller confirmations came free. Arm C's two invalid anchors both point into the wiki's own
+output — forbidden by the appendix in words, absent from arm C's own checker, and therefore
+self-reported as clean; a rule stated in the prompt and missing from the tool is decided by the
+tool. And arm C independently derived the malformed-anchor detection rule, having never seen it,
+which makes that a property of the form rather than a bug that was once fixed.

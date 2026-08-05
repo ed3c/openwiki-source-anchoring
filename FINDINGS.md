@@ -133,3 +133,60 @@ Coverage rose here (30/32 → 32/32) and no page lost words. That is consistent 
 countermeasures working and is **not evidence that they did** — an update pass over an
 existing page has nothing to drop, so the failure mode was structurally unavailable. The
 absence of a squeeze in a setup that cannot squeeze proves nothing, and is recorded that way.
+
+---
+
+## Arm C: the convention is worth about 41%, the gate the rest
+
+| | arm A | arm B, gate-driven | arm C, convention only |
+|---|---|---|---|
+| anchors | 0 | 486 | **590** |
+| anchor rate | 0.0% | **100%** | **27.2%** / 41.3% excl. inherited |
+| invalid | — | 0 | 2, both circular |
+| entrypoint coverage | 30/32 | 32/32 | **32/32** |
+| gate | exit 2 | **exit 0** | exit 2 |
+| cost | not recorded | ~2.88M tokens | 563K tokens, 74 min, incl. generation |
+
+Arm C wrote more anchors than arm B and reached less than half the rate, because it never ran
+the gate. Its checker counted anchors written; the gate reports claims still unanchored.
+
+**What this licenses:** the numbers reported for arm B are properties of the gate-driven loop,
+not of the anchor convention. Adopting the convention alone should be expected to land near 41%.
+
+**What it does not:** arm C has no QA measurement — the holdout was spent on A versus B and
+reusing it would void it. The 30 public questions exist for this and have not been run, so
+nothing here says whether arm C is more *useful* than arm A, only that it is less anchored than
+arm B.
+
+### The coverage squeeze did not appear, and that is weaker evidence than it looks
+
+Arm C covered 32/32 entrypoints against arm A's 30/32, wrote 20% more words, and reported
+*"Nothing ran out."* Its six `what_was_cut` entries are reasoned deferrals recorded as Backlog
+items rather than silent narrowing.
+
+But arm A came from an earlier session and a different model generation, so this is not a
+single-variable comparison. The honest statement is that **no squeeze was observed under arm C's
+conditions** — not that the prior is refuted.
+
+### Seven target defects the earlier arms missed
+
+Arm C, running cold, recorded seven defects in the target that neither arm A nor the anchoring
+pass caught. The sharpest: the commit gate's `GATES` list has 22 entries while the compatibility
+guard's `GIT_GATE_ORDER` has 23, so the receipt fast path **cannot accept any receipt this
+repository's own gate produces**.
+
+It also observed a side effect nobody had noticed: creating `openwiki/quickstart.md` is what
+flips the target's `check_openwiki.py` from failing to passing, which unblocks its commit gate.
+**Arm A's target had been sitting in a failed gate state throughout this work.**
+
+### Two independent confirmations
+
+Arm C's two invalid anchors both point into `openwiki/nonofficial/` — the wiki's own output. The
+appendix forbids exactly that as circular evidence, and arm C's checker had no such rule, so it
+self-reported zero bad anchors. **A rule stated in the prompt and absent from the tool is decided
+by the tool.**
+
+And arm C's notes independently derive that a checker must compare `(src:` occurrences against
+regex matches or a malformed anchor vanishes silently — the same silent-pass hole found and
+fixed earlier here, reached by an agent that had never seen the finding. That makes it **a
+property of the anchor form**, not a bug that was once fixed.

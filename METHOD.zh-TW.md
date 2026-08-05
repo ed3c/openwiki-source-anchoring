@@ -27,7 +27,7 @@ key。官方提示詞由生成器從上游 repo 逐位元組抽取，而**執行
 
 ---
 
-## Arm A — baseline（`wiki/baseline/`）
+## Arm A — baseline（`wiki/arm-a-baseline/`）
 
 ### 提示詞完整性
 
@@ -70,7 +70,7 @@ subagent「別看」，那不是邊界。**
 
 ---
 
-## Arm B — anchored（`wiki/candidate/`）
+## Arm B — anchored（`wiki/arm-b-retrofit/`）
 
 **Update，不是重生。** Arm B 起始於 arm A 的位元組副本，就地編輯。重生會丟掉一份覆蓋率 93.8%
 且已過三道閘的既有資產，也會讓「錨定」與「重擲一次生成骰子」兩個變因混在一起。這條約束來自一
@@ -160,26 +160,69 @@ alpha/beta 配對評分，**對應關係逐批交替**，只回傳 PASS/PARTIAL/
 
 ---
 
-## Arm C — 這個 repo **不包含**的那個配置
+## Arm C — 生成當下就錨定（`wiki/arm-c-generated/`）
 
-這個 port 的 skill 也被改過：錨定附錄現在被掛在**生成步驟**，與官方 system prompt 和其他附錄並
-列。因此，重新跑一次那個 skill，會在**寫的當下**就產出 anchor，而不是事後補上。
+**改過的 skill 冷跑。** 錨定附錄掛在 skill 的生成步驟上，所以這一臂是**邊寫邊錨**而不是事後補。
+**這就是任何人採用這份附錄之後實際會跑的配置。**
 
-**那條路徑一次都沒有被執行過。** 靶的 run metadata 仍然記著 baseline 那次，未變。**這裡量到的
-一切都是 arm B——對已完成頁面的 retrofit。**
+### 隔離
 
-這個區別不是措辭問題，它**顛倒了本 repo 最重要的那份前科**：
+靶是這個 repo 的**複本**。開跑前移除了兩條會洩漏 arm A 的路徑：`.openwiki-review/` 底下 42 份
+review 逐字稿（內含 arm A 的 skeleton 與它的 QA 題目），以及 arm A 的八個生成章節目錄、
+`quickstart.md`、`index.md` 與 run metadata。**`openwiki/nonofficial/` 保留**——那些頁是這個 repo
+自有的手寫內容，arm A 當時也有，移除它反而破壞可比性而非保護它。
 
-| | arm B（已量測） | arm C（未量測） |
+生成 agent 被禁止讀取 arm A 那份複本與整個沙盒，而且**它的提示詞不含本研究的任何發現**——不含
+gate 的數量、不含那 53 個更正、也不含「這個錨形有效」這件事。它拿到的只有 skill、靶、與邊界。
+
+### 它做了什麼
+
+它把整個 Init workflow 跑完了：preflight、evidence gate、skeleton、`skeleton_critic` 兩輪、
+26 頁、unknown-unknown pass、`wiki_question_finder` 一次、`wiki_answer_verifier` 四批加三輪重試到
+10/10、quickstart、刪除 skeleton、finalize。`stopped_because` 記的是 *"Nothing ran out."*
+
+它寫了 590 個 anchor 與 77 個 `(inferred)` 標記，並用一個自己寫的 checker 在每頁之後重跑驗證。
+
+### 結果，以及它代表什麼
+
+| | arm B，閘驅動的 retrofit | arm C，只有慣例的生成 |
 |---|---|---|
-| 錨定成本在什麼時候付 | 頁面已經存在**之後** | **決定要寫什麼的當下** |
-| 有界作者能拿什麼去換 | 沒有——頁面已經寫好了 | **範圍**，而那正是前科說會發生的事 |
-| 可能發生覆蓋擠壓嗎 | **結構上不可能** | **可能，而且實測過一次:6 頁 → 3 頁** |
+| 寫了幾個 anchor | 486 | **590** |
+| 錨定率 | **100%** | **27.2%**（剔除繼承頁面後 41.3%） |
+| 無效 anchor | 0 | 2 |
 
-所以 **arm B 不是撐過了擠壓,它是從未被暴露在擠壓之下**。這裡量到的 +13.3pp 屬於 retrofit，
-**不轉移**到由 skill 生成的 wiki。任何人把這份附錄接進自己的生成步驟，就是進入
-[`data/prior-anchoring-squeezes-breadth.md`](data/prior-anchoring-squeezes-breadth.md) 警告的那
-個配置，而**本 repo 對它零量測**——在相信它產出的任何錨定率數字之前，應該先在旁邊放一道覆蓋率
-閘。
+**arm C 寫了更多 anchor，卻只到不足一半的比率。** 原因寫在它自己的 notes 裡:它從未跑過那道閘。
+它的 checker 數的是「**寫了**幾個 anchor」;閘回報的是「**還有**幾條 claim 沒錨」。**這是兩個不同的
+問題,而只有後者會告訴作者「你還沒做完」。**
 
-要量 arm C，得把改過的 skill 冷跑在同一個靶上，再拿覆蓋率與成本去對 arm A。**這件事沒有做。**
+> **所以附錄買到約 41%，其餘由閘驅動迴圈買。** 改過的 skill 接了作者側慣例、**沒接機械回饋**，
+> 因此它是半個機制。**這是 skill 的缺陷，不是這次執行的失誤。**
+
+兩個無效 anchor 都指向 `openwiki/nonofficial/`——wiki 自己的產物，附錄明文禁止的循環證據。
+arm C 的 checker 沒有這條規則，因此自報零個壞 anchor。**規則寫在提示詞、檢查不在工具裡，最後算數
+的是工具。**
+
+### 獨立地重新發現
+
+arm C 的 notes 記載:checker 必須比較 `(src:` 出現次數與 regex 匹配數，否則畸形 anchor 會靜默消
+失。**那正是本研究找到並修掉的同一個靜默通過洞，而它是由一個從未看過那個發現的 agent 得出的**——
+這使它成為**這個錨形本身的性質**，而非一次性 bug。
+
+### 關於覆蓋擠壓
+
+前科預測:在生成當下付錨定成本，會讓有界作者縮小範圍。arm C 覆蓋 **32/32** 對 arm A 的 30/32、
+字數多 20%、而且跑完了。它 `what_was_cut` 的六項是**有理由的延後並記進 Backlog**，不是靜默縮編。
+
+**這不是乾淨的推翻。** arm A 出自更早的 session 與不同世代的 model，所以誠實的說法是:
+**在 arm C 的條件下沒有觀察到擠壓。**
+
+### 值得知道的副作用
+
+建立 `openwiki/quickstart.md` 正是讓靶自己的 `check_openwiki.py` 由 FAIL 轉 PASS 的原因，
+連帶解鎖它的 commit gate。**arm A 的靶在本研究全程都處在閘失敗狀態。**
+
+### 成本
+
+563K subagent tokens、74 分鐘，且**同時包含生成與量測**；對照 retrofit 三次 workflow 約 2.88M。
+在這個靶上，**邊寫邊錨明顯比事後補錨便宜**——但**達到 100% 的是 retrofit**，所以兩者在同等品質下
+並不可互換。

@@ -59,3 +59,20 @@ this wiki is read into an agent's context, so every added word is paid on every 
 was noticed after the freeze. It is recorded as a gap rather than retrofitted, because adding a
 seventh threshold after seeing results is the exact move the freeze exists to prevent. It
 belongs in the next preregistration, not this one.
+
+## How each arm scored against them
+
+| # | metric | arm A | arm B | arm C |
+|---|---|---|---|---|
+| 1 | anchor rate ≥ 85% | 0.0% ✗ | **100% ✓** | 27.2% ✗ |
+| 2 | anchor correctness 100% | n/a | **✓** | 99.7% ✗ |
+| 3 | entrypoint coverage ≥ 30/32 | 30/32 ✓ | **32/32 ✓** | **32/32 ✓** |
+| 4 | QA holdout ≥ baseline +10pp | — | **+13.3pp ✓** | not measured |
+| 5 | degraded pages ≤ 5 | n/a | **0 ✓** | 0 ✓ |
+| 6 | verifiable share ≥ 40% | — | **96.7% ✓** | 95.1% ✓ |
+
+Only arm B passes. Arm C was measured against the same thresholds it was never given feedback
+against — it never ran the gate — which is the finding rather than a mark against it.
+
+Threshold 4 has no arm C entry and cannot get one: the holdout was spent on A versus B, and
+reusing it would void the number for every arm. The public half of the bank exists for this.
