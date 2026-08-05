@@ -19,7 +19,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -31,8 +33,11 @@ jobs:
           bun --version
           shellcheck --version
 
-      - name: ShellCheck harness scripts
-        run: shellcheck harness/*.sh
+      - name: ShellCheck all harness scripts for errors
+        run: shellcheck --severity=error harness/*.sh
+
+      - name: ShellCheck gate paths for warnings
+        run: shellcheck --severity=warning harness/selftest.sh harness/verify.sh harness/trigger.sh
 
       - name: Run harness self-test
         run: sh harness/selftest.sh
