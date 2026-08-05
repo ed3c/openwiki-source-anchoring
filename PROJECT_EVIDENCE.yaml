@@ -1,0 +1,27 @@
+schema_version: agent-portfolio/v1
+
+project:
+  name: openwiki-source-anchoring
+  purpose: Evidence verification infrastructure for AI-generated software artifacts.
+
+verification:
+  principle: claim -> evidence -> verification command -> observed result
+
+claims:
+  - id: harness-reproducible
+    evidence:
+      command: sh harness/selftest.sh
+    status: pending-ci-verification
+
+limitations:
+  - semantic correctness requires separate adjudication from lexical validation
+  - experiment conclusions should not exceed available evidence
+
+authorship:
+  human_decisions:
+    - experiment design
+    - metric interpretation
+    - acceptance criteria
+  agent_assisted:
+    - implementation assistance
+    - documentation generation
