@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ed3c/openwiki-source-anchoring/experiments/factorial-v1/run-manifest.schema.json",
+  "title": "OpenWiki factorial run manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "cell",
+    "repeat_index",
+    "target_commit",
+    "protocol_commit",
+    "provenance_path",
+    "raw_artifacts",
+    "audit_receipt",
+    "status"
+  ],
+  "properties": {
+    "schema_version": { "const": "openwiki-factorial-run@1.0.0" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "cell": { "enum": ["A", "R0", "R1", "G0", "G1"] },
+    "repeat_index": { "type": "integer", "minimum": 1 },
+    "target_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "protocol_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "provenance_path": { "type": "string", "minLength": 1 },
+    "raw_artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wiki", "answers", "judgments", "prompts"],
+      "properties": {
+        "wiki": { "type": "string", "minLength": 1 },
+        "answers": { "type": "string", "minLength": 1 },
+        "judgments": { "type": "string", "minLength": 1 },
+        "prompts": { "type": "string", "minLength": 1 },
+        "cost_log": { "type": ["string", "null"] },
+        "error_log": { "type": ["string", "null"] }
+      }
+    },
+    "audit_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "complete"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "complete": { "const": true }
+      }
+    },
+    "status": { "enum": ["completed", "failed", "excluded"] },
+    "linked_failed_run_id": { "type": ["string", "null"] },
+    "deviations": { "type": "array", "items": { "type": "string" } }
+  }
+}

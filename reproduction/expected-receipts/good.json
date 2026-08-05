@@ -1,0 +1,61 @@
+{
+  "schema_version": "wiki-anchor-audit@v4",
+  "complete": true,
+  "status": "passed",
+  "measured_set": "all pages",
+  "excluded": [],
+  "pages": 1,
+  "resource_limits": {
+    "max_files": 50000,
+    "max_file_bytes": 8388608,
+    "max_total_bytes": 268435456,
+    "max_page_bytes": 2097152,
+    "max_anchors_per_page": 10000,
+    "max_claims_per_page": 10000,
+    "max_depth": 64,
+    "timeout_ms": 30000
+  },
+  "resource_usage": {
+    "filesystem_entries_seen": 2,
+    "regular_files_seen": 2,
+    "directories_seen": 0,
+    "bytes_read": 211,
+    "pages_read": 1,
+    "anchors_seen": 1,
+    "claim_blocks_seen": 1,
+    "max_depth_seen": 0
+  },
+  "limit_failure": null,
+  "input_failure": null,
+  "anchor": {
+    "total": 1,
+    "invalid": 0,
+    "malformed": 0,
+    "rate": 1,
+    "lexical_validity": 1,
+    "correctness": 1
+  },
+  "claims": {
+    "c1_shaped": 1,
+    "anchored": 1,
+    "inferred": 0,
+    "verifiable_share": 1
+  },
+  "code_refs": {
+    "total": 1,
+    "resolved_exact": 1,
+    "resolved_loose": 0,
+    "missing": 0,
+    "missing_paths": [],
+    "loose_paths": []
+  },
+  "entrypoints": {
+    "total": 1,
+    "uncovered": 0,
+    "coverage": 1,
+    "uncovered_paths": []
+  },
+  "invalid_anchors": [],
+  "unanchored_claims": [],
+  "failures": []
+}

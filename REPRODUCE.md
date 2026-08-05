@@ -2,10 +2,10 @@
 
 This repository has two different reproduction targets. Do not treat them as equivalent.
 
-1. **Harness reproduction:** verify that the public auditor, fixtures, retry loop, and negative controls behave as documented.
-2. **Experiment reproduction:** regenerate all arms, model answers, and adjudications from the original target and host pipeline.
+1. **Harness reproduction:** verify the public auditor, resource boundaries, retry loop, claim-preservation guard, and deterministic receipts.
+2. **Experiment reproduction:** regenerate every stochastic arm, answer, and adjudication from the original target and host pipeline.
 
-The first target is public and automated. The second is currently incomplete because required upstream artifacts and exact model execution details are not all public.
+The harness target is public and automated. Full experiment regeneration remains unavailable because some original upstream artifacts and exact model execution details are not public.
 
 ## Requirements
 
@@ -13,9 +13,9 @@ The first target is public and automated. The second is currently incomplete bec
 - Bun `1.3.13`, pinned in [`.bun-version`](.bun-version)
 - Git
 
-No package installation is required for the auditor itself.
+No package installation or model API is required for deterministic reproduction.
 
-## Clean-room harness reproduction
+## Fast path
 
 ```sh
 git clone https://github.com/ed3c/openwiki-source-anchoring.git
@@ -24,94 +24,172 @@ git checkout <reviewed-commit-sha>
 
 bun --version
 sh harness/selftest.sh
+sh reproduction/recompute.sh
 ```
 
-Expected toolchain:
+Expected final lines:
 
 ```text
-1.3.13
+selftest: PASS(valid/hollow/malformed/symlink/limits/final-retry/claim-preservation/breaker controls)
+reproduction: PASS (protocol, fixtures, and receipts match)
 ```
 
-Expected final test line:
+The first command runs adversarial behavior controls. The second verifies the public protocol hash, fixture hashes, expected receipt hashes, and byte-for-byte regenerated receipts.
+
+## Deterministic bundle
+
+The bundle under [`reproduction/`](reproduction/) contains:
 
 ```text
-selftest: PASS(valid/hollow/malformed/symlink and breaker controls)
+protocol-v1.md                 frozen public protocol
+protocol-v1.sha256             protocol content hash
+provenance.json                scope and known provenance gaps
+target-fixture/                public deterministic target
+wiki-fixture/                  positive wiki
+wiki-hollow/                   hollow-anchor negative control
+expected-receipts/             frozen JSON outputs and hash manifest
+recompute.sh                   one-command regeneration
+reports/TEMPLATE.md            external reproduction report template
 ```
 
-A valid reproduction report records the exact commit SHA, operating system, Bun version, command, exit code, and complete output.
+Protocol v1 is a public protocol for the deterministic harness and future replications. It is **not** a retroactive preregistration of the original model experiment.
 
-## Run one fixture directly
+## Auditor exit codes
+
+| Exit | Meaning |
+|---:|---|
+| `0` | Complete audit; all thresholds pass |
+| `2` | Complete audit; one or more evidence thresholds fail |
+| `3` | Audit incomplete because an input or resource boundary was reached |
+| `64` | Usage, path, or packet-contract error |
+
+An exit-`3` receipt contains:
+
+```json
+{
+  "complete": false,
+  "status": "incomplete"
+}
+```
+
+It must never be counted as PASS or merged as a valid receipt.
+
+## Configurable resource boundaries
+
+Defaults are frozen in [`reproduction/protocol-v1.md`](reproduction/protocol-v1.md). Override them with CLI flags or matching `OPENWIKI_*` environment variables:
+
+```sh
+bun run harness/src/audit_wiki.ts wiki target \
+  --max-files 50000 \
+  --max-file-bytes 8388608 \
+  --max-total-bytes 268435456 \
+  --max-page-bytes 2097152 \
+  --max-anchors-per-page 10000 \
+  --max-claims-per-page 10000 \
+  --max-depth 64 \
+  --timeout-ms 30000
+```
+
+The auditor streams directory entries, does not follow directory symlinks, validates UTF-8 strictly, checks real paths before reading an anchor target, and fails closed when a configured boundary is reached.
+
+## Claim-preservation guard
+
+A mutation-sensitive claim may carry a stable marker:
+
+```html
+<!-- claim-id: stable-id -->
+```
+
+`trigger.sh` inventories markers before the first mutation. After every retry, the same ID must be:
+
+- present with the same block (`preserved`);
+- present with changed text (`corrected`); or
+- absent only when the packet declares an explicit withdrawal with a non-empty reason.
+
+Example packet disposition:
+
+```json
+{
+  "claim_dispositions": [
+    {
+      "claim_id": "obsolete-claim",
+      "disposition": "withdrawn",
+      "reason": "the referenced behavior no longer exists"
+    }
+  ]
+}
+```
+
+Pages without explicit IDs remain compatible and use the word floor as a coarse fallback. Word count alone is not claim-preservation proof.
+
+## Direct fixture commands
 
 Positive control:
 
 ```sh
 bun run harness/src/audit_wiki.ts \
-  harness/tests/fixtures/wiki-good \
-  harness/tests/fixtures/target
+  reproduction/wiki-fixture \
+  reproduction/target-fixture
 ```
 
-Expected exit code: `0`.
+Expected exit: `0`.
 
-Hollow-anchor negative control:
+Hollow-anchor control:
 
 ```sh
 bun run harness/src/audit_wiki.ts \
-  harness/tests/fixtures/wiki-hollow \
-  harness/tests/fixtures/target
+  reproduction/wiki-hollow \
+  reproduction/target-fixture
 ```
 
-Expected exit code: `2`, with an invalid-anchor reason containing:
+Expected exit: `2`, with `quote not found in that file`.
 
-```text
-quote not found in that file
-```
-
-The self-test also creates a temporary target containing a symlink that resolves outside the target root. The auditor must return exit `2` and report `symlink escapes target`.
-
-## Audit a published arm
-
-The public wiki output can be audited only when the corresponding target repository is available:
+Resource-boundary control:
 
 ```sh
 bun run harness/src/audit_wiki.ts \
-  wiki/arm-d-gate-driven \
-  /path/to/target-repository \
-  --exclude nonofficial
+  reproduction/wiki-fixture \
+  reproduction/target-fixture \
+  --max-page-bytes 16
 ```
 
-The JSON receipt is written to stdout. Preserve the entire receipt and the target commit SHA.
+Expected exit: `3`, `complete: false`, and `limit_failure.key: max_page_bytes`.
 
-## What can be recomputed from this repository
+## What can be reproduced publicly
 
-- Public QA aggregate counts from the published per-question verdict files
-- Audit summaries and derived arm comparisons already stored under `data/`
-- Harness behavior against the included deterministic fixtures
-- Documentation and provenance gaps recorded in `METHOD.md`, `STAGES.md`, and `THRESHOLDS.md`
+- deterministic harness receipts and their hashes;
+- valid, hollow, malformed, symlink, circular-evidence, Unicode-path, invalid-UTF-8, depth, file-size, page-size, and anchor-count controls;
+- final-retry success and final-retry invalid-anchor behavior;
+- stable claim-ID preservation and explicit withdrawal behavior;
+- public QA aggregate counts from published per-question verdict files;
+- stored arm comparisons derived from already-published data.
 
 ## What cannot currently be regenerated cleanly
 
-- The original private target repository from the public repository alone
-- The complete host pipeline and its hidden dependencies
-- Arm A from an exactly pinned authoring model and session
-- Model answers and judge outputs from exact immutable model snapshots, seeds, and sampling parameters
-- The private threshold-freezing commit referenced by the study
+- the original private target repository from this repository alone;
+- the complete host pipeline and hidden dependencies;
+- Arm A from an exactly pinned authoring model and session;
+- every model answer and judge output from immutable model snapshots, seeds, and sampling parameters;
+- the historical private threshold-freezing commit;
+- an externally validated universal Agent hiring benchmark.
 
-These are reproduction blockers, not minor documentation omissions. A result should be classified as **harness reproduced** rather than **experiment reproduced** unless those inputs are supplied.
+These are hard reproduction boundaries. Report **harness reproduced** rather than **experiment reproduced** unless the missing inputs are supplied.
 
-## Reproduction report template
+## External report
+
+Use [`reproduction/reports/TEMPLATE.md`](reproduction/reports/TEMPLATE.md). Record at minimum:
 
 ```text
 Reviewer:
 Date:
 Repository commit:
-Target repository commit:
 Operating system:
 Bun version:
 Command:
 Exit code:
-Observed output or receipt hash:
+Observed final line or receipt hash:
 Expected result:
 Difference, if any:
 ```
 
-Open a reproduction issue when the result differs. Include the smallest failing fixture and remove secrets or proprietary source before posting.
+A failed reproduction is useful evidence when it includes the exact commit, complete output, and smallest failing case. Remove secrets and proprietary source before posting.
