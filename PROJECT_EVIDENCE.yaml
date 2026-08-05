@@ -29,6 +29,14 @@ verification:
     name: bun
     version_file: .bun-version
     version: 1.3.13
+  ci_evidence:
+    tested_commit: 4326ab3d77d8b731e815f12b6e38553313f44e47
+    gate_workflow: success
+    reproducibility_workflow: success
+    checks:
+      - ShellCheck all harness scripts for errors
+      - ShellCheck gate paths for warnings
+      - harness self-test on clean Ubuntu runner
 
 claims:
   - id: harness-detects-valid-anchor
@@ -43,7 +51,7 @@ claims:
         harness/tests/fixtures/target
     expected:
       exit_code: 0
-    status: verified-by-selftest
+    status: verified-by-selftest-and-ci
 
   - id: harness-detects-hollow-anchor
     claim: A real path with a quote absent from the file is rejected for the correct reason.
@@ -53,7 +61,7 @@ claims:
     expected:
       exit_code: 2
       reason: quote not found in that file
-    status: verified-by-selftest
+    status: verified-by-selftest-and-ci
 
   - id: harness-detects-malformed-anchor
     claim: A source-looking malformed anchor cannot silently disappear from the audit.
@@ -63,7 +71,7 @@ claims:
     expected:
       exit_code: 2
       reason: malformed anchor
-    status: verified-by-selftest
+    status: verified-by-selftest-and-ci
 
   - id: harness-blocks-symlink-escape
     claim: An anchor that resolves through a symlink outside the target root is rejected.
@@ -74,7 +82,7 @@ claims:
     expected:
       exit_code: 0
       embedded_negative_control_reason: symlink escapes target
-    status: pending-ci-confirmation
+    status: verified-by-ci
 
   - id: trigger-reaudits-final-mutation
     claim: The retry loop audits again after the final permitted modification before deciding.
@@ -82,6 +90,7 @@ claims:
       code: harness/trigger.sh
       code_pattern: final audit after loop before unresolved receipt generation
     limitation: implementation inspection exists; a dedicated final-retry mutation fixture remains desirable
+    follow_up_issue: 6
     status: implementation-verified
 
   - id: word-floor-is-enforced
@@ -90,6 +99,7 @@ claims:
       code: harness/trigger.sh
       code_pattern: snapshot before dispatch and restore on word-count decrease
     limitation: word count is a coarse anti-deletion proxy, not claim-preservation proof
+    follow_up_issue: 6
     status: implementation-verified
 
   - id: audit-is-lexical-not-semantic
@@ -126,6 +136,7 @@ results:
     raw_evidence:
       - qa/
       - data/arm-comparison.json
+    next_experiment_issue: 8
 
 limitations:
   - n=30 with one stochastic run and no repeated generations
@@ -156,4 +167,10 @@ collaboration:
   security: SECURITY.md
   governance: GOVERNANCE.md
   code_of_conduct: CODE_OF_CONDUCT.md
+  support: SUPPORT.md
   citation: CITATION.cff
+  follow_up_issues:
+    final_retry_and_claim_preservation: 6
+    reproduction_bundle: 7
+    factorial_repeated_evaluation: 8
+    resource_limits: 9
