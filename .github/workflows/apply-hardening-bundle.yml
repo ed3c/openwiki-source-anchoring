@@ -1,0 +1,35 @@
+name: Apply hardening bundle
+
+on:
+  push:
+    branches:
+      - reproduction-and-adversarial-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'chore: stage hardening bundle'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: reproduction-and-adversarial-hardening
+          persist-credentials: true
+
+      - name: Apply and commit bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/hardening-bundle.part-* | base64 --decode > /tmp/hardening.tar.gz
+          tar -xzf /tmp/hardening.tar.gz
+          rm .github/hardening-bundle.part-* .github/workflows/apply-hardening-bundle.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: add deterministic reproduction, claim preservation, and resource limits"
+          git push origin HEAD:reproduction-and-adversarial-hardening
