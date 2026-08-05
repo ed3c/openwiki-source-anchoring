@@ -24,7 +24,10 @@ echo "$out" | grep -q "quote not found in that file" || {
 sh "$ROOT/trigger.sh" >/dev/null 2>&1
 [ $? -eq 64 ] || { echo "selftest: trigger 無參數應 exit 64" >&2; fail=1; }
 
-sh "$ROOT/trigger.sh" "$P/architecture-data-authority.json" >/dev/null 2>&1
+# 這一項從前綁 candidate/ 的活頁面 —— 與耗盡負控同一枚缺陷:活狀態一變,控制就失效,
+# 而且在別的 checkout 裡根本不存在。改綁固定 fixture。
+WIKI="$ROOT/tests/fixtures/wiki-anchored" TARGET_REPO="$ROOT/tests/fixtures/target" \
+  sh "$ROOT/trigger.sh" "$P/fixture-anchored.json" >/dev/null 2>&1
 [ $? -eq 0 ] || { echo "selftest: 已錨定頁應 exit 0(且不派工)" >&2; fail=1; }
 
 # 耗盡負控綁**固定 fixture**,不綁活頁面:活頁面一旦被錨好,這個負控就自然失效而無人察覺

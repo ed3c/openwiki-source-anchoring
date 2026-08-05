@@ -1,0 +1,11 @@
+{
+  "schema_version": "wiki-anchor-page@1.0.0",
+  "packet_id": "fixture-anchored",
+  "packet_state": "fixture",
+  "page": "gate.md",
+  "task": "selftest fixture: already fully anchored, so the breaker must exit 0 without dispatching.",
+  "fixed_prompt_context": ["PROMPT.md"],
+  "emergent_prompt_context": "N/A-none",
+  "retry_budget": 3,
+  "human_gate": "required_before_merge"
+}

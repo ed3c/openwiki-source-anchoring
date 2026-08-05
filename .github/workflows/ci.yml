@@ -1,0 +1,49 @@
+name: gate
+
+# The repository argues that a gate which can silently pass is worse than no gate.
+# The published gate shipped broken for several commits — its scripts pointed at a path
+# that did not exist in this layout, so `sh harness/selftest.sh` printed failures and
+# nobody noticed. This workflow exists so that cannot recur silently: it runs the
+# self-test on a blank Ubuntu runner, which is the only environment that can prove the
+# published artifact works rather than the author's laptop.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.1
+        with:
+          bun-version: latest
+
+      - name: self-test — the gate must catch a hollow anchor for the right reason
+        run: sh harness/selftest.sh
+
+      - name: the gate must reject a hollow anchor with a non-zero exit
+        run: |
+          set -e
+          if bun run harness/src/audit_wiki.ts harness/tests/fixtures/wiki-hollow harness/tests/fixtures/target; then
+            echo "FAIL: hollow fixture exited 0 — the gate is a shell" >&2
+            exit 1
+          fi
+          echo "ok: hollow fixture rejected"
+
+      - name: the gate must accept a good anchor
+        run: bun run harness/src/audit_wiki.ts harness/tests/fixtures/wiki-good harness/tests/fixtures/target
+
+      - name: published arms must still audit
+        run: |
+          set -e
+          for arm in arm-a-baseline arm-b-retrofit arm-b-stripped arm-c-generated arm-d-gate-driven; do
+            test -d "wiki/$arm" || { echo "missing wiki/$arm" >&2; exit 1; }
+          done
+          echo "ok: five arms present"

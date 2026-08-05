@@ -117,10 +117,20 @@ A→C 的 23.4pp 大到值得討論；B 與 Bs 之間 3 題的 PARTIAL/FAIL 差�
 [`harness/anchor-extension.md`](harness/anchor-extension.md)。它是**附錄**：**沒有動過任何一個官方
 提示詞的位元組**。
 
+**閘檢查的是字面層，不是證據層。** 它驗證的是「該引文逐字出現在該檔案裡」。它**不驗證**那段引文
+是否支持它所在的那句話；而且一個區塊只要帶一個格式正確的 anchor 就算已錨，即使該區塊裡其他敘述
+無人支持。本頁稍早把這個叫做「錨正確率 100%」，**那個措辭正好邀請最錯的讀法**。它是
+**anchor lexical validity（字面有效性）**。要建立證據層的正確性，需要 claim 切分、claim 對 anchor
+的映射、以及 entailment 檢查——這套 harness 一項都沒做。
+
 ```sh
-bun run harness/audit_wiki.ts wiki/arm-c-generated <target-repo>   # exit 0 全綠，2 未達門檻
-sh harness/selftest.sh                                             # gate 必須抓得到 hollow anchor
+sh harness/selftest.sh                                        # 先跑這個
+bun run harness/src/audit_wiki.ts wiki/arm-d-gate-driven <target-repo> --exclude nonofficial
 ```
+
+兩者都在 CI 的空白 Ubuntu runner 上執行。**它們曾經有好幾個 commit 是不能跑的**：發佈的腳本指向
+這個佈局裡不存在的路徑，於是 self-test 印出失敗然後結束，而沒有人發現——**這個 repo 出貨了它自己
+正在批評的那種「靜默通過的閘」**。CI 的存在就是為了讓這件事無法再悄悄發生。
 
 **最該先讀 `selftest.sh`。** 分不出 *hollow* anchor——路徑真實、引文卻不在該檔——與真 anchor 的
 verifier 就是空殼，它印的每個數字都只是裝飾。那份 fixture 斷言的是**失敗理由**。
@@ -139,6 +149,11 @@ arm C 獨立得到同一結論：checker 必須比較 `(src:` 出現次數與 re
 - **作者端 model 沒有釘死**，只有 QA 層有 provenance。
 - **閘自己定義自己的分母。** 什麼算一條 claim 是 `audit_wiki.ts` 裡的啟發式，**改掉它，本頁每一個
   比率都會變**。
+- **anchor 的有效性是字面層的。** 閘證明引文存在於某檔，不證明它支持周圍那句話。
+- **凍結門檻的那個 commit 不在這個 repo 裡。** 它在未公開的 host repo，**外部審查者無法驗證那個
+  順序主張**——見 [`THRESHOLDS.md`](THRESHOLDS.zh-TW.md)。
+- **單次執行的相等不等於等效。** arm B 與 Bs 同為 12/30 是一個觀察，不是「標記無效果」的證明；
+  那需要重複執行與事先宣告的等效邊界。
 
 路徑已脫敏：`<target-repo>`、`<host-repo>`、`<sandbox>`、`<home>`。wiki 對其生成 repo 的相對引用
 維持原樣——**它們是被研究的 artifact 的一部分**，改寫會竄改被量測的東西。

@@ -93,17 +93,39 @@ for(const x of d.u) console.log('- 未錨 claim:' + x.block);"
     echo "開工前先讀 $ROOT/anti/(禁回退前科),以及 $ROOT/PROMPT.md 的任務與 Guard-Metric 節。"
   } > "$CTX"
 
+  # ── 派工前快照:字數地板違規時要能真的還原,不是印一行就算數
+  SNAP="$RUNDIR/snap.$PACKET_ID.$i.md"
+  cp "$WIKI/$PAGE" "$SNAP"
+
   # ── 派工:fresh 執行體,失敗日誌不進主 context
   sh "$ROOT/run.sh" "$DRIVER" "$WIKI/$PAGE" "$CTX" \
     > "$RUNDIR/run.$PACKET_ID.$i.out" 2> "$RUNDIR/run.$PACKET_ID.$i.err"
 
   # ── 刪內容換分數的機械防線(前科:錨定成本擠壓廣度)
+  # 從前只 echo 一行就繼續 —— 那不是強制,是勸阻。作者刪掉一句錨不上的話,下一輪只要閘找不到
+  # 未錨 claim 就會 PASS,而 METHOD 卻宣稱這是機械強制。文件比程式強,算數的是程式。
+  # 現在:還原該輪修改並以 exit 2 中止,不讓刪內容的版本留在磁碟上。
   NOW_WORDS=$(wc -w < "$WIKI/$PAGE" | tr -d ' ')
   if [ "$NOW_WORDS" -lt "$BASE_WORDS" ]; then
-    echo "trigger: $PAGE 字數 $NOW_WORDS < baseline $BASE_WORDS — 刪內容換錨定率,該輪作廢" >&2
+    echo "trigger: $PAGE 字數 $NOW_WORDS < $BASE_WORDS — 刪內容換錨定率,還原該輪並中止" >&2
+    cp "$SNAP" "$WIKI/$PAGE"
+    exit 2
   fi
   i=$((i+1))
 done
+
+# ── 迴圈結束後必須重新稽核。
+# 從前直接用迴圈內最後一次(=最後一次修改**之前**)的 audit 去建 .unresolved.json,於是:
+#   第 k 次修好了仍被判降級;第 k 次新增的無效錨不會被發現;交人裁的報告是 stale data。
+bun run "$ROOT/src/audit_wiki.ts" "$WIKI" "$TARGET_REPO" > "$RUNDIR/audit.$PACKET_ID.json" 2>&1
+FINAL=$(bun -e "
+const d=await Bun.file(process.argv[1]).json();const p=process.argv[2];
+console.log(d.unanchored_claims.filter(x=>x.page===p).length + d.invalid_anchors.filter(x=>x.page===p).length);
+" "$RUNDIR/audit.$PACKET_ID.json" "$PAGE")
+if [ "$FINAL" -eq 0 ]; then
+  echo "trigger: $PAGE PASS(第 $K 次修改後重新稽核,無未錨 claim、無無效錨)"
+  exit 0
+fi
 
 # ── 熔斷:降級不刪頁。未錨 claim 記入 .unresolved.json 交人裁,頁面原樣保留。
 bun -e "

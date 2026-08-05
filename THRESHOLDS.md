@@ -76,3 +76,18 @@ against — it never ran the gate — which is the finding rather than a mark ag
 
 Threshold 4 has no arm C entry and cannot get one: the holdout was spent on A versus B, and
 reusing it would void the number for every arm. The public half of the bank exists for this.
+
+## What an outside reviewer cannot check
+
+Commit `21374d6` lives in the **private host repository**, not here, so nobody outside can
+resolve it. The ordering claim on this page is therefore **not externally verifiable**, and
+saying so is better than implying otherwise by citing a hash that leads nowhere.
+
+There is also a wording conflict this page carried: it said every number existed before any was
+computed, and separately that threshold 3 was raised to the measured baseline of 30/32 **after**
+that baseline was known. Both are true, and the second is a legitimate baseline-relative rule —
+but the first sentence, stated flatly, was wrong. Threshold 3 is a **relative** floor fixed after
+one measurement; the other five are absolute and predate all of them.
+
+Closing this properly needs a preregistration directory published here with its own hash and a
+signed release, not a reference to a commit only the author can see.

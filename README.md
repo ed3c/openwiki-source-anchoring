@@ -136,10 +136,23 @@ Author-side rules, including why rationale is exempt and marked `(inferred)`, ar
 [`harness/anchor-extension.md`](harness/anchor-extension.md). It is an appendix: **no official
 prompt byte was modified**.
 
+**What the gate checks is lexical, not evidentiary.** It verifies that the quoted string occurs
+verbatim in the named file. It does **not** verify that the quote supports the sentence it sits
+in, and a block counts as anchored once it carries one well-formed anchor even if other
+statements in that block are unsupported. Earlier wording here called this "anchor correctness
+100%", which invites exactly the wrong reading. It is **anchor lexical validity**. Establishing
+evidentiary correctness would need claim segmentation, claim-to-anchor mapping and an entailment
+check, none of which this harness does.
+
 ```sh
-bun run harness/audit_wiki.ts wiki/arm-c-generated <target-repo>   # exit 0 green, 2 below threshold
-sh harness/selftest.sh                                             # the gate must catch a hollow anchor
+sh harness/selftest.sh                                        # run this first
+bun run harness/src/audit_wiki.ts wiki/arm-d-gate-driven <target-repo> --exclude nonofficial
 ```
+
+Both run on a blank Ubuntu runner in CI. They did not, for several commits: the published
+scripts pointed at a path this layout does not have, so the self-test printed failures and exited
+without anyone noticing — **the repository shipped exactly the silently-passing gate it argues
+against.** CI exists so that cannot recur quietly.
 
 `selftest.sh` is worth reading first. A verifier that cannot separate a *hollow* anchor — real
 path, quote that is not in that file — from a real one is a shell, and every number it prints is
@@ -161,6 +174,14 @@ finding, which makes it a property of the anchor form rather than a one-off bug.
 - **The authoring model was not pinned.** Only the QA layer records fixed models.
 - **The gate defines its own denominator.** What counts as a claim is a heuristic in
   `audit_wiki.ts`; changing it changes every rate on this page.
+- **Anchor validity is lexical.** The gate proves a quote exists in a file, not that it supports
+  the sentence around it.
+- **The threshold-freezing commit is not in this repository.** It lives in the private host
+  repository, so an outside reviewer cannot verify the ordering claim — see
+  [`THRESHOLDS.md`](THRESHOLDS.md).
+- **Single-run equality is not equivalence.** Arms B and Bs matching at 12 of 30 is one
+  observation, not a demonstration that the markers have no effect; that would need repeats and a
+  predeclared equivalence margin.
 
 Paths are desensitised: `<target-repo>`, `<host-repo>`, `<sandbox>`, `<home>`. Relative references
 the wikis make to their own generating repository are left as written — they are part of the
