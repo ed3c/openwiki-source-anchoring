@@ -1,0 +1,71 @@
+{
+  "schema_version": "openwiki-factorial-study@1.0.0",
+  "mode": "production",
+  "experiment_id": "factorial-v1",
+  "protocol": {
+    "path": "PROTOCOL.md",
+    "commit_sha": "REPLACE_WITH_40_CHAR_PROTOCOL_COMMIT",
+    "sha256": "REPLACE_WITH_PROTOCOL_SHA256"
+  },
+  "target": {
+    "repository": "REPLACE_WITH_PUBLIC_OR_RELEASABLE_REPOSITORY",
+    "checkout_path": "REPLACE_WITH_CLEAN_TARGET_CHECKOUT",
+    "commit_sha": "REPLACE_WITH_40_CHAR_TARGET_COMMIT",
+    "tree_sha256": null
+  },
+  "question_bank": {
+    "path": "REPLACE_WITH_QUESTION_BANK_JSON",
+    "sha256": "REPLACE_WITH_QUESTION_BANK_SHA256",
+    "split_manifest_path": "REPLACE_WITH_SPLIT_MANIFEST_JSON",
+    "split_manifest_sha256": "REPLACE_WITH_SPLIT_MANIFEST_SHA256"
+  },
+  "prompts": [
+    {"role": "authoring-system", "path": "REPLACE_WITH_AUTHORING_SYSTEM_PROMPT", "sha256": "REPLACE_WITH_SHA256"},
+    {"role": "authoring-user", "path": "REPLACE_WITH_AUTHORING_USER_PROMPT", "sha256": "REPLACE_WITH_SHA256"},
+    {"role": "answerer-system", "path": "REPLACE_WITH_ANSWERER_PROMPT", "sha256": "REPLACE_WITH_SHA256"},
+    {"role": "judge-system", "path": "REPLACE_WITH_JUDGE_PROMPT", "sha256": "REPLACE_WITH_SHA256"}
+  ],
+  "models": {
+    "authoring": {
+      "provider": "REPLACE_WITH_PROVIDER",
+      "model_id": "REPLACE_WITH_IMMUTABLE_MODEL_ID",
+      "immutable": true,
+      "runtime_version": "REPLACE_WITH_API_OR_CLI_VERSION",
+      "parameters": {"temperature": 0, "top_p": 1, "max_output_tokens": 32768, "seed_supported": false, "seed": null}
+    },
+    "answerer": {
+      "provider": "REPLACE_WITH_PROVIDER",
+      "model_id": "REPLACE_WITH_IMMUTABLE_MODEL_ID",
+      "immutable": true,
+      "runtime_version": "REPLACE_WITH_API_OR_CLI_VERSION",
+      "parameters": {"temperature": 0, "top_p": 1, "max_output_tokens": 4096, "seed_supported": false, "seed": null}
+    },
+    "judge": {
+      "provider": "REPLACE_WITH_PROVIDER",
+      "model_id": "REPLACE_WITH_IMMUTABLE_MODEL_ID",
+      "immutable": true,
+      "runtime_version": "REPLACE_WITH_API_OR_CLI_VERSION",
+      "parameters": {"temperature": 0, "top_p": 1, "max_output_tokens": 2048, "seed_supported": false, "seed": null}
+    }
+  },
+  "design": {
+    "cells": ["A", "R0", "R1", "G0", "G1"],
+    "repeats_per_cell": 5,
+    "answer_repeats": 3,
+    "judges": 2,
+    "equivalence_margin_pp": 5,
+    "randomization_seed": "REPLACE_WITH_AT_LEAST_16_RANDOM_CHARACTERS",
+    "bootstrap_iterations": 10000
+  },
+  "adapters": {
+    "authoring": {"command": "sh", "args": ["REPLACE_WITH_AUTHORING_ADAPTER.sh"]},
+    "answering": {"command": "sh", "args": ["REPLACE_WITH_ANSWERING_ADAPTER.sh"]},
+    "judging": {"command": "sh", "args": ["REPLACE_WITH_JUDGING_ADAPTER.sh"]}
+  },
+  "audit": {
+    "command": "bun",
+    "args": ["run", "../../harness/src/audit_wiki.ts"],
+    "exclude": ["nonofficial"]
+  },
+  "output_root": "REPLACE_WITH_RESULTS_DIRECTORY"
+}
