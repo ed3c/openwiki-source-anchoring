@@ -124,17 +124,30 @@ function auditPage(target: string, page: string, text: string) {
 }
 
 function main(argv: string[]): number {
-  const wiki = argv[0] ? resolve(argv[0]) : "";
-  const target = argv[1] ? resolve(argv[1]) : "";
+  // --exclude:把「交付但非本 pipeline 產出」的頁排出**量測集合**。
+  // 為什麼需要:被量測的集合 ≠ 被交付的集合。讀者拿到 `nonofficial/`(repo 自有手寫頁,
+  // 且 check_openwiki.py 等 5 支硬性要求它存在),但那 14 頁不是官方 pipeline 寫的,
+  // 拿它們進分母去評 pipeline 的產出是範疇錯誤。實測後果:同一批 wiki 含/不含 nonofficial
+  // 會得到兩組不可比的錨定率(B 曾錨它 174 個、C/D 被要求 preserve 故 0)。
+  // 排除的頁**仍留在磁碟上**——這個旗標只改量測範圍,不改交付內容。
+  const excl: string[] = [];
+  const rest: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--exclude") { excl.push(...(argv[++i] ?? "").split(",").filter(Boolean)); }
+    else rest.push(argv[i]!);
+  }
+  const wiki = rest[0] ? resolve(rest[0]) : "";
+  const target = rest[1] ? resolve(rest[1]) : "";
   if (!wiki || !target) {
-    console.error("usage: audit_wiki.ts <wiki-dir> <target-repo-dir>");
+    console.error("usage: audit_wiki.ts <wiki-dir> <target-repo-dir> [--exclude a,b]");
     return 64;
   }
+  const excluded = (rel: string) => excl.some((e) => rel === e || rel.startsWith(`${e}/`));
   for (const [label, d] of [["wiki", wiki], ["target", target]] as const) {
     if (!existsSync(d)) { console.error(`audit_wiki: ${label} 不存在: ${d}`); return 64; }
   }
 
-  const pages = walk(wiki, (p) => p.endsWith(".md"));
+  const pages = walk(wiki, (p) => p.endsWith(".md")).filter((p) => !excluded(relative(wiki, p)));
   let anchors = 0, badAnchors: Bad[] = [], claims = 0, anchoredClaims = 0, inferredBlocks = 0;
   const unanchored: { page: string; block: string }[] = [];
   const allRefs = new Set<string>();
@@ -202,7 +215,9 @@ function main(argv: string[]): number {
   }
 
   console.log(JSON.stringify({
-    schema_version: "wiki-anchor-audit@v1",
+    schema_version: "wiki-anchor-audit@v2",
+    measured_set: excl.length ? `all pages except ${excl.join(", ")}` : "all pages",
+    excluded: excl,
     status: fails.length === 0 ? "passed" : "failed",
     pages: pages.length,
     anchor: { total: anchors, invalid: badAnchors.length, rate: anchorRate, correctness: anchorCorrect },

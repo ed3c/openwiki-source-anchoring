@@ -282,3 +282,60 @@ sweep should still be read as what it is.
 **n = 22 of 53.** The defensible statement is that most corrections hold and none of those
 sampled was overturned — not that all 53 are correct. Full records, including the sampling rule,
 are in [`data/correction-adjudication.json`](data/correction-adjudication.json).
+
+---
+
+## Arm D, and a denominator that had been wrong
+
+Arm D is arm C's procedure with the gate loop added — cold start, target prepared identically,
+gate run 24 times.
+
+| measured with `--exclude nonofficial` | pages | anchors | invalid | anchor rate | coverage | cost |
+|---|---|---|---|---|---|---|
+| A baseline | 31 | 0 | 0 | 0.0% | 93.8% | not recorded |
+| B retrofit | 31 | 312 | 0 | **100%** | 100% | ~2.88M tokens |
+| Bs stripped | 31 | 0 | 0 | 0.0% | 96.9% | — |
+| C fresh, no gate | 35 | 590 | 2 | 41.3% | 100% | 563K / 74 min |
+| **D fresh + gate** | 37 | **1053** | **0** | **100%** | **100%** | **590K / 79 min** |
+
+**Five percent more cost for the difference between 41% and 100%**, and arm D wrote *more* than
+arm C — 50 pages against 48, 36,730 words against 35,530 — so the scope-narrowing the prior warns
+about did not appear even under gate pressure, which is the condition the prior is about.
+
+It also corrects an earlier claim here: the retrofit's 2.88M was expensive because it used two
+dozen parallel agents each re-reading the source, not because verification is inherently costly.
+The loop is a deterministic check inside one session and is nearly free.
+
+### What the gate caught that the author could not
+
+Arm D's own notes: quotes whose inner parenthesis truncated the anchor, headings and table rows it
+had not realised count as claims, and **six quotes that did not literally exist in the source** —
+line-wrapped text, TypeScript object keys without quotes, a colon where the source has a question
+mark. Its verdict on all of them: "every one was a real defect". A checker that counts anchors
+written passes every one of these silently.
+
+### The denominator was wrong, and this is the correction
+
+Arm B's instructions did not forbid editing the repository's own hand-written `nonofficial/`
+pages, so it anchored them: **174 of its 486 anchors were there.** Arms C and D were told to
+preserve those pages and anchored none. Three arms, three denominators, and the figures published
+earlier here mixed them.
+
+Every rate above uses `--exclude nonofficial`. Those fourteen pages are hand-written repository
+documentation, not output of the pipeline under test, so scoring the pipeline against a
+denominator containing them is a category error. They cannot be deleted either — five scripts
+hard-require them, `check_openwiki.py` in 28 places — and a reader genuinely receives them.
+**Measured set and delivered set are different sets.**
+
+Corrected: arm B has **312** anchors, not 486. Arm D reaches **100%**, not the 59.8% its global
+figure showed — all 80 of its unanchored claims were in pages it had been forbidden to touch. The
+directions are unchanged; the magnitudes were not.
+
+The exclusion is a flag on the gate rather than a convention, because a convention is exactly what
+failed here.
+
+### Arm D has no QA number
+
+The public 30 were spent across four arms. Giving arm D a comparable figure means re-running all
+five, which has not been done. Nothing here says whether arm D helps a reader more than arm C —
+only that it is more anchored, equally covered, and slightly larger, for five percent more.

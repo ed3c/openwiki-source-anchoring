@@ -1,0 +1,69 @@
+{
+  "schema_version": "arm-comparison@1.0.0",
+  "measured_set": "all pages except nonofficial/ — those 14 are hand-written repository documentation, not output of the pipeline under test. They stay on disk because five scripts require them and a reader receives them.",
+  "command": "bun run harness/audit_wiki.ts <wiki> <target> --exclude nonofficial",
+  "arms": {
+    "A": {
+      "pages": 31,
+      "anchors": 0,
+      "invalid": 0,
+      "anchor_rate": 0,
+      "anchored": 0,
+      "claims": 156,
+      "inferred": 0,
+      "coverage": 0.9375,
+      "failures": [
+        "anchor_rate 0.0% < 85%"
+      ]
+    },
+    "B": {
+      "pages": 31,
+      "anchors": 312,
+      "invalid": 0,
+      "anchor_rate": 1,
+      "anchored": 152,
+      "claims": 152,
+      "inferred": 8,
+      "coverage": 1,
+      "failures": []
+    },
+    "Bs": {
+      "pages": 31,
+      "anchors": 0,
+      "invalid": 0,
+      "anchor_rate": 0,
+      "anchored": 0,
+      "claims": 154,
+      "inferred": 8,
+      "coverage": 0.9688,
+      "failures": [
+        "anchor_rate 0.0% < 85%"
+      ]
+    },
+    "C": {
+      "pages": 35,
+      "anchors": 590,
+      "invalid": 2,
+      "anchor_rate": 0.4129,
+      "anchored": 64,
+      "claims": 155,
+      "inferred": 12,
+      "coverage": 1,
+      "failures": [
+        "anchor_rate 41.3% < 85%",
+        "anchor_correctness 99.7% < 100% (2 invalid/malformed)"
+      ]
+    },
+    "D": {
+      "pages": 37,
+      "anchors": 1053,
+      "invalid": 0,
+      "anchor_rate": 1,
+      "anchored": 119,
+      "claims": 119,
+      "inferred": 10,
+      "coverage": 1,
+      "failures": []
+    }
+  }
+}

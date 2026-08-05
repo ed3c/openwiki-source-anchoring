@@ -1,0 +1,8 @@
+# Files
+
+- [Ablation engine, benchmark matrix and judge parser](ablation-and-benchmarks.md) - The simulated A/B delta gate that decides whether a skill asset earns its place, the deterministic 100-task benchmark matrix, and the double-lock parser for LLM judge verdicts.
+- [Autoresearch eval harness, golden datasets and trace sampling](autoresearch-eval.md) - The local-first eval suite for the autoresearch_composer asset — case schema, simulated routing, deterministic guardrails, the local heuristic judge, trace sampling, and the aggregate lifecycle gate; including exactly why the cloud judge path can never run.
+- [The P11 zero-LLM regex canary](interactions-regex-canary.md) - The 117-case synthetic corpus, the two regex runners that score it without any model call, and the quality report that deliberately declares the corpus insufficient.
+- [Structured lifecycle datasets and their generated display layer](lifecycle-datasets.md) - The data/lifecycle JSON files that are the structured SSOT for skill promotion state, the deterministic renderer that projects them into Markdown, and the gate that requires the two to be byte-identical.
+- [Prompt trace assets and input-to-terminal traceability](prompt-trace-assets.md) - The three-slot prompt trace dataset, its privacy contract, the sha256-bound path from the originating conversation to terminal artifacts, and the gate that can verify seven intent slices against real Git subjects.
+- [Real-driver ablation — the only harness that runs a real agent](real-driver-ablation.md) - How real_driver_ablation.py runs a live agent command against both arms with a loader probe, ephemeral working directories and runtime model receipts, and the failing verdict it produced that quarantined the gemini_interactions asset.
