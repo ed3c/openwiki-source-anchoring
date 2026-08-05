@@ -1,3 +1,7 @@
 _engine-run/
 node_modules/
 .DS_Store
+
+# Reading the vendored evidence tree with python must not dirty it.
+__pycache__/
+.pytest_cache/

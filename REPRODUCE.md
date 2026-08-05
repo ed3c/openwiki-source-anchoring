@@ -20,7 +20,19 @@ The five arms are audited against [`repo-snapshot/`](repo-snapshot/), a desensit
 
 `repo-snapshot/SNAPSHOT-MANIFEST.json` therefore carries both hashes per file: `sha256` of the published bytes and `source_sha256` of the studied bytes. The transformation is auditable rather than asserted.
 
-**This tree is evidence, not a runnable repository.** Its own acceptance was measured on both sides: four of its five gates behave identically after desensitization, and `check_plan_package_compat.py` does not, because it compares an absolute path as an identity string rather than opening it. That delta is recorded under `acceptance_delta` in the manifest instead of being smoothed over.
+**Desensitization costs you nothing.** Its own acceptance was measured on both sides of the transformation and in two environments: on the authoring host, and with that host's workspace made unreachable. In the second environment — the one every reader is in — all five of its gates behave identically before and after desensitization. Both columns are recorded under `acceptance_delta`.
+
+An earlier version of this file claimed desensitization broke `check_plan_package_compat.py`. That was measured only on the authoring host, where the workspace still exists and an absolute path baked into the artifact still resolves. Off that machine the gate exits 2 either way: it dereferences a path no other computer has. The failure is host dependence in the studied snapshot, not a cost of publishing it, and attributing it to desensitization would have sent a reader looking in the wrong place.
+
+**This tree is evidence, not a runnable repository.** `repo-snapshot/scripts/check_plan_package_compat.py` exits 2 for you, as it did for the snapshot before any transformation. Everything this guide tells you to run exits 0 — verified from a fresh clone with the authoring workspace unreachable:
+
+| entrypoint | exit |
+|---|---:|
+| `sh harness/selftest.sh` | 0 |
+| `bun run harness/src/audit_arms.ts` | 0 |
+| `sh reproduction/recompute.sh` | 0 |
+| `sh evaluation/selftest.sh` | 0 |
+| `bun run evaluation/src/validate_manifest.mjs evaluation/manifest.example.json` | 0 |
 
 ## Requirements
 

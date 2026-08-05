@@ -1,5 +1,5 @@
 {
- "note": "Desensitized copy of the immutable snapshot the five arms were measured against. sha256 is of the published bytes; source_sha256 is of the studied bytes, so the identity of what was actually measured survives the transformation. This tree is evidence for anchor verification, not a runnable repository: the desensitization rewrites absolute paths that some of its own gates compare as identity strings.",
+ "note": "Desensitized copy of the immutable snapshot the five arms were measured against. sha256 is of the published bytes; source_sha256 is of the studied bytes, so the identity of what was actually measured survives the transformation. This tree is evidence for anchor verification, not a runnable repository. Its own gates were run on both sides of the transformation, on the authoring host and with that host's workspace made unreachable. The hermetic column is the one that describes a reader; the other can pass for reasons no other machine has.",
  "source": "repo/agent-skills-repo",
  "snapshot_taken_utc": "2026-08-05T07:23:48+00:00",
  "desensitization_tokens": [
@@ -15,36 +15,72 @@
  "acceptance_delta": [
   {
    "gate": "git_gate.py",
-   "studied_exit": 0,
-   "published_exit": 0,
-   "unchanged": true
+   "on_authoring_host": {
+    "studied_exit": 0,
+    "published_exit": 0,
+    "unchanged": true
+   },
+   "hermetic": {
+    "studied_exit": 0,
+    "published_exit": 0,
+    "unchanged": true
+   }
   },
   {
    "gate": "check_plan_package_compat.py",
-   "studied_exit": 0,
-   "published_exit": 2,
-   "unchanged": false
+   "on_authoring_host": {
+    "studied_exit": 0,
+    "published_exit": 2,
+    "unchanged": false
+   },
+   "hermetic": {
+    "studied_exit": 2,
+    "published_exit": 2,
+    "unchanged": true
+   }
   },
   {
    "gate": "check_openwiki.py",
-   "studied_exit": 0,
-   "published_exit": 0,
-   "unchanged": true
+   "on_authoring_host": {
+    "studied_exit": 0,
+    "published_exit": 0,
+    "unchanged": true
+   },
+   "hermetic": {
+    "studied_exit": 0,
+    "published_exit": 0,
+    "unchanged": true
+   }
   },
   {
    "gate": "check_lifecycle_datasets.py",
-   "studied_exit": 0,
-   "published_exit": 0,
-   "unchanged": true
+   "on_authoring_host": {
+    "studied_exit": 0,
+    "published_exit": 0,
+    "unchanged": true
+   },
+   "hermetic": {
+    "studied_exit": 0,
+    "published_exit": 0,
+    "unchanged": true
+   }
   },
   {
    "gate": "check_wiki_graph_sync.py",
-   "studied_exit": 0,
-   "published_exit": 0,
-   "unchanged": true
+   "on_authoring_host": {
+    "studied_exit": 0,
+    "published_exit": 0,
+    "unchanged": true
+   },
+   "hermetic": {
+    "studied_exit": 0,
+    "published_exit": 0,
+    "unchanged": true
+   }
   }
  ],
- "acceptance_gates_changed_by_desensitization": [
+ "acceptance_gates_changed_by_desensitization": [],
+ "acceptance_gates_changed_only_on_authoring_host": [
   "check_plan_package_compat.py"
  ],
  "file_count": 343,
