@@ -1,0 +1,310 @@
+{
+  "schema_version": "wiki-qa-result@2.0.0",
+  "run": "public set, four arms, first and only use",
+  "bank": "public 30, never previously run",
+  "arms": {
+    "A": "baseline",
+    "B": "anchored",
+    "Bs": "anchored, markers mechanically removed",
+    "C": "generated with anchoring"
+  },
+  "provenance": {
+    "answerer_model": "sonnet",
+    "judge_model": "opus",
+    "label_rotation": "per batch",
+    "runs": 1
+  },
+  "score": {
+    "A": {
+      "PASS": 7,
+      "PARTIAL": 10,
+      "FAIL": 13
+    },
+    "B": {
+      "PASS": 12,
+      "PARTIAL": 8,
+      "FAIL": 10
+    },
+    "Bs": {
+      "PASS": 12,
+      "PARTIAL": 5,
+      "FAIL": 13
+    },
+    "C": {
+      "PASS": 14,
+      "PARTIAL": 12,
+      "FAIL": 4
+    }
+  },
+  "rates": {
+    "A": {
+      "n": 30,
+      "pass": 0.2333,
+      "pass_or_partial": 0.5667
+    },
+    "B": {
+      "n": 30,
+      "pass": 0.4,
+      "pass_or_partial": 0.6667
+    },
+    "Bs": {
+      "n": 30,
+      "pass": 0.4,
+      "pass_or_partial": 0.5667
+    },
+    "C": {
+      "n": 30,
+      "pass": 0.4667,
+      "pass_or_partial": 0.8667
+    }
+  },
+  "wiki_did_not_say": {
+    "A": 10,
+    "B": 6,
+    "Bs": 5,
+    "C": 1
+  },
+  "per_question": [
+    {
+      "id": "assets-01",
+      "note": "All four got the two slugs and the gemini quarantine trio right; X and Z additionally carried the promotion_records candidate_until_human_admit / human-admit fact (Z also noting autoresearch has no status.json), which W and Y omitted.",
+      "A": "PARTIAL",
+      "B": "PASS",
+      "Bs": "PARTIAL",
+      "C": "PASS"
+    },
+    {
+      "id": "assets-05",
+      "note": "Y alone combined the correct path, parsed-JSON (not byte) equality, and the existence-guard skip plus continued repo-side validation; X omitted the skip condition entirely, W omitted the parsed-JSON semantics, and Z said 'byte/content-identical' which misstates the json.loads comparison.",
+      "A": "PARTIAL",
+      "B": "PARTIAL",
+      "Bs": "PASS",
+      "C": "PARTIAL"
+    },
+    {
+      "id": "assets-09",
+      "note": "W, X and Y all explicitly said the documentation does not cover this and denied the premise (honest not-covered, not a wrong answer); Z gave the correct required_terms including 'references/deploy_guide.md' but located it only as 'the Layer-3 pointer line' rather than the HOW: line and omitted the FAIL message.",
+      "A": "FAIL",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "PARTIAL"
+    },
+    {
+      "id": "assets-13",
+      "note": "W, X and Y all asserted check_plan_package_compat.py's required list contains no skill-asset files (contradicting criterion 2), and X further claimed deleting the file turns test_skill_asset_structure red (contradicting criterion 3); Z avoided both contradictions, said compat covers 'both skill assets', and correctly flagged the lifecycle-gate breakage while admitting it could not produce the set difference.",
+      "A": "FAIL",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "PARTIAL"
+    },
+    {
+      "id": "data-02",
+      "note": "All four named both overwritten files and the openwiki/ md walk, but only W and Y mentioned data/wiki_graph/schema.json as a second input; X and Z omitted the schema read entirely.",
+      "A": "PASS",
+      "B": "PARTIAL",
+      "Bs": "PASS",
+      "C": "PARTIAL"
+    },
+    {
+      "id": "data-06",
+      "note": "W, X and Y gave all counts plus the per-row conditions (pass_rate 1.0, route_distribution summing to case_count, verdict FAIL, cloud_judge_enabled false); Z gave the four counts but dropped the route_distribution sum, the FAIL verdict and the cloud-judge condition.",
+      "A": "PASS",
+      "B": "PASS",
+      "Bs": "PASS",
+      "C": "PARTIAL"
+    },
+    {
+      "id": "data-10",
+      "note": "X and Z pinned the skip guard to (PROJECT_ROOT/'.claude').exists() exactly (Z also quoting the 'source cases and production repo cases differ' failure), while W and Y described the skip only as 'the upstream skill tree is absent', a looser and slightly wrong guard.",
+      "A": "PARTIAL",
+      "B": "PASS",
+      "Bs": "PARTIAL",
+      "C": "PASS"
+    },
+    {
+      "id": "data-14",
+      "note": "Equivalent: all four listed the six required lifecycle entries and named render_lifecycle_openwiki.py --write followed by check_lifecycle_datasets.py, with Z adding a correct extra caveat about hard-coded single-skill validation.",
+      "A": "PASS",
+      "B": "PASS",
+      "Bs": "PASS",
+      "C": "PASS"
+    },
+    {
+      "id": "evals-03",
+      "note": "X and Y cited both governing tests and the no-partial-credit timeout rule while Z gave the exact tempfile.TemporaryDirectory(prefix='real-driver-agent-') mechanism and exit_code=124-not-raised; W had the ephemeral cwd and timeout-as-failure but neither the temp-dir mechanism nor the partial-output test.",
+      "A": "PARTIAL",
+      "B": "PASS",
+      "Bs": "PASS",
+      "C": "PASS"
+    },
+    {
+      "id": "evals-07",
+      "note": "Z was strongest, giving the exact 117 FAIL message and all four report thresholds (>=12 check sets, >=20 negatives, >=10 non-triggering, <=0.35 similarity); X and Y got 117 plus the always-insufficient reasoning; W declined to confirm the --total enforcement at all.",
+      "A": "PARTIAL",
+      "B": "PASS",
+      "Bs": "PASS",
+      "C": "PASS"
+    },
+    {
+      "id": "evals-11",
+      "note": "All four listed the five telemetry conditions correctly (three of them helpfully flagging that it is five, not four), but only X and Y paired the 'ablation telemetry insufficient' message with the source_required_available guard and the dropped upstream literals; W lacked both the message and the guard, Z lacked the message and the literal-list emptying.",
+      "A": "PARTIAL",
+      "B": "PASS",
+      "Bs": "PASS",
+      "C": "PARTIAL"
+    },
+    {
+      "id": "evals-15",
+      "note": "W, X and Y correctly said the output is not randomized but all three stated the wiki does not document main()'s exit-code conditions; Z gave the stable_jitter formula and the exact three-condition gate (task_count != 100, delta_high < 0.13, delta_low >= 0), omitting only the per-group adjustments.",
+      "A": "PARTIAL",
+      "B": "PARTIAL",
+      "Bs": "PARTIAL",
+      "C": "PASS"
+    },
+    {
+      "id": "gates-04",
+      "note": "W and Y both stated the stdout/stderr convention is not documented and Y additionally asserted gates use varied nonzero codes (contradicting the uniform 0/2 convention); X and Z got the PASS-stdout / FAIL-stderr split but described failure only as 'nonzero' rather than exactly 2.",
+      "A": "FAIL",
+      "B": "PARTIAL",
+      "Bs": "FAIL",
+      "C": "PARTIAL"
+    },
+    {
+      "id": "gates-08",
+      "note": "All four nailed the validator constraints; X alone omitted validate_skills_baseline.py's git-porcelain scoping and fallback, while Y additionally covered the --all flag.",
+      "A": "PASS",
+      "B": "PARTIAL",
+      "Bs": "PASS",
+      "C": "PASS"
+    },
+    {
+      "id": "gates-12",
+      "note": "Y flatly claimed no_ops_purger.py does modify files (direct contradiction); W hedged that it 'can in principle' write and X said it could not confirm; Z alone described the stub run_p2_evaluation, the discarded purged text, and stated outright that neither script writes.",
+      "A": "PARTIAL",
+      "B": "PARTIAL",
+      "Bs": "FAIL",
+      "C": "PASS"
+    },
+    {
+      "id": "assets-03",
+      "note": "W and Y give all four markers, the >200-word cap and the exact five-item FORBIDDEN tuple; X supplies markers and word cap but explicitly says the linter's forbidden list is not documented (and misattributes the only word list to no_op_pruner), and Z declares both the word limit and forbidden list absent from the docs — honest not-covered in both cases, not a wrong answer.",
+      "B": "PASS",
+      "Bs": "FAIL",
+      "C": "PASS",
+      "A": "FAIL"
+    },
+    {
+      "id": "assets-07",
+      "note": "Only Y supplies the discriminating defaults (pruner globs every skills/*/skills.md, purger defaults to skills/gemini_interactions/skills.md via --skill) plus the current_rate >= baseline rule; W and X get the read-only/mutating split right but explicitly declare the default target paths undocumented, and Z does the same while also softening the loop condition to 'score unchanged'.",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "PASS",
+      "A": "FAIL"
+    },
+    {
+      "id": "assets-11",
+      "note": "W, X and Z all list binding_status=prepared_unsigned, the six keys, the two self-consistency checks and the three literal constants including the four ordered plan_package_input_ids; Y names the six keys and EDGE-066 but hedges the outer-matching pair and never enumerates the four input ids, so criterion 2 is unmet.",
+      "B": "PASS",
+      "Bs": "PASS",
+      "C": "PARTIAL",
+      "A": "PASS"
+    },
+    {
+      "id": "assets-15",
+      "note": "Y is the only answer with the actual thresholds (<12 unique check sets, <20 negative cases, <10 non-triggering, >0.35 similarity) and the manifest's required 'insufficient' value; W, X and Z substitute the observed metrics (0, 2, 0.9969) and a 0.85 threshold for the rule, and X additionally asserts 'admissible-candidate' appears nowhere — a contradiction of the documented status pair.",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "PASS",
+      "A": "FAIL"
+    },
+    {
+      "id": "data-04",
+      "note": "All four correctly answer 'no commit, artifact upload only' and none contradicts anything, but every one silently omits criterion 2 (the separate ENABLE_GRAPH_DB_WRITE-gated external write job and its secrets requirement); X uniquely names the wiki-graph-local-projection artifact and Y uniquely names both scripts.",
+      "B": "PARTIAL",
+      "Bs": "PARTIAL",
+      "C": "PARTIAL",
+      "A": "PARTIAL"
+    },
+    {
+      "id": "data-08",
+      "note": "W, X and Z all report the right schema_version but then explicitly deny that schema_version selects the validation path, attributing branching solely to CLI flags — a direct contradiction of the criterion; Y gets the 0.2.0 → three-surface vs 0.1.0 → legacy dispatch right but never mentions the gcr_three_surface_commit_traceability cross-check.",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "PARTIAL",
+      "A": "FAIL"
+    },
+    {
+      "id": "data-12",
+      "note": "W and X nail AGY-001..AGY-010 and the model/reasoning/thinking constants but state the schema_version behaviour is undocumented; Y has the ValueError text yet claims only two lesson ids are recoverable and describes the failure as a crash rather than the caught 'FAIL: cannot load semantic arbitration data' exit 2; Z declines on both halves — all honest not-covered rather than confidently wrong.",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "FAIL",
+      "A": "FAIL"
+    },
+    {
+      "id": "evals-01",
+      "note": "Only Y states the strict `delta > 0.05` comparison; W, X and Z all give TARGET_DELTA correctly but then invert the boundary to 'at or above 0.05 is PASS' / 'PASS requires delta >= 0.05', contradicting the operator criterion.",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "PASS",
+      "A": "FAIL"
+    },
+    {
+      "id": "evals-05",
+      "note": "W, X and Z each list all eight REQUIRED_CASE_FIELDS and both ENABLE_LLM_JUDGE branches (SKIP/cloud-disabled vs raise); Y names only six fields and explicitly says the full eight cannot be recovered from the docs, despite quoting the RuntimeError message verbatim.",
+      "B": "PASS",
+      "Bs": "PASS",
+      "C": "FAIL",
+      "A": "PASS"
+    },
+    {
+      "id": "evals-09",
+      "note": "W, X and Z all give the porcelain regex, the zero-match fallback to all_case_files(), the tolerated 'not a git repository' empty-list return and the RuntimeError re-raise for any other git failure; Y covers the regex, --all and the tolerated no-repo path but omits the RuntimeError/exit-2 branch.",
+      "B": "PASS",
+      "Bs": "PASS",
+      "C": "PARTIAL",
+      "A": "PASS"
+    },
+    {
+      "id": "evals-13",
+      "note": "Y is alone in identifying run_p2_evaluation as a two-branch stub keyed on the literal 'Interactions' substring and quoting `current_rate >= baseline`; W, X and Z give the removal guard but explicitly declare what run_p2_evaluation measures to be undocumented, and Z further weakens the guard to 'score unchanged'.",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "PASS",
+      "A": "FAIL"
+    },
+    {
+      "id": "gates-02",
+      "note": "W and X reproduce all 22 GATES entries in the exact required order plus the break-on-first-nonzero behaviour; Y states 22 but says the ordered list is not enumerable and flags a 22-vs-23 doc conflict, and Z asserts 23 gates including validate_molecular_commit_lineage.py — a direct contradiction of the list.",
+      "B": "PASS",
+      "Bs": "PASS",
+      "C": "FAIL",
+      "A": "FAIL"
+    },
+    {
+      "id": "gates-06",
+      "note": "W, X and Z give all eleven REQUIRED_FIELDS and the Intent-Slice regex plus canonical paths, but omit the five-absolute-path / conversation / ROUTES anchor / exchange-formats requirements and explicitly say the failure message and exit code are undocumented; Y has the extra content requirements and failure strings but names only five of the eleven fields and concedes the rest — every answer defers on part of the contract.",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "FAIL",
+      "A": "FAIL"
+    },
+    {
+      "id": "gates-10",
+      "note": "Y supplies all three boundary checks plus the literal NOISE triggers (AWS_ACCESS_KEY, GOOGLE_APPLICATION_CREDENTIALS, dotted-quad); W and X quote the 'deployment detail leaked into root skill' message but explicitly say no pattern list exists and skip the four markers, and Z omits the markers, the directory-existence check and the regex entirely, declaring the leak definition undocumented.",
+      "B": "FAIL",
+      "Bs": "FAIL",
+      "C": "PASS",
+      "A": "FAIL"
+    },
+    {
+      "id": "gates-14",
+      "note": "All four correctly name check_plan_package_compat.py, check_prompt_trace_assets.py and sync_wiki_to_graph.py as outside GATES with nothing contradicted, but none mentions eval_autoresearch_composer.py or sample_autoresearch_traces.py from the README Usage Entry block, so criterion 1 is unmet across the board.",
+      "B": "PARTIAL",
+      "Bs": "PARTIAL",
+      "C": "PARTIAL",
+      "A": "PARTIAL"
+    }
+  ],
+  "note": "Bs is arm B with every (src: ...) marker mechanically deleted and nothing else changed. It exists to separate the markers from the content the anchoring process added."
+}

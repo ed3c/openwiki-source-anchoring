@@ -4,74 +4,85 @@
 
 </div>
 
-# Anchoring a generated code wiki: which half of the mechanism does the work?
+# Making a generated code wiki checkable: what actually helps a reader, and what only looks like it does
 
-A generated wiki says a lot of specific things about a codebase, and almost none of them can be
-checked. Making them checkable takes two parts — a convention telling the author what an anchor
-is, and a gate telling the author which claims still lack one.
+A generated wiki states a great many specific things about a codebase and almost none of them
+can be checked. This measures what happens when you force the author to check them — and, more
+usefully, **which part of that forcing does the work**.
 
-**Three arms separate them.** The convention alone reaches about 41%. The gate-driven loop takes
-it to 100%. That split is the result; the rest of this repository is how it was measured and why
-each number can be trusted.
+Four arms, one question set, one blind judge.
 
-| | **A · baseline** | **B · retrofit** | **C · generated** |
-|---|---|---|---|
-| how it was made | official pipeline, no anchoring | A, edited page by page **under the gate** | the modified skill, **cold run**, convention wired in, gate never run |
-| anchors | 0 | 486 | **590** |
-| invalid anchors | — | 0 | 2, both circular |
-| **anchor rate** | 0.0% | **100%** | **27.2%** (41.3% excluding pages it inherited) |
-| entrypoint coverage | 30/32 | 32/32 | **32/32** |
-| pages · words | 44 · 29,451 | 44 · 35,113 | 48 · 35,530 |
-| gate | exit 2 | **exit 0** | exit 2 |
-| cost | not recorded | ~2.88M subagent tokens | **563K tokens, 74 min**, including generation |
+| | anchor rate | **QA PASS** | PASS+PARTIAL | *"the wiki does not say"* |
+|---|---|---|---|---|
+| **A** baseline, official pipeline | 0% | 23.3% | 56.7% | 10 / 30 |
+| **B** anchored afterwards, gate-driven to zero | **100%** | 40.0% | 66.7% | 6 |
+| **Bs** arm B with every marker deleted | 0% | **40.0%** | 56.7% | 5 |
+| **C** anchored while writing, no gate | 27.2% | **46.7%** | **86.7%** | **1** |
 
-Arm C wrote **more** anchors than arm B and landed at less than half the rate. The difference is
-not effort. Arm B received, every round, a mechanical list of which claims still lacked an
-anchor, and iterated until that list was empty. Arm C never ran the gate — it built its own
-checker, and that checker counted anchors *written* rather than claims *still unanchored*, so it
-had no way to see what it had missed.
+Two things fall out, and both cut against the obvious reading.
 
-> A convention tells an author what good looks like. Only a gate tells them where they are not
-> there yet. Wiring in the first without the second buys about 41% of the result.
+**The citation markers contribute nothing to correctness.** Deleting all 486 of arm B's
+`(src: …)` markers — changing nothing else — left its PASS rate **exactly** where it was, 12 of
+30. The gain over baseline is entirely the *content* the anchoring process added, not the
+markers it left behind. Forcing an author to go find a verbatim quote makes them read the source
+and write down what they find; the quote itself is a by-product.
 
-## What anchoring found that the pipeline could not
+**The best arm has the worst anchor rate.** Arm C carries a quarter of arm B's anchor rate and
+beats it on every reader-facing measure. Anchor rate measures whether the author did the
+verification work. It does not measure whether the result is useful, and on this data the two run
+in opposite directions.
 
-Arm A passed every gate the official procedure has — three review subagents, zero broken links,
-`status: success` — and contained **53 statements that contradict the source**. Nothing in the
-pipeline compares a sentence to the file it describes, so that class of defect is outside its
-range rather than missed by it.
+> Anchor rate is a **process** metric. It belongs in a dashboard, not in a headline.
 
-One miscount had propagated to ten pages, into frontmatter, headings, and a mermaid diagram.
-Ten pages agreeing is not ten pieces of evidence; it is one, repeated.
+## What forcing verification actually found
 
-Arm C, run cold and independently, found **seven more** defects that none of the earlier arms
-recorded — including a gate list of 22 entries against a compatibility guard expecting 23, which
-means the repository's fast path cannot accept any receipt its own gate produces.
+Arm A passed everything the official procedure checks — three review subagents, zero broken
+links, `status: success` — and contained **53 statements that contradict the source**. Nothing in
+that pipeline ever compares a sentence to the file it describes, so this class of defect is
+outside its range rather than missed by it.
 
-## Does it help a reader?
+One miscount had spread to ten pages, into frontmatter, headings and a mermaid diagram. Ten pages
+agreeing is not ten pieces of evidence; it is one, repeated.
 
-A blind holdout, run **once**: 30 questions written from source by authors forbidden to read any
-wiki, answered by agents forbidden to read the source, graded by a judge who saw anonymous
-paired answers and never touched a total.
+Arm C, run cold and independently, found **seven more** the earlier arms missed — including a
+gate list of 22 entries against a guard expecting 23, so the repository's fast path cannot accept
+any receipt its own gate produces.
 
-| | arm A | arm B |
-|---|---|---|
-| PASS | 9/30 (30.0%) | **13/30 (43.3%)** |
-| PASS + PARTIAL | 50.0% | **66.7%** |
-| answered "the wiki does not say this" | 12 | **6** |
+**These 53 are author-reported.** Nine were verified independently; the rest were identified and
+corrected by the same agents. That is the weakest link in the strongest result here, and it is
+stated rather than buried.
 
-The clearest single case: on one question the judge, not knowing which arm it was grading, called
-arm A's answer *"confidently wrong"* for asserting that a script sits in a gate list its own
-source comment says it is deliberately excluded from. That sentence is one of the 53 corrections.
-The chain from *a false claim was removed* to *an agent stopped answering confidently wrong* is
-observed here, not inferred.
+## The measurement
 
-**One question got worse.** An anchored rewrite dropped a branch the original mentioned.
-Rewriting a sentence to make it checkable can lose something that was already true.
+The public 30 come from a 60-question bank written by four agents reading **only** source, with
+every wiki and review transcript out of bounds. Split mechanically by sorted id. Answered by
+agents given one wiki and forbidden the source. Graded by a judge shown four anonymous answers
+per question with the labels rotated per batch, returning only PASS/PARTIAL/FAIL. Totals computed
+by script; the judge never saw one.
 
-**Arm C has no QA number.** The holdout was spent comparing A against B, and re-running it on a
-third arm would make it meaningless. The 30 held-back public questions in [`qa/`](qa/) exist for
-exactly this and have not been run.
+An earlier run of the held-out 30, comparing A against B only, gave 30.0% against 43.3%. It is in
+[`qa/holdout-result.json`](qa/holdout-result.json) and is spent.
+
+**`n = 30`, single run, no repeats.** Differences of one to three questions are inside the noise
+and are not claimed as effects. The 16.7-point A-to-B gap and the 23.4-point A-to-C gap are
+large enough to discuss; the 3-question PARTIAL/FAIL difference between B and Bs is not.
+
+## What this licenses
+
+| observation | conclusion permitted |
+|---|---|
+| B and Bs identical on PASS | the markers do not drive correctness; the added content does |
+| C best on every reader measure with the lowest anchor rate | anchor rate is not a quality measure |
+| C's *"wiki does not say"* count of 1 against A's 10 | verification discipline applied **while writing** produces a far more complete wiki than the same discipline applied afterwards |
+| 53 contradictions found only by trying to anchor | the official gates cannot see confidently-wrong content |
+
+**Not licensed:** that iterating a gate to zero is harmful. Arms B and C differ in **two** ways —
+retrofit versus fresh authoring, and gate versus no gate — and the evidence separates neither. The
+untested cell is fresh authoring **with** the gate, which is where both lines of evidence point
+and which nothing here has run.
+
+Also not licensed: anything about a repository with real history. The target is synthetic,
+generated by the same system that documented it.
 
 ## What is here
 
@@ -79,15 +90,16 @@ exactly this and have not been run.
 |---|---|
 | [`LICENSE`](LICENSE) | MIT. The wikis describe a third-party repository; the licence covers this repository's own output |
 | [`THRESHOLDS.md`](THRESHOLDS.md) | the six thresholds and the commit that fixed them **before** any number existed |
-| [`METHOD.md`](METHOD.md) | how each of the three arms was produced, which models were pinned, what cannot be reproduced from here |
-| [`STAGES.md`](STAGES.md) | the reasoning stages that produced the difference, and the things that were not anticipated |
-| [`FINDINGS.md`](FINDINGS.md) | the false claims with the source that contradicts each, and what each result does and does not license |
+| [`METHOD.md`](METHOD.md) | how each arm was produced, which models were pinned, what cannot be reproduced from here |
+| [`STAGES.md`](STAGES.md) | the reasoning stages, and the things that were not anticipated |
+| [`FINDINGS.md`](FINDINGS.md) | the false claims with the source contradicting each, and per-result limits |
 | [`wiki/arm-a-baseline/`](wiki/arm-a-baseline/) | the official pipeline's output, unmodified |
 | [`wiki/arm-b-retrofit/`](wiki/arm-b-retrofit/) | arm A after a gate-driven anchoring pass |
-| [`wiki/arm-c-generated/`](wiki/arm-c-generated/) | a cold run of the modified skill, anchoring during generation |
-| [`harness/`](harness/) | the gate, its engine wrapper, the circuit breaker, the dispatch packets, the author-side appendix, and the fixtures that prove the gate is not a shell |
-| [`qa/`](qa/) | the 60-question bank, its public/holdout split, and the per-question verdicts |
-| [`data/`](data/) | the false-claim inventory, per-arm audits, arm C's per-page receipts, and the prior that shaped the design |
+| [`wiki/arm-b-stripped/`](wiki/arm-b-stripped/) | arm B with every marker mechanically removed |
+| [`wiki/arm-c-generated/`](wiki/arm-c-generated/) | a cold run anchoring during generation |
+| [`harness/`](harness/) | the gate, its wrapper, the breaker, the dispatch packets, the author-side appendix, the fixtures |
+| [`qa/`](qa/) | the bank, its split, and both runs' per-question verdicts |
+| [`data/`](data/) | the false-claim inventory, per-arm audits, arm C's receipts, the prior that shaped the design |
 
 ## The anchor
 
@@ -95,50 +107,39 @@ exactly this and have not been run.
 (src: scripts/git_gate.py `lineage manifest must be staged`)
 ```
 
-A repository-relative path and a substring **copied** from that file, checked by literal match.
-Deliberately no line numbers: the official prompt instructs *"prefer stable paths and symbol
-names over line numbers"*, and it is right — a line number is stale after the next commit while
-the quote is the evidence itself.
+A repository-relative path and a substring **copied** from that file, checked by literal match. No
+line numbers: the official prompt asks for stable paths over line numbers and is right — a line
+number is stale after the next commit while the quote is the evidence itself.
 
-Rules for authors, including why rationale is exempt and marked `(inferred)` instead, are in
+Author-side rules, including why rationale is exempt and marked `(inferred)`, are in
 [`harness/anchor-extension.md`](harness/anchor-extension.md). It is an appendix: **no official
 prompt byte was modified**.
-
-## Running the gate
 
 ```sh
 bun run harness/audit_wiki.ts wiki/arm-c-generated <target-repo>   # exit 0 green, 2 below threshold
 sh harness/selftest.sh                                             # the gate must catch a hollow anchor
 ```
 
-`selftest.sh` is the part worth reading first. A verifier that cannot separate a *hollow* anchor —
-real path, quote that is not in that file — from a real one is a shell, and every number it prints
-is decoration. The fixture asserts the failure *reason*, not just the exit code.
+`selftest.sh` is worth reading first. A verifier that cannot separate a *hollow* anchor — real
+path, quote that is not in that file — from a real one is a shell, and every number it prints is
+decoration. The fixture asserts the failure *reason*, not just the exit code.
 
-Arm C reached the same conclusion independently: its notes record that a checker must compare
-`(src:` occurrences against regex matches, or a malformed anchor vanishes silently. It had never
-seen that finding. It is a property of the anchor form, not a one-off bug.
+Arm C reached that conclusion independently: its notes record that a checker must compare `(src:`
+occurrences against regex matches or a malformed anchor vanishes silently. It had never seen that
+finding, which makes it a property of the anchor form rather than a one-off bug.
 
-## Limits, stated up front
+## Limits
 
-- **Arm A and arm C are not a clean single-variable comparison.** Arm A came from an earlier
-  session and a different model generation. No coverage squeeze was observed under arm C's
-  conditions; that is not the same as the prior being wrong.
-- **The target is synthetic.** A repository generated by the same system that documented it,
-  with no organic git history. Nothing here extrapolates to a repository with a decade of commits
-  until that is run.
-- **Arm C has no QA measurement**, and the holdout cannot be reused.
-- **The question bank is model-written.** Four source-only agents; no human audited all 60.
-- **`n = 30`, one run.** Directional, not a result.
-- **The authoring model was not pinned.** Only the QA layer records fixed models. See
-  [`METHOD.md`](METHOD.md#models).
+- **`n = 30`, one run, no repeats.** Directional. No variance estimate, no inter-judge agreement.
+- **The 53 corrections are mostly author-reported.** Nine independently verified.
+- **The question bank is model-written**, including its acceptance criteria. No human audited all 60.
+- **Arm A predates the others** by a session and a model generation, so A-versus-C is not a clean
+  single-variable comparison.
+- **The target is synthetic** and has no organic git history.
+- **The authoring model was not pinned.** Only the QA layer records fixed models.
+- **The gate defines its own denominator.** What counts as a claim is a heuristic in
+  `audit_wiki.ts`; changing it changes every rate on this page.
 
-Paths are desensitised: `<target-repo>`, `<host-repo>`, `<sandbox>`, `<home>`.
-
-## What was *not* rewritten
-
-The wiki pages contain relative references to directories of the repository that generated the
-target. They appear identically across arms, they are part of the artifact under study, and
-rewriting them would alter the object being measured and break the diff. Machine-specific paths —
-home directory, user name, absolute locations — are replaced. Internal directory names the wiki
-itself documents are left as the pipeline wrote them.
+Paths are desensitised: `<target-repo>`, `<host-repo>`, `<sandbox>`, `<home>`. Relative references
+the wikis make to their own generating repository are left as written — they are part of the
+artifact under study, and rewriting them would alter what was measured.

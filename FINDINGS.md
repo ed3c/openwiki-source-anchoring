@@ -190,3 +190,48 @@ And arm C's notes independently derive that a checker must compare `(src:` occur
 regex matches or a malformed anchor vanishes silently — the same silent-pass hole found and
 fixed earlier here, reached by an agent that had never seen the finding. That makes it **a
 property of the anchor form**, not a bug that was once fixed.
+
+---
+
+## Four arms on the public set: the markers do nothing, and the best arm is the least anchored
+
+| | anchor rate | PASS | PASS+PARTIAL | *"wiki does not say"* |
+|---|---|---|---|---|
+| A baseline | 0% | 23.3% | 56.7% | 10 |
+| B anchored, gate-driven | **100%** | 40.0% | 66.7% | 6 |
+| **Bs** B with markers deleted | 0% | **40.0%** | 56.7% | 5 |
+| C anchored while writing | 27.2% | **46.7%** | **86.7%** | **1** |
+
+### The stripped arm settles the mechanism question
+
+Arm Bs is arm B with all 486 `(src: …)` markers mechanically removed and **nothing else changed**.
+Its PASS count is identical: 12 of 30.
+
+So the gain over baseline is not the citations. It is the content the author wrote *while looking
+for* citations — exact error strings, observed exit codes, threshold values. The marker is what
+falls out of the process, not what does the work.
+
+The two arms differ on 8 individual questions, netting +10pp for B on PASS+PARTIAL. At n=30 with
+no repeats, a three-question swing is noise and is not claimed as an effect.
+
+### Anchor rate and usefulness run in opposite directions here
+
+Arm C has a quarter of arm B's anchor rate and beats it on PASS, on PASS+PARTIAL, and most
+sharply on questions the wiki simply could not answer — 1 against 6. Arm A left 10 unanswerable.
+
+The plausible mechanism is that arm C applied the verification discipline **while writing every
+page**, so every page got read-the-source treatment, whereas arm B only revisited claims the gate
+flagged and left the rest of arm A's prose untouched.
+
+**What this does not license:** the conclusion that gate-driven iteration is harmful. Arms B and C
+differ in two ways at once — retrofit versus fresh authoring, and gate versus no gate — and
+nothing here separates them. The untested cell is fresh authoring *with* the gate, which is where
+both lines of evidence point.
+
+### Consequence for how these numbers should be read
+
+Anchor rate is a **process** measure: did the author do the verification work. It is
+deterministic, cheap and reproducible, and it says nothing about whether the result helps a
+reader. On this data it is negatively associated with the reader-facing measures. It belongs in a
+diagnostic table, not in a headline, and an earlier version of this repository had that the wrong
+way round.
