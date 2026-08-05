@@ -7,17 +7,17 @@ P="$ROOT/packets/inbox"
 EMPTY_UNRESOLVED='{"schema_version":"wiki-anchor-unresolved@1.0.0","human_gate":"required_before_merge","degraded_pages":[]}'
 fail=0
 TMP=$(mktemp -d)
-cleanup() {
-  rm -rf "$TMP"
-}
-trap cleanup EXIT HUP INT TERM
+trap 'rm -rf "$TMP"' EXIT HUP INT TERM
 
 # ── Anchor auditor ──────────────────────────────────────────────────────
-bun run "$ROOT/src/audit_wiki.ts" "$ROOT/tests/fixtures/wiki-good" "$T" >/dev/null 2>&1
-[ $? -eq 0 ] || { echo "selftest: good fixture should exit 0" >&2; fail=1; }
+if ! bun run "$ROOT/src/audit_wiki.ts" "$ROOT/tests/fixtures/wiki-good" "$T" >/dev/null 2>&1; then
+  echo "selftest: good fixture should exit 0" >&2
+  fail=1
+fi
 
 out=$(bun run "$ROOT/src/audit_wiki.ts" "$ROOT/tests/fixtures/wiki-hollow" "$T" 2>&1)
-[ $? -eq 2 ] || { echo "selftest: hollow fixture should exit 2" >&2; fail=1; }
+rc=$?
+[ "$rc" -eq 2 ] || { echo "selftest: hollow fixture should exit 2" >&2; fail=1; }
 echo "$out" | grep -q "quote not found in that file" || {
   echo "selftest: hollow fixture failed for the wrong reason" >&2
   fail=1
@@ -25,7 +25,8 @@ echo "$out" | grep -q "quote not found in that file" || {
 
 # Malformed anchors must be reported rather than disappearing from both totals.
 mal=$(bun run "$ROOT/src/audit_wiki.ts" "$ROOT/tests/fixtures/wiki-malformed" "$T" 2>&1)
-[ $? -eq 2 ] || { echo "selftest: malformed anchor fixture should exit 2" >&2; fail=1; }
+rc=$?
+[ "$rc" -eq 2 ] || { echo "selftest: malformed anchor fixture should exit 2" >&2; fail=1; }
 echo "$mal" | grep -q "malformed anchor" || {
   echo "selftest: malformed anchor was not reported" >&2
   fail=1
@@ -41,7 +42,8 @@ cat > "$TMP/wiki/symlink-escape.md" <<'EOF'
 The source contains external evidence. (src: escape.txt `outside-only evidence`)
 EOF
 symlink_out=$(bun run "$ROOT/src/audit_wiki.ts" "$TMP/wiki" "$TMP/target" 2>&1)
-[ $? -eq 2 ] || { echo "selftest: symlink escape should exit 2" >&2; fail=1; }
+rc=$?
+[ "$rc" -eq 2 ] || { echo "selftest: symlink escape should exit 2" >&2; fail=1; }
 echo "$symlink_out" | grep -q "symlink escapes target" || {
   echo "selftest: symlink escape failed for the wrong reason" >&2
   fail=1
@@ -49,12 +51,15 @@ echo "$symlink_out" | grep -q "symlink escapes target" || {
 
 # ── Circuit breaker (trigger.sh) ───────────────────────────────────────
 sh "$ROOT/trigger.sh" >/dev/null 2>&1
-[ $? -eq 64 ] || { echo "selftest: trigger without arguments should exit 64" >&2; fail=1; }
+rc=$?
+[ "$rc" -eq 64 ] || { echo "selftest: trigger without arguments should exit 64" >&2; fail=1; }
 
 # Bind controls to fixed fixtures rather than mutable candidate output.
-WIKI="$ROOT/tests/fixtures/wiki-anchored" TARGET_REPO="$ROOT/tests/fixtures/target" \
-  sh "$ROOT/trigger.sh" "$P/fixture-anchored.json" >/dev/null 2>&1
-[ $? -eq 0 ] || { echo "selftest: anchored page should exit 0 without dispatch" >&2; fail=1; }
+if ! WIKI="$ROOT/tests/fixtures/wiki-anchored" TARGET_REPO="$ROOT/tests/fixtures/target" \
+  sh "$ROOT/trigger.sh" "$P/fixture-anchored.json" >/dev/null 2>&1; then
+  echo "selftest: anchored page should exit 0 without dispatch" >&2
+  fail=1
+fi
 
 DEG="$ROOT/tests/fixtures/wiki-degrade"
 PAGE="$DEG/unanchorable.md"
