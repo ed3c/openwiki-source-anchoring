@@ -1,13 +1,14 @@
 #!/usr/bin/env bun
 // T0 mechanical gate for source-anchored generated documentation.
-// Exit 0 = all thresholds pass; 2 = one or more thresholds fail; 64 = usage/path error.
+// Exit 0 = all thresholds pass; 2 = one or more evidence thresholds fail;
+// 3 = audit incomplete because an input/resource boundary was reached; 64 = usage/path error.
 //
 // The gate establishes path and lexical validity. It does not establish semantic entailment.
 import {
   existsSync,
   lstatSync,
+  opendirSync,
   readFileSync,
-  readdirSync,
   realpathSync,
 } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
@@ -17,52 +18,431 @@ const CODE_EXT = /\.(py|ts|tsx|js|mjs|sh|yaml|yml|json|toml)$/;
 const ANCHOR_RE = /\(src:\s*([^\s`]+)\s+`([^`]+)`\s*\)/g;
 const CODE_REF_RE = /`([A-Za-z0-9_][A-Za-z0-9_/.-]*\.[A-Za-z]+)`/g;
 
+const EXIT_FAILED = 2;
+const EXIT_INCOMPLETE = 3;
+const EXIT_USAGE = 64;
+
+const DEFAULT_LIMITS = {
+  max_files: 50_000,
+  max_file_bytes: 8 * 1024 * 1024,
+  max_total_bytes: 256 * 1024 * 1024,
+  max_page_bytes: 2 * 1024 * 1024,
+  max_anchors_per_page: 10_000,
+  max_claims_per_page: 10_000,
+  max_depth: 64,
+  timeout_ms: 30_000,
+} as const;
+
+type ResourceLimits = {
+  max_files: number;
+  max_file_bytes: number;
+  max_total_bytes: number;
+  max_page_bytes: number;
+  max_anchors_per_page: number;
+  max_claims_per_page: number;
+  max_depth: number;
+  timeout_ms: number;
+};
+
+type ResourceUsage = {
+  filesystem_entries_seen: number;
+  regular_files_seen: number;
+  directories_seen: number;
+  bytes_read: number;
+  pages_read: number;
+  anchors_seen: number;
+  claim_blocks_seen: number;
+  max_depth_seen: number;
+};
+
 type Anchor = { page: string; path: string; quote: string };
 type Bad = Anchor & { reason: string };
+
+type ParsedArgs = {
+  wiki: string;
+  target: string;
+  exclusions: string[];
+  limits: ResourceLimits;
+};
+
+class UsageError extends Error {}
+
+class IncompleteAuditError extends Error {
+  readonly category: "limit" | "input";
+  readonly key: string;
+  readonly path?: string;
+  readonly limit?: number;
+  readonly observed?: number;
+
+  constructor(options: {
+    category: "limit" | "input";
+    key: string;
+    message: string;
+    path?: string;
+    limit?: number;
+    observed?: number;
+  }) {
+    super(options.message);
+    this.name = "IncompleteAuditError";
+    this.category = options.category;
+    this.key = options.key;
+    this.path = options.path;
+    this.limit = options.limit;
+    this.observed = options.observed;
+  }
+}
+
+function parsePositiveInteger(name: string, raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new UsageError(`${name} must be a positive integer, got: ${raw}`);
+  }
+  return value;
+}
+
+function parseArgs(argv: string[]): ParsedArgs {
+  const exclusions: string[] = [];
+  const positional: string[] = [];
+  const cli: Partial<Record<keyof ResourceLimits, string>> = {};
+  const limitFlags: Record<string, keyof ResourceLimits> = {
+    "--max-files": "max_files",
+    "--max-file-bytes": "max_file_bytes",
+    "--max-total-bytes": "max_total_bytes",
+    "--max-page-bytes": "max_page_bytes",
+    "--max-anchors-per-page": "max_anchors_per_page",
+    "--max-claims-per-page": "max_claims_per_page",
+    "--max-depth": "max_depth",
+    "--timeout-ms": "timeout_ms",
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]!;
+    if (arg === "--exclude") {
+      const value = argv[++index];
+      if (value === undefined) throw new UsageError("--exclude requires a comma-separated value");
+      exclusions.push(...value.split(",").filter(Boolean));
+      continue;
+    }
+    const limitKey = limitFlags[arg];
+    if (limitKey !== undefined) {
+      const value = argv[++index];
+      if (value === undefined) throw new UsageError(`${arg} requires a value`);
+      cli[limitKey] = value;
+      continue;
+    }
+    if (arg.startsWith("--")) throw new UsageError(`unknown option: ${arg}`);
+    positional.push(arg);
+  }
+
+  if (positional.length !== 2) {
+    throw new UsageError(
+      "usage: audit_wiki.ts <wiki-dir> <target-repo-dir> [--exclude a,b] " +
+        "[--max-files N] [--max-file-bytes N] [--max-total-bytes N] " +
+        "[--max-page-bytes N] [--max-anchors-per-page N] " +
+        "[--max-claims-per-page N] [--max-depth N] [--timeout-ms N]",
+    );
+  }
+
+  const environment: Record<keyof ResourceLimits, string | undefined> = {
+    max_files: process.env.OPENWIKI_MAX_FILES,
+    max_file_bytes: process.env.OPENWIKI_MAX_FILE_BYTES,
+    max_total_bytes: process.env.OPENWIKI_MAX_TOTAL_BYTES,
+    max_page_bytes: process.env.OPENWIKI_MAX_PAGE_BYTES,
+    max_anchors_per_page: process.env.OPENWIKI_MAX_ANCHORS_PER_PAGE,
+    max_claims_per_page: process.env.OPENWIKI_MAX_CLAIMS_PER_PAGE,
+    max_depth: process.env.OPENWIKI_MAX_DEPTH,
+    timeout_ms: process.env.OPENWIKI_TIMEOUT_MS,
+  };
+
+  const limits = Object.fromEntries(
+    (Object.keys(DEFAULT_LIMITS) as (keyof ResourceLimits)[]).map((key) => [
+      key,
+      parsePositiveInteger(key, cli[key] ?? environment[key], DEFAULT_LIMITS[key]),
+    ]),
+  ) as ResourceLimits;
+
+  return {
+    wiki: resolve(positional[0]!),
+    target: resolve(positional[1]!),
+    exclusions,
+    limits,
+  };
+}
+
+class ResourceBudget {
+  readonly limits: ResourceLimits;
+  readonly usage: ResourceUsage = {
+    filesystem_entries_seen: 0,
+    regular_files_seen: 0,
+    directories_seen: 0,
+    bytes_read: 0,
+    pages_read: 0,
+    anchors_seen: 0,
+    claim_blocks_seen: 0,
+    max_depth_seen: 0,
+  };
+
+  private readonly startedAt = Date.now();
+  private readonly textCache = new Map<string, string>();
+
+  constructor(limits: ResourceLimits) {
+    this.limits = limits;
+  }
+
+  checkTime(path?: string): void {
+    const elapsed = Date.now() - this.startedAt;
+    if (elapsed > this.limits.timeout_ms) {
+      throw new IncompleteAuditError({
+        category: "limit",
+        key: "timeout_ms",
+        message: `audit exceeded timeout_ms (${elapsed} > ${this.limits.timeout_ms})`,
+        path,
+        limit: this.limits.timeout_ms,
+        observed: elapsed,
+      });
+    }
+  }
+
+  observeEntry(path: string, kind: "file" | "directory" | "symlink", depth: number): void {
+    this.checkTime(path);
+    this.usage.filesystem_entries_seen += 1;
+    this.usage.max_depth_seen = Math.max(this.usage.max_depth_seen, depth);
+    if (kind === "file") this.usage.regular_files_seen += 1;
+    if (kind === "directory") this.usage.directories_seen += 1;
+
+    if (this.usage.filesystem_entries_seen > this.limits.max_files) {
+      throw new IncompleteAuditError({
+        category: "limit",
+        key: "max_files",
+        message:
+          `filesystem entry budget exceeded ` +
+          `(${this.usage.filesystem_entries_seen} > ${this.limits.max_files})`,
+        path,
+        limit: this.limits.max_files,
+        observed: this.usage.filesystem_entries_seen,
+      });
+    }
+    if (depth > this.limits.max_depth) {
+      throw new IncompleteAuditError({
+        category: "limit",
+        key: "max_depth",
+        message: `repository depth exceeded (${depth} > ${this.limits.max_depth})`,
+        path,
+        limit: this.limits.max_depth,
+        observed: depth,
+      });
+    }
+  }
+
+  readText(path: string, kind: "page" | "source"): string {
+    this.checkTime(path);
+    const cached = this.textCache.get(path);
+    if (cached !== undefined) return cached;
+
+    let stat;
+    try {
+      stat = lstatSync(path);
+    } catch {
+      throw new IncompleteAuditError({
+        category: "input",
+        key: "unreadable_file",
+        message: "file metadata cannot be read",
+        path,
+      });
+    }
+    if (!stat.isFile()) {
+      throw new IncompleteAuditError({
+        category: "input",
+        key: "not_regular_file",
+        message: "input is not a regular file",
+        path,
+      });
+    }
+
+    const perFileLimit = kind === "page" ? this.limits.max_page_bytes : this.limits.max_file_bytes;
+    const limitKey = kind === "page" ? "max_page_bytes" : "max_file_bytes";
+    if (stat.size > perFileLimit) {
+      throw new IncompleteAuditError({
+        category: "limit",
+        key: limitKey,
+        message: `${limitKey} exceeded (${stat.size} > ${perFileLimit})`,
+        path,
+        limit: perFileLimit,
+        observed: stat.size,
+      });
+    }
+    if (this.usage.bytes_read + stat.size > this.limits.max_total_bytes) {
+      throw new IncompleteAuditError({
+        category: "limit",
+        key: "max_total_bytes",
+        message:
+          `max_total_bytes exceeded ` +
+          `(${this.usage.bytes_read + stat.size} > ${this.limits.max_total_bytes})`,
+        path,
+        limit: this.limits.max_total_bytes,
+        observed: this.usage.bytes_read + stat.size,
+      });
+    }
+
+    let bytes: Buffer;
+    try {
+      bytes = readFileSync(path);
+    } catch {
+      throw new IncompleteAuditError({
+        category: "input",
+        key: "unreadable_file",
+        message: "file contents cannot be read",
+        path,
+      });
+    }
+    this.usage.bytes_read += bytes.byteLength;
+
+    let text: string;
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      throw new IncompleteAuditError({
+        category: "input",
+        key: "invalid_utf8",
+        message: "file is not valid UTF-8 text",
+        path,
+      });
+    }
+
+    this.textCache.set(path, text);
+    if (kind === "page") this.usage.pages_read += 1;
+    return text;
+  }
+
+  observeAnchors(page: string, count: number): void {
+    this.usage.anchors_seen += count;
+    if (count > this.limits.max_anchors_per_page) {
+      throw new IncompleteAuditError({
+        category: "limit",
+        key: "max_anchors_per_page",
+        message:
+          `anchor count on ${page} exceeded ` +
+          `(${count} > ${this.limits.max_anchors_per_page})`,
+        path: page,
+        limit: this.limits.max_anchors_per_page,
+        observed: count,
+      });
+    }
+  }
+
+  observeClaimBlocks(page: string, count: number): void {
+    this.usage.claim_blocks_seen += count;
+    if (count > this.limits.max_claims_per_page) {
+      throw new IncompleteAuditError({
+        category: "limit",
+        key: "max_claims_per_page",
+        message:
+          `claim-block count on ${page} exceeded ` +
+          `(${count} > ${this.limits.max_claims_per_page})`,
+        path: page,
+        limit: this.limits.max_claims_per_page,
+        observed: count,
+      });
+    }
+  }
+}
 
 function isInside(root: string, candidate: string): boolean {
   const rel = relative(root, candidate);
   return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
 }
 
-/**
- * Walk a repository without following symlinks.
- *
- * Following directory symlinks can escape the supplied root, traverse an untrusted tree, or
- * recurse through a cycle. Explicit anchor paths are handled separately and may point through an
- * internal symlink only when realpath still resolves inside the target root.
- */
-function walk(dir: string, keep: (p: string) => boolean, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    if (name === ".git" || name === "node_modules") continue;
-    const p = join(dir, name);
-    const stat = lstatSync(p);
-    if (stat.isSymbolicLink()) continue;
-    if (stat.isDirectory()) walk(p, keep, out);
-    else if (stat.isFile() && keep(p)) out.push(p);
-  }
-  return out;
+/** Walk without following symlinks. max_files counts traversed filesystem entries. */
+function walk(root: string, budget: ResourceBudget): string[] {
+  const files: string[] = [];
+
+  const visit = (dir: string, depth: number): void => {
+    budget.checkTime(dir);
+    let directory;
+    try {
+      directory = opendirSync(dir);
+    } catch {
+      throw new IncompleteAuditError({
+        category: "input",
+        key: "unreadable_directory",
+        message: "directory cannot be read",
+        path: dir,
+      });
+    }
+
+    try {
+      for (;;) {
+        const entry = directory.readSync();
+        if (entry === null) break;
+        const name = entry.name;
+        if (name === ".git" || name === "node_modules") continue;
+        const path = join(dir, name);
+        let stat;
+        try {
+          stat = lstatSync(path);
+        } catch {
+          throw new IncompleteAuditError({
+            category: "input",
+            key: "unreadable_entry",
+            message: "filesystem entry cannot be inspected",
+            path,
+          });
+        }
+
+        if (stat.isSymbolicLink()) {
+          budget.observeEntry(path, "symlink", depth);
+          continue;
+        }
+        if (stat.isDirectory()) {
+          budget.observeEntry(path, "directory", depth + 1);
+          visit(path, depth + 1);
+          continue;
+        }
+        if (stat.isFile()) {
+          budget.observeEntry(path, "file", depth);
+          files.push(path);
+        }
+      }
+    } finally {
+      try {
+        directory.closeSync();
+      } catch {
+        // A directory can already be closed after exhaustion; no audit result depends on this.
+      }
+    }
+  };
+
+  visit(root, 0);
+  return files.sort();
 }
 
-function entrypoints(target: string): string[] {
-  const py = walk(target, (p) => p.endsWith(".py"))
-    .filter((p) => !relative(target, p).startsWith("tests/"))
-    .filter((p) => readFileSync(p, "utf8").includes("__main__"));
-  const hooks = existsSync(join(target, ".githooks"))
-    ? walk(join(target, ".githooks"), () => true)
-    : [];
-  return [...py, ...hooks].map((p) => relative(target, p)).sort();
+function entrypoints(target: string, targetFiles: string[], budget: ResourceBudget): string[] {
+  const python = targetFiles
+    .filter((path) => path.endsWith(".py"))
+    .filter((path) => !relative(target, path).startsWith("tests/"))
+    .filter((path) => budget.readText(path, "source").includes("__main__"));
+  const hooks = targetFiles.filter((path) => relative(target, path).startsWith(".githooks/"));
+  return [...python, ...hooks].map((path) => relative(target, path)).sort();
 }
 
 function hasWellFormedAnchor(block: string): boolean {
   return new RegExp(ANCHOR_RE.source).test(block);
 }
 
-function auditPage(target: string, targetReal: string, page: string, text: string) {
+function auditPage(
+  target: string,
+  targetReal: string,
+  page: string,
+  text: string,
+  budget: ResourceBudget,
+) {
   const anchors: Anchor[] = [];
   const bad: Bad[] = [];
 
-  // A source-looking token without the required opening parenthesis must not look verified.
+  const anchorTokens = [...text.matchAll(/\(src:/g)].length;
+  budget.observeAnchors(page, anchorTokens);
+
   for (const match of text.matchAll(/(^|[^(])src:\s*[^\s`]+\s+`[^`]+`/g)) {
     bad.push({
       page,
@@ -73,10 +453,8 @@ function auditPage(target: string, targetReal: string, page: string, text: strin
     });
   }
 
-  // A malformed `(src:` token must never vanish from both the numerator and invalid count.
-  const tokens = [...text.matchAll(/\(src:/g)].length;
   const parsed = [...text.matchAll(new RegExp(ANCHOR_RE.source, "g"))];
-  if (tokens > parsed.length) {
+  if (anchorTokens > parsed.length) {
     for (const match of text.matchAll(/\(src:[^)]*\)?/g)) {
       const fragment = match[0]!;
       if (!new RegExp(`^${ANCHOR_RE.source}$`).test(fragment)) {
@@ -91,6 +469,7 @@ function auditPage(target: string, targetReal: string, page: string, text: strin
   }
 
   for (const match of text.matchAll(ANCHOR_RE)) {
+    budget.checkTime(page);
     const anchor: Anchor = { page, path: match[1]!, quote: match[2]! };
     anchors.push(anchor);
 
@@ -101,7 +480,6 @@ function auditPage(target: string, targetReal: string, page: string, text: strin
       bad.push({ ...anchor, reason: "path escapes target" });
       continue;
     }
-
     if (CIRCULAR.some((dir) => lexicalRel === dir || lexicalRel.startsWith(`${dir}/`))) {
       bad.push({
         ...anchor,
@@ -109,7 +487,6 @@ function auditPage(target: string, targetReal: string, page: string, text: strin
       });
       continue;
     }
-
     if (!existsSync(lexicalPath)) {
       bad.push({ ...anchor, reason: "file does not exist" });
       continue;
@@ -122,27 +499,37 @@ function auditPage(target: string, targetReal: string, page: string, text: strin
       bad.push({ ...anchor, reason: "file cannot be resolved" });
       continue;
     }
-
     if (!isInside(targetReal, actualPath)) {
       bad.push({ ...anchor, reason: "symlink escapes target" });
       continue;
     }
 
-    if (!lstatSync(actualPath).isFile()) {
+    const actualRel = relative(targetReal, actualPath);
+    if (CIRCULAR.some((dir) => actualRel === dir || actualRel.startsWith(`${dir}/`))) {
+      bad.push({
+        ...anchor,
+        reason: `circular evidence through symlink: ${actualRel.split("/")[0]} is generated output`,
+      });
+      continue;
+    }
+
+    let actualStat;
+    try {
+      actualStat = lstatSync(actualPath);
+    } catch {
+      bad.push({ ...anchor, reason: "anchor target cannot be inspected" });
+      continue;
+    }
+    if (!actualStat.isFile()) {
       bad.push({ ...anchor, reason: "anchor target is not a regular file" });
       continue;
     }
 
-    try {
-      if (!readFileSync(actualPath, "utf8").includes(anchor.quote)) {
-        bad.push({ ...anchor, reason: "quote not found in that file" });
-      }
-    } catch {
-      bad.push({ ...anchor, reason: "file is not readable as UTF-8 text" });
+    if (!budget.readText(actualPath, "source").includes(anchor.quote)) {
+      bad.push({ ...anchor, reason: "quote not found in that file" });
     }
   }
 
-  // A C1-shaped claim is a Markdown block containing a code-file reference.
   const refs = new Set<string>();
   const blocks: string[] = [];
   let current: string[] = [];
@@ -192,59 +579,85 @@ function auditPage(target: string, targetReal: string, page: string, text: strin
     }
     return hasReference;
   });
+  budget.observeClaimBlocks(page, withRef.length);
 
   const inferred = withRef.filter((block) => block.includes("(inferred"));
   const claims = withRef.filter((block) => !block.includes("(inferred"));
   return { anchors, bad, claims, inferred, refs };
 }
 
-function main(argv: string[]): number {
-  const exclusions: string[] = [];
-  const positional: string[] = [];
+function measuredSet(exclusions: string[]): string {
+  return exclusions.length ? `all pages except ${exclusions.join(", ")}` : "all pages";
+}
 
-  for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index] === "--exclude") {
-      exclusions.push(...(argv[++index] ?? "").split(",").filter(Boolean));
-    } else {
-      positional.push(argv[index]!);
-    }
-  }
+function printIncomplete(args: ParsedArgs, budget: ResourceBudget, error: IncompleteAuditError): void {
+  console.log(
+    JSON.stringify(
+      {
+        schema_version: "wiki-anchor-audit@v4",
+        complete: false,
+        status: "incomplete",
+        measured_set: measuredSet(args.exclusions),
+        excluded: args.exclusions,
+        pages: budget.usage.pages_read,
+        resource_limits: budget.limits,
+        resource_usage: budget.usage,
+        limit_failure:
+          error.category === "limit"
+            ? {
+                key: error.key,
+                path: error.path ?? null,
+                limit: error.limit ?? null,
+                observed: error.observed ?? null,
+                message: error.message,
+              }
+            : null,
+        input_failure:
+          error.category === "input"
+            ? { key: error.key, path: error.path ?? null, message: error.message }
+            : null,
+        invalid_anchors: [],
+        unanchored_claims: [],
+        failures: [`audit incomplete: ${error.message}`],
+      },
+      null,
+      2,
+    ),
+  );
+}
 
-  const wiki = positional[0] ? resolve(positional[0]) : "";
-  const target = positional[1] ? resolve(positional[1]) : "";
-  if (!wiki || !target) {
-    console.error("usage: audit_wiki.ts <wiki-dir> <target-repo-dir> [--exclude a,b]");
-    return 64;
-  }
-
+function audit(args: ParsedArgs, budget: ResourceBudget): number {
   for (const [label, dir] of [
-    ["wiki", wiki],
-    ["target", target],
+    ["wiki", args.wiki],
+    ["target", args.target],
   ] as const) {
     if (!existsSync(dir) || !lstatSync(dir).isDirectory()) {
-      console.error(`audit_wiki: ${label} directory does not exist: ${dir}`);
-      return 64;
+      throw new UsageError(`audit_wiki: ${label} directory does not exist: ${dir}`);
     }
   }
 
-  const targetReal = realpathSync(target);
+  const targetReal = realpathSync(args.target);
   const excluded = (rel: string) =>
-    exclusions.some((entry) => rel === entry || rel.startsWith(`${entry}/`));
-  const pages = walk(wiki, (p) => p.endsWith(".md")).filter(
-    (p) => !excluded(relative(wiki, p)),
-  );
+    args.exclusions.some((entry) => rel === entry || rel.startsWith(`${entry}/`));
+  const wikiFiles = walk(args.wiki, budget);
+  const targetFiles = walk(args.target, budget);
+  const pages = wikiFiles.filter((path) => path.endsWith(".md") && !excluded(relative(args.wiki, path)));
 
   let anchorCount = 0;
-  let badAnchors: Bad[] = [];
+  const badAnchors: Bad[] = [];
   let claimCount = 0;
   let anchoredClaimCount = 0;
   let inferredCount = 0;
   const unanchored: { page: string; block: string }[] = [];
   const allRefs = new Set<string>();
+  const pageTexts = new Map<string, string>();
 
   for (const pagePath of pages) {
-    const page = relative(wiki, pagePath);
-    const result = auditPage(target, targetReal, page, readFileSync(pagePath, "utf8"));
+    budget.checkTime(pagePath);
+    const page = relative(args.wiki, pagePath);
+    const text = budget.readText(pagePath, "page");
+    pageTexts.set(pagePath, text);
+    const result = auditPage(args.target, targetReal, page, text, budget);
     anchorCount += result.anchors.length;
     badAnchors.push(...result.bad);
     claimCount += result.claims.length;
@@ -257,7 +670,7 @@ function main(argv: string[]): number {
     for (const ref of result.refs) allRefs.add(ref);
   }
 
-  const allFiles = walk(target, () => true).map((p) => relative(target, p));
+  const allFiles = targetFiles.map((path) => relative(args.target, path));
   const exactFiles = new Set(allFiles);
   const filesByBase = new Map<string, string[]>();
   for (const file of allFiles) {
@@ -280,8 +693,8 @@ function main(argv: string[]): number {
     }
   }
 
-  const eps = entrypoints(target);
-  const wikiText = pages.map((p) => readFileSync(p, "utf8")).join("\n");
+  const eps = entrypoints(args.target, targetFiles, budget);
+  const wikiText = pages.map((path) => pageTexts.get(path)!).join("\n");
   const uncovered = eps.filter((entrypoint) => !wikiText.includes(entrypoint));
 
   const anchorRate = claimCount === 0 ? 0 : anchoredClaimCount / claimCount;
@@ -313,16 +726,20 @@ function main(argv: string[]): number {
     failures.push(`verifiable_share ${(verifiableShare * 100).toFixed(1)}% < 40%`);
   }
 
+  budget.checkTime();
   console.log(
     JSON.stringify(
       {
-        schema_version: "wiki-anchor-audit@v3",
-        measured_set: exclusions.length
-          ? `all pages except ${exclusions.join(", ")}`
-          : "all pages",
-        excluded: exclusions,
+        schema_version: "wiki-anchor-audit@v4",
+        complete: true,
         status: failures.length === 0 ? "passed" : "failed",
+        measured_set: measuredSet(args.exclusions),
+        excluded: args.exclusions,
         pages: pages.length,
+        resource_limits: budget.limits,
+        resource_usage: budget.usage,
+        limit_failure: null,
+        input_failure: null,
         anchor: {
           total: anchorCount,
           invalid: badAnchors.length,
@@ -361,7 +778,32 @@ function main(argv: string[]): number {
     ),
   );
 
-  return failures.length > 0 ? 2 : 0;
+  return failures.length > 0 ? EXIT_FAILED : 0;
+}
+
+function main(argv: string[]): number {
+  let args: ParsedArgs;
+  try {
+    args = parseArgs(argv);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return EXIT_USAGE;
+  }
+
+  const budget = new ResourceBudget(args.limits);
+  try {
+    return audit(args, budget);
+  } catch (error) {
+    if (error instanceof UsageError) {
+      console.error(error.message);
+      return EXIT_USAGE;
+    }
+    if (error instanceof IncompleteAuditError) {
+      printIncomplete(args, budget, error);
+      return EXIT_INCOMPLETE;
+    }
+    throw error;
+  }
 }
 
 process.exit(main(process.argv.slice(2)));

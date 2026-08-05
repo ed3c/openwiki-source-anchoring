@@ -16,7 +16,7 @@ env:
 jobs:
   selftest:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,11 +33,37 @@ jobs:
           bun --version
           shellcheck --version
 
-      - name: ShellCheck all harness scripts for errors
-        run: shellcheck --severity=error harness/*.sh
+      - name: ShellCheck all executable shell paths for errors
+        run: >-
+          shellcheck --severity=error
+          harness/*.sh
+          harness/tests/*.sh
+          reproduction/*.sh
 
-      - name: ShellCheck gate paths for warnings
-        run: shellcheck --severity=warning harness/selftest.sh harness/verify.sh harness/trigger.sh
+      - name: ShellCheck primary verification paths for warnings
+        run: >-
+          shellcheck --severity=warning
+          harness/selftest.sh
+          harness/verify.sh
+          harness/trigger.sh
+          harness/tests/fake_driver.sh
+          reproduction/recompute.sh
+
+      - name: Parse committed JSON artifacts
+        run: |
+          bun -e '
+          import { readFileSync } from "node:fs";
+          for (const path of [
+            "reproduction/provenance.json",
+            "reproduction/expected-receipts/good.json",
+            "reproduction/expected-receipts/hollow.json",
+            "experiments/factorial-v1/provenance-template.json",
+            "experiments/factorial-v1/run-manifest.schema.json"
+          ]) JSON.parse(readFileSync(path, "utf8"));
+          '
 
       - name: Run harness self-test
         run: sh harness/selftest.sh
+
+      - name: Recompute deterministic bundle
+        run: sh reproduction/recompute.sh

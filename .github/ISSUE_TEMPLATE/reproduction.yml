@@ -1,0 +1,42 @@
+name: Reproduction report
+description: Report a successful or failed deterministic reproduction
+title: "[Reproduction]: "
+labels:
+  - reproducibility
+body:
+  - type: input
+    id: commit
+    attributes:
+      label: Reviewed commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, architecture, Bun version, and shell
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands and complete output
+      description: Include exit codes and remove all secrets or proprietary source
+    validations:
+      required: true
+  - type: textarea
+    id: difference
+    attributes:
+      label: Difference from expected result
+      description: Include the smallest failing case; write "none" for a successful reproduction
+    validations:
+      required: true
+  - type: checkboxes
+    id: disclosure
+    attributes:
+      label: Disclosure check
+      options:
+        - label: I removed secrets, private source, and proprietary prompts
+          required: true
+        - label: I included failed attempts as well as successful ones
+          required: true
