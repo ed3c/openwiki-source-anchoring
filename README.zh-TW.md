@@ -6,7 +6,7 @@
 
 # OpenWiki Source Anchoring
 
-一個 evidence-first 審驗：研究如何讓 AI 生成的程式碼文件更容易被驗證。
+一個 evidence-first 實驗：研究如何讓 AI 生成的程式碼文件更容易被驗證。
 
 這個 repository 聚焦一個明確問題：
 

@@ -88,4 +88,7 @@ jobs:
             echo "FAIL: denominator check did not detect an injected claim" >&2
             exit 1
           fi
-         ÜÝ\Ø\›K\YÙK˜˜ZÈ‰YÙH‚ˆ[ˆ[ˆ\›™\ÜËÜÜ˜ËØ]Y]Ø\›\ËÈ‹Ù]‹Û[ˆ[ˆ[ˆ\›™\ÜËÜÜ˜ËØÚXÚ×ÜX›\ÚYØ\›\ËÈ‹Ù]‹Û[ˆXÚÈ›ÚÎˆ›ÝÚXÚÜÈ]XÝšY[™H™YHØ\È™\ÝÜ™Y‚
+          cp /tmp/arm-page.bak "$page"
+          bun run harness/src/audit_arms.ts >/dev/null
+          bun run harness/src/check_published_arms.ts >/dev/null
+          echo "ok: both checks detect drift and the tree was restored"

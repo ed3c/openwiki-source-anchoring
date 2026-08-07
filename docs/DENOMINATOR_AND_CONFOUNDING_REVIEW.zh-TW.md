@@ -52,7 +52,7 @@ Arm D 不是 arm C 只切換一個開關。
 
 Gate pressure、session-level writing variation、page selection，以及 treatment 移動自身分母的能力因此同時變動。現有資料中沒有任何一對 arms 能單獨識別 gate effect。
 
-真正的 separating design 已固定在 [`experiments/factorial-v1/PROTOCOL.md`](../experiments/factorial-v1/PROTOCOL.md)：同一 pinned target 上的 R0/R1 與 G0/G1、repeated independent runs、blinded evaluation。該審驗尚未執行。
+真正的 separating design 已固定在 [`experiments/factorial-v1/PROTOCOL.md`](../experiments/factorial-v1/PROTOCOL.md)：同一 pinned target 上的 R0/R1 與 G0/G1、repeated independent runs、blinded evaluation。該實驗尚未執行。
 
 ## 3. 不刪字也能操縱 legacy denominator
 
@@ -60,7 +60,7 @@ Gate pressure、session-level writing variation、page selection，以及 treatm
 
 Word-floor control 抓不到這件事，因為沒有刪除任何 words。
 
-因此 anchor rate 只能作為 process diagnostic，而且必顈同時報告 numerator、denominator，並將 claim inventory 固定在被評分文本之外。
+因此 anchor rate 只能作為 process diagnostic，而且必須同時報告 numerator、denominator，並將 claim inventory 固定在被評分文本之外。
 
 ## 4. 第二種讀法
 
@@ -81,7 +81,7 @@ Word-floor control 抓不到這件事，因為沒有刪除任何 words。
 
 兩個 denominators 只差約 1%，而不是 legacy metric 的 23%。
 
-這是**第二種讀法，不是真值**。它仍有未封閉的 gaming channels，例如只提到檔案但 evidence 很弱，以及合併 pages。CI 會同時固定它的 legacy-parity block 與目前 C/D output，日後若移動必顈提出原因。
+這是**第二種讀法，不是真值**。它仍有未封閉的 gaming channels，例如只提到檔案但 evidence 很弱，以及合併 pages。CI 會同時固定它的 legacy-parity block 與目前 C/D output，日後若移動必須提出原因。
 
 ## 5. B → Bs 不是 marker-only intervention
 
