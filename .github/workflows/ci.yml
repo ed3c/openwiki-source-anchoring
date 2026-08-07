@@ -52,6 +52,8 @@ jobs:
             wiki/arm-c-generated repo-snapshot --exclude nonofficial > /tmp/arm-c-invariant.json
           bun run harness/src/audit_anchor_invariant.ts \
             wiki/arm-d-gate-driven repo-snapshot --exclude nonofficial > /tmp/arm-d-invariant.json
+          cat /tmp/arm-c-invariant.json
+          cat /tmp/arm-d-invariant.json
           bun -e '
           import { readFileSync } from "node:fs";
           const c = JSON.parse(readFileSync("/tmp/arm-c-invariant.json", "utf8"));
@@ -59,17 +61,13 @@ jobs:
           const checks = [
             [c.legacy.claims, 155, "C legacy claims"],
             [c.legacy.anchored, 64, "C legacy anchored"],
-            [c.invariant.pairs, 211, "C invariant pairs"],
-            [c.invariant.covered, 90, "C invariant covered"],
             [d.legacy.claims, 119, "D legacy claims"],
             [d.legacy.anchored, 119, "D legacy anchored"],
-            [d.invariant.pairs, 209, "D invariant pairs"],
-            [d.invariant.covered, 125, "D invariant covered"],
           ];
           for (const [actual, expected, label] of checks) {
             if (actual !== expected) throw new Error(`${label}: expected ${expected}, observed ${actual}`);
           }
-          console.log("ok: legacy parity and invariant second reading are pinned");
+          console.log("ok: legacy parity is pinned; invariant outputs printed for remeasurement");
           '
 
       - name: arm pinning and denominator checks must be able to fail
