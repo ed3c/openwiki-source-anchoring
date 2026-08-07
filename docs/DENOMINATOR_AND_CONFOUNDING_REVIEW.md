@@ -76,10 +76,10 @@ Pinned results:
 
 | Arm | Covered pairs | Named pairs | Rate |
 |---|---:|---:|---:|
-| C | 90 | 211 | 42.7% |
+| C | 90 | 209 | 43.1% |
 | D | 125 | 209 | 59.8% |
 
-The denominators differ by about 1%, rather than the legacy metric's 23%.
+The denominators are equal on the current vendored target, rather than differing by 23% as in the legacy claim-block metric.
 
 This is a **second reading, not a true score**. It still has open gaming channels, including weak evidence that merely mentions a file and page merging. CI pins both its legacy-parity block and its current C/D output so future changes must explain any movement.
 

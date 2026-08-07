@@ -76,10 +76,10 @@ Word-floor control 抓不到這件事，因為沒有刪除任何 words。
 
 | Arm | Covered pairs | Named pairs | Rate |
 |---|---:|---:|---:|
-| C | 90 | 211 | 42.7% |
+| C | 90 | 209 | 43.1% |
 | D | 125 | 209 | 59.8% |
 
-兩個 denominators 只差約 1%，而不是 legacy metric 的 23%。
+目前 vendored target 上兩個 denominators 相同，而不是 legacy claim-block metric 的 23% 差距。
 
 這是**第二種讀法，不是真值**。它仍有未封閉的 gaming channels，例如只提到檔案但 evidence 很弱，以及合併 pages。CI 會同時固定它的 legacy-parity block 與目前 C/D output，日後若移動必須提出原因。
 
