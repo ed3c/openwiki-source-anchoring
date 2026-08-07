@@ -68,6 +68,31 @@ The detailed remeasurement, marker-stripping caveat, cost boundary, and alternat
 
 The next causal design is a factorial comparison of retrofit versus fresh authoring and gate versus no gate. See [`experiments/factorial-v1/PROTOCOL.md`](experiments/factorial-v1/PROTOCOL.md) and [`docs/NEXT_EXPERIMENT.md`](docs/NEXT_EXPERIMENT.md).
 
+## Reusable OpenWiki evaluation contract
+
+The reusable evaluation layer compares multiple OpenWiki document trees against exact frozen source snapshots and measures repository understanding rather than prose polish or anchor count alone.
+
+- [OpenWiki Evaluation Contract User Guide](docs/OPENWIKI_EVALUATION_CONTRACT_USER_GUIDE.md)
+- [Traditional Chinese guide / 繁體中文使用說明](docs/OPENWIKI_EVALUATION_CONTRACT_USER_GUIDE.zh-TW.md)
+- [`evaluation/README.md`](evaluation/README.md): methodology and scorecard
+- [`evaluation/manifest.example.json`](evaluation/manifest.example.json): machine-readable contract template
+- [`evaluation/prompts/OPENWIKI_EVALUATION_PROMPTS.md`](evaluation/prompts/OPENWIKI_EVALUATION_PROMPTS.md): isolated task-author, answerer, executor, and judge prompts
+
+The guide includes the recommended workspace tree, Mermaid directory/data-flow diagrams, manifest setup, validation commands, role isolation, result storage, CI integration, reuse patterns, and release-ready checks.
+
+Quick contract verification:
+
+```sh
+sh evaluation/selftest.sh
+cp evaluation/manifest.example.json evaluation/manifest.local.json
+bun run evaluation/src/validate_manifest.mjs \
+  evaluation/manifest.local.json \
+  --root . \
+  --check-paths
+```
+
+The deterministic validator checks the declared contract and filesystem boundaries. Model-backed QA, navigation, change-impact, and engineering-task runs still require separate processes or sandboxes; prompt instructions alone are not an access boundary.
+
 ## Run the verifier
 
 Requirements:
@@ -176,6 +201,8 @@ Stars, commit volume, and generated prose are not treated as primary evidence.
 | [`METHOD.md`](METHOD.md) | Experimental procedure and provenance limits |
 | [`FINDINGS.md`](FINDINGS.md) | Contradiction inventory and adjudication notes |
 | [`docs/DENOMINATOR_AND_CONFOUNDING_REVIEW.md`](docs/DENOMINATOR_AND_CONFOUNDING_REVIEW.md) | Remeasurement that supersedes gate-only attribution |
+| [`docs/OPENWIKI_EVALUATION_CONTRACT_USER_GUIDE.md`](docs/OPENWIKI_EVALUATION_CONTRACT_USER_GUIDE.md) | Executable contract setup, directory structure, data-flow diagrams, isolation, and reuse guide |
+| [`evaluation/`](evaluation/) | Multi-OpenWiki manifest, prompts, result schema, analysis plan, and adversarial self-test |
 | [`STAGES.md`](STAGES.md) | Measurement failures and corrections made during the work |
 | [`THRESHOLDS.md`](THRESHOLDS.md) | Mechanical thresholds and their provenance |
 | [`harness/`](harness/) | Auditor, retry loop, fixtures, and self-test |
