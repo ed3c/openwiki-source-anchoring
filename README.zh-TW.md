@@ -68,6 +68,31 @@ D = 119 / 119
 
 下一個 causal design 應比較 retrofit／fresh authoring 與 gate／no gate 的 factorial cells。見 [`experiments/factorial-v1/PROTOCOL.md`](experiments/factorial-v1/PROTOCOL.md) 與 [`docs/NEXT_EXPERIMENT.md`](docs/NEXT_EXPERIMENT.md)。
 
+## 可重複使用的 OpenWiki 評測契約
+
+Reusable evaluation layer 會把多份 OpenWiki document trees 對照 exact frozen source snapshots，評估 repository understanding，而不是只看 prose polish 或 anchor count。
+
+- [OpenWiki 評測契約繁體中文使用說明](docs/OPENWIKI_EVALUATION_CONTRACT_USER_GUIDE.zh-TW.md)
+- [English user guide](docs/OPENWIKI_EVALUATION_CONTRACT_USER_GUIDE.md)
+- [`evaluation/README.zh-TW.md`](evaluation/README.zh-TW.md)：方法與 scorecard
+- [`evaluation/manifest.example.json`](evaluation/manifest.example.json)：machine-readable contract template
+- [`evaluation/prompts/OPENWIKI_EVALUATION_PROMPTS.md`](evaluation/prompts/OPENWIKI_EVALUATION_PROMPTS.md)：隔離的 task-author、answerer、executor 與 judge prompts
+
+使用說明包含建議 workspace tree、Mermaid 目錄與資料流圖、manifest 設定、validation commands、role isolation、result storage、CI integration、跨 repository 重複使用方式與 release-ready checks。
+
+快速驗證 contract：
+
+```sh
+sh evaluation/selftest.sh
+cp evaluation/manifest.example.json evaluation/manifest.local.json
+bun run evaluation/src/validate_manifest.mjs \
+  evaluation/manifest.local.json \
+  --root . \
+  --check-paths
+```
+
+Deterministic validator 只檢查 declared contract 與 filesystem boundaries。Model-backed QA、navigation、change-impact 與 engineering-task runs 仍必須在不同 process 或 sandbox 執行；prompt instruction 本身不是 access boundary。
+
 ## 執行 verifier
 
 需求：
@@ -176,6 +201,8 @@ Stars、commit 數量與生成文字長度不應作為主要能力證據。
 | [`METHOD.md`](METHOD.md) | Experiment procedure 與 provenance limits |
 | [`FINDINGS.md`](FINDINGS.md) | Contradiction inventory 與 adjudication notes |
 | [`docs/DENOMINATOR_AND_CONFOUNDING_REVIEW.zh-TW.md`](docs/DENOMINATOR_AND_CONFOUNDING_REVIEW.zh-TW.md) | 取代 gate-only 歸因的重測 |
+| [`docs/OPENWIKI_EVALUATION_CONTRACT_USER_GUIDE.zh-TW.md`](docs/OPENWIKI_EVALUATION_CONTRACT_USER_GUIDE.zh-TW.md) | 可執行 contract 設定、目錄結構、資料流圖、隔離與重複使用說明 |
+| [`evaluation/`](evaluation/) | Multi-OpenWiki manifest、prompts、result schema、analysis plan 與 adversarial self-test |
 | [`STAGES.md`](STAGES.md) | Measurement failures 與修正歷程 |
 | [`THRESHOLDS.md`](THRESHOLDS.md) | Mechanical thresholds 與 provenance |
 | [`harness/`](harness/) | Auditor、retry loop、fixtures 與 self-test |
